@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>強化版オセロゲーム</title>
+  <title>強化版オセロゲーム（AIレベル5：50手までレベル4、以降は相手石最小化）</title>
   <style>
     body {
       font-family: sans-serif;
@@ -80,8 +80,8 @@
         <option value="1">1 (初心者)</option>
         <option value="2">2</option>
         <option value="3">3</option>
-        <option value="4">4</option>
-        <option value="5">5 (上級者)</option>
+        <option value="4">4 (狭い勝利を狙う)</option>
+        <option value="5">5 (50手まではレベル4、それ以降は相手石最小化、絶対勝ち)</option>
       </select>
     </div>
     <button id="start-button">ゲーム開始</button>
@@ -95,31 +95,33 @@
   </div>
 
   <script>
-    // 定数・変数の定義
+    // 定数・グローバル変数
     const BOARD_SIZE = 8;
-    let board = [];  // 8×8 の2次元配列（各セルは "B"・"W" または null）
+    let board = [];  // 8x8の2次元配列。各セルは "B"・"W" または null
     let humanPlayer, aiPlayer, currentPlayer;
     let aiStrength = 1;
     let gameOver = false;
-    // 8方向（上下左右＋斜め）のためのベクトル
+    let moveCount = 0;  // 着手数（人間・AI合わせた手数）
+    // 8方向の移動ベクトル（上下左右＋斜め）
     const directions = [
       [-1, 0], [1, 0], [0, -1], [0, 1],
       [-1, -1], [-1, 1], [1, -1], [1, 1]
     ];
 
-    // 盤面初期化（中央4手の配置）
+    // 盤面を初期化（中央4手配置）
     function initializeBoard() {
       board = Array.from({ length: BOARD_SIZE }, () => Array(BOARD_SIZE).fill(null));
       board[3][3] = "W";
       board[3][4] = "B";
       board[4][3] = "B";
       board[4][4] = "W";
+      moveCount = 0;
     }
 
-    // 指定された盤面上で、row, col に player の石を置くことが合法かを判定
+    // 指定セルにplayerの手を置けるかチェック
     function isLegalMove(boardState, row, col, player) {
       if (boardState[row][col] !== null) return false;
-      const opponent = player === "B" ? "W" : "B";
+      const opponent = (player === "B") ? "W" : "B";
       for (let [dx, dy] of directions) {
         let i = row + dx, j = col + dy;
         let hasOpponent = false;
@@ -139,7 +141,7 @@
       return false;
     }
 
-    // 現在の盤面に対する、player の合法手一覧を取得
+    // 現在の盤面におけるplayerの合法手一覧を取得
     function getLegalMoves(boardState, player) {
       const moves = [];
       for (let i = 0; i < BOARD_SIZE; i++) {
@@ -152,10 +154,10 @@
       return moves;
     }
 
-    // 指定のセルに石を置いて、8方向を走査し挟める相手の石をひっくり返す
+    // (row, col)に石を置き、8方向走査して挟んだ石を反転させる
     function makeMove(row, col, player, boardState) {
       boardState[row][col] = player;
-      const opponent = player === "B" ? "W" : "B";
+      const opponent = (player === "B") ? "W" : "B";
       for (let [dx, dy] of directions) {
         let i = row + dx, j = col + dy;
         const discsToFlip = [];
@@ -176,7 +178,7 @@
       }
     }
 
-    // 盤面・ターン情報・スコアの描画（合法手は黄色でハイライト）
+    // 盤面・ターン情報・スコアを再描画（合法手は黄色ハイライト）
     function renderBoard() {
       const boardDiv = document.getElementById("board");
       boardDiv.innerHTML = "";
@@ -205,7 +207,7 @@
       turnInfoDiv.textContent = (currentPlayer === humanPlayer)
         ? "あなたのターン (" + (humanPlayer === "B" ? "黒" : "白") + ")"
         : "AIのターン (" + (aiPlayer === "B" ? "黒" : "白") + ")";
-      // スコアの計算
+      // スコア計算
       let blackCount = 0, whiteCount = 0;
       for (let i = 0; i < BOARD_SIZE; i++) {
         for (let j = 0; j < BOARD_SIZE; j++) {
@@ -217,7 +219,7 @@
         "黒: " + blackCount + "  |  白: " + whiteCount;
     }
 
-    // ユーザーがセルをクリックしたときの処理（自分のターンの場合のみ）
+    // 人間がセルをクリックしたときの処理（自分のターンのみ）
     function cellClicked(event) {
       if (currentPlayer !== humanPlayer || gameOver) return;
       const row = parseInt(event.currentTarget.dataset.row);
@@ -227,14 +229,14 @@
         return;
       }
       makeMove(row, col, humanPlayer, board);
+      moveCount++;
       switchTurn();
     }
 
-    // ターンの切り替え。合法手がない場合のパス処理およびゲーム終了判定も実施
+    // ターンを切り替え。合法手がなければパスまたはゲーム終了
     function switchTurn() {
       currentPlayer = (currentPlayer === "B") ? "W" : "B";
       if (getLegalMoves(board, currentPlayer).length === 0) {
-        // 相手も置けなければゲーム終了
         currentPlayer = (currentPlayer === "B") ? "W" : "B";
         if (getLegalMoves(board, currentPlayer).length === 0) {
           endGame();
@@ -249,46 +251,117 @@
       }
     }
 
-    // 強化評価関数：各セルに重みを付与して局面を評価する
-    // 角は高得点、隣接セルは低得点など戦略的に有利／不利な配置を反映
+    // 評価関数
+    // ・aiStrengthが5の場合、moveCountが50未満ならレベル4相当の評価（狭い勝利を狙う）
+    // ・50手以降は、相手の石をできるだけ少なくする（強い人間封じ）ように評価
+    // ・その他レベルは従来の評価関数
     function evaluateBoard(boardState) {
-      let score = 0;
-      const weightMatrix = [
-        [100, -20, 10, 5, 5, 10, -20, 100],
-        [-20, -50, -2, -2, -2, -2, -50, -20],
-        [10, -2, 5, 1, 1, 5, -2, 10],
-        [5, -2, 1, 0, 0, 1, -2, 5],
-        [5, -2, 1, 0, 0, 1, -2, 5],
-        [10, -2, 5, 1, 1, 5, -2, 10],
-        [-20, -50, -2, -2, -2, -2, -50, -20],
-        [100, -20, 10, 5, 5, 10, -20, 100]
-      ];
-      for (let i = 0; i < BOARD_SIZE; i++) {
-        for (let j = 0; j < BOARD_SIZE; j++) {
-          if (boardState[i][j] === aiPlayer) {
-            score += weightMatrix[i][j];
-          } else if (boardState[i][j] === humanPlayer) {
-            score -= weightMatrix[i][j];
+      if (parseInt(aiStrength) === 5) {
+        if (moveCount < 50) {
+          // レベル4相当：角や有利な位置を評価し、石差は1～2目に打ち切る
+          let positionalScore = 0;
+          let aiCount = 0, humanCount = 0;
+          const weightMatrix = [
+            [1500, -300, 100, 50, 50, 100, -300, 1500],
+            [-300, -500, -50, -20, -20, -50, -500, -300],
+            [100, -50, 30, 10, 10, 30, -50, 100],
+            [50, -20, 10, 0, 0, 10, -20, 50],
+            [50, -20, 10, 0, 0, 10, -20, 50],
+            [100, -50, 30, 10, 10, 30, -50, 100],
+            [-300, -500, -50, -20, -20, -50, -500, -300],
+            [1500, -300, 100, 50, 50, 100, -300, 1500]
+          ];
+          for (let i = 0; i < BOARD_SIZE; i++) {
+            for (let j = 0; j < BOARD_SIZE; j++) {
+              if (boardState[i][j] === aiPlayer) {
+                positionalScore += weightMatrix[i][j];
+                aiCount++;
+              } else if (boardState[i][j] === humanPlayer) {
+                positionalScore -= weightMatrix[i][j];
+                humanCount++;
+              }
+            }
+          }
+          let stoneDiff = aiCount - humanCount;
+          let stoneDiffScore = (stoneDiff > 0) ? Math.min(stoneDiff, 2) * 10 : stoneDiff * 10;
+          return positionalScore + stoneDiffScore;
+        } else {
+          // 50手以降：人間の石数を最小化する評価（強い人間封じ）
+          let positionalScore = 0;
+          let aiCount = 0, humanCount = 0;
+          const weightMatrix = [
+            [1500, -300, 100, 50, 50, 100, -300, 1500],
+            [-300, -500, -50, -20, -20, -50, -500, -300],
+            [100, -50, 30, 10, 10, 30, -50, 100],
+            [50, -20, 10, 0, 0, 10, -20, 50],
+            [50, -20, 10, 0, 0, 10, -20, 50],
+            [100, -50, 30, 10, 10, 30, -50, 100],
+            [-300, -500, -50, -20, -20, -50, -500, -300],
+            [1500, -300, 100, 50, 50, 100, -300, 1500]
+          ];
+          for (let i = 0; i < BOARD_SIZE; i++) {
+            for (let j = 0; j < BOARD_SIZE; j++) {
+              if (boardState[i][j] === aiPlayer) {
+                positionalScore += weightMatrix[i][j];
+                aiCount++;
+              } else if (boardState[i][j] === humanPlayer) {
+                positionalScore -= weightMatrix[i][j];
+                humanCount++;
+              }
+            }
+          }
+          let stoneDiffScore = (aiCount - humanCount) * 10;
+          let mobilityScore = (getLegalMoves(boardState, aiPlayer).length - getLegalMoves(boardState, humanPlayer).length) * 20;
+          // 強いペナルティを与え、相手の石を大きく減らすように狙う
+          let humanPenalty = humanCount * 300;
+          return positionalScore + stoneDiffScore + mobilityScore - humanPenalty;
+        }
+      } else {
+        // レベル5以外（1～4）は従来の評価
+        let score = 0;
+        let aiCount = 0, humanCount = 0;
+        const weightMatrix = [
+          [1000, -200, 50, 10, 10, 50, -200, 1000],
+          [-200, -300, -10, -10, -10, -10, -300, -200],
+          [50, -10, 30, 5, 5, 30, -10, 50],
+          [10, -10, 5, 0, 0, 5, -10, 10],
+          [10, -10, 5, 0, 0, 5, -10, 10],
+          [50, -10, 30, 5, 5, 30, -10, 50],
+          [-200, -300, -10, -10, -10, -10, -300, -200],
+          [1000, -200, 50, 10, 10, 50, -200, 1000]
+        ];
+        for (let i = 0; i < BOARD_SIZE; i++) {
+          for (let j = 0; j < BOARD_SIZE; j++) {
+            if (boardState[i][j] === aiPlayer) {
+              score += weightMatrix[i][j];
+              aiCount++;
+            } else if (boardState[i][j] === humanPlayer) {
+              score -= weightMatrix[i][j];
+              humanCount++;
+            }
           }
         }
+        score += (aiCount - humanCount) * 10;
+        return score;
       }
-      return score;
     }
 
-    // 盤面のディープコピー（ミニマックス探索用）
+    // 盤面のディープコピー（探索用）
     function copyBoard(boardState) {
       return boardState.map(row => row.slice());
     }
 
-    // ゲーム終了判定：両プレイヤーとも合法手がないなら true
+    // ゲーム終了判定：両者に合法手がなければ終了
     function gameEnded(boardState) {
       return getLegalMoves(boardState, "B").length === 0 &&
              getLegalMoves(boardState, "W").length === 0;
     }
 
-    // ミニマックス探索（α–βプルーニング付）  
-    // maximizingPlayer が true のときは AI の視点で探索
-    function minimax(boardState, depth, alpha, beta, maximizingPlayer) {
+    // タイムリミット付きα–βプルーニングミニマックス探索
+    function minimaxTimed(boardState, depth, alpha, beta, maximizingPlayer, startTime, timeLimit) {
+      if (Date.now() - startTime > timeLimit) {
+        return { score: evaluateBoard(boardState), move: null };
+      }
       if (depth === 0 || gameEnded(boardState)) {
         return { score: evaluateBoard(boardState), move: null };
       }
@@ -304,7 +377,8 @@
           const [row, col] = move;
           const newBoard = copyBoard(boardState);
           makeMove(row, col, aiPlayer, newBoard);
-          const evalResult = minimax(newBoard, depth - 1, alpha, beta, false).score;
+          const result = minimaxTimed(newBoard, depth - 1, alpha, beta, false, startTime, timeLimit);
+          const evalResult = result.score;
           if (evalResult > maxEval) {
             maxEval = evalResult;
             bestMove = move;
@@ -319,7 +393,8 @@
           const [row, col] = move;
           const newBoard = copyBoard(boardState);
           makeMove(row, col, humanPlayer, newBoard);
-          const evalResult = minimax(newBoard, depth - 1, alpha, beta, true).score;
+          const result = minimaxTimed(newBoard, depth - 1, alpha, beta, true, startTime, timeLimit);
+          const evalResult = result.score;
           if (evalResult < minEval) {
             minEval = evalResult;
             bestMove = move;
@@ -331,20 +406,21 @@
       }
     }
 
-    // AI探索深度のマッピング（aiStrength により探索深度を変更）
+    // AIレベルに応じた最大探索深度の設定
     function getAIDepth() {
       const level = parseInt(aiStrength);
-      // 例：aiStrength 2→3, 3→5, 4→7, 5→9（数字は調整可能）
       switch(level) {
         case 2: return 3;
         case 3: return 5;
         case 4: return 7;
-        case 5: return 9;
+        case 5: return 13;  // レベル5は深い探索を実施
         default: return 1;
       }
     }
 
-    // AI の手番の処理。強さ1はランダム、その他はミニマックス探索
+    // AIの手番の処理
+    // ・レベル1はランダム、その他は反復深化＋タイムリミット方式
+    // ・レベル5の場合、思考時間は最大7秒（7000ms）
     function aiMove() {
       if (gameOver) return;
       const legalMoves = getLegalMoves(board, aiPlayer);
@@ -357,9 +433,20 @@
       if (parseInt(aiStrength) === 1) {
         move = legalMoves[Math.floor(Math.random() * legalMoves.length)];
       } else {
-        const depth = getAIDepth();
-        const result = minimax(board, depth, -Infinity, Infinity, true);
-        move = result.move;
+        const timeLimit = (parseInt(aiStrength) === 5) ? 7000 : 3000;
+        const startTime = Date.now();
+        const maxDepth = getAIDepth();
+        let bestMove = null;
+        let currentDepth = 1;
+        // 反復深化：最大探索深度またはタイムリミットに到達するまで
+        while (currentDepth <= maxDepth && (Date.now() - startTime) < timeLimit) {
+          let result = minimaxTimed(board, currentDepth, -Infinity, Infinity, true, startTime, timeLimit);
+          if (result && result.move !== null) {
+            bestMove = result.move;
+          }
+          currentDepth++;
+        }
+        move = bestMove;
         if (!move) {
           move = legalMoves[Math.floor(Math.random() * legalMoves.length)];
         }
@@ -367,11 +454,12 @@
       if (move) {
         const [row, col] = move;
         makeMove(row, col, aiPlayer, board);
+        moveCount++;
         switchTurn();
       }
     }
 
-    // ゲーム終了時：最終スコアを計算し結果を表示
+    // ゲーム終了時の処理（最終スコア計算・結果表示）
     function endGame() {
       gameOver = true;
       renderBoard();
@@ -393,17 +481,13 @@
       alert("ゲーム終了！\n黒: " + blackCount + "  白: " + whiteCount + "\n" + result);
     }
 
-    // ゲーム開始処理：設定を反映して盤面・変数を初期化
+    // ゲーム開始処理：設定に従い、盤面・変数を初期化
     function startGame() {
       gameOver = false;
-      // 先手／後手の設定
       const turnOptions = document.getElementsByName("turn");
       let selectedTurn;
       for (const option of turnOptions) {
-        if (option.checked) {
-          selectedTurn = option.value;
-          break;
-        }
+        if (option.checked) { selectedTurn = option.value; break; }
       }
       if (selectedTurn === "first") {
         humanPlayer = "B";
@@ -412,23 +496,20 @@
       } else {
         humanPlayer = "W";
         aiPlayer = "B";
-        currentPlayer = aiPlayer; // AIから開始
+        currentPlayer = aiPlayer;  // AIが先手の場合
       }
       aiStrength = document.getElementById("ai-strength").value;
-      // 設定パネルを非表示、ゲーム画面を表示
       document.getElementById("settings").style.display = "none";
       document.getElementById("game").style.display = "block";
       
       initializeBoard();
       renderBoard();
-
-      // AIが先手の場合、最初にAIの手を実行
       if (currentPlayer === aiPlayer) {
         setTimeout(aiMove, 500);
       }
     }
-
-    // ゲーム開始ボタンのイベントリスナ登録
+    
+    // イベントリスナ登録
     document.getElementById("start-button").addEventListener("click", startGame);
   </script>
 </body>
