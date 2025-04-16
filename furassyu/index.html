@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>美麗フラッシュ暗算</title>
+  <!-- Google Fonts を利用 -->
+  <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,700|Roboto:300,400" rel="stylesheet">
+  <style>
+    /* 背景アニメーションと全体レイアウト */
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(135deg, #8EC5FC, #E0C3FC);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      animation: gradientShift 10s ease infinite;
+    }
+    @keyframes gradientShift {
+      0% { background: linear-gradient(135deg, #8EC5FC, #E0C3FC); }
+      50% { background: linear-gradient(135deg, #E0C3FC, #8EC5FC); }
+      100% { background: linear-gradient(135deg, #8EC5FC, #E0C3FC); }
+    }
+    /* コンテンツカード */
+    .container {
+      background: rgba(255, 255, 255, 0.97);
+      border-radius: 20px;
+      padding: 40px 30px;
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+      width: 90%;
+      max-width: 600px;
+      text-align: center;
+    }
+    h1 {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 700;
+      font-size: 2.5em;
+      margin-bottom: 20px;
+      color: #444;
+    }
+    /* 設定項目 */
+    .settingDiv {
+      margin: 15px 0;
+    }
+    .settingDiv span {
+      font-weight: bold;
+      margin-right: 10px;
+      font-size: 1.2em;
+    }
+    /* カスタムラジオボタン */
+    .settingDiv input[type="radio"] {
+      position: absolute;
+      opacity: 0;
+      cursor: pointer;
+    }
+    .settingDiv label {
+      margin: 0 8px;
+      font-size: 1em;
+      cursor: pointer;
+      position: relative;
+      padding-left: 25px;
+    }
+    .settingDiv label:before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px;
+      height: 16px;
+      border: 2px solid #3498db;
+      border-radius: 50%;
+      background: #fff;
+    }
+    .settingDiv input[type="radio"]:checked + label:before {
+      background: #3498db;
+      border-color: #3498db;
+    }
+    /* 出題数のグリッド表示 */
+    #termSelect .options {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      margin-top: 10px;
+    }
+    #termSelect .option {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    /* 数字表示エリア */
+    #display {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 4em;
+      margin: 30px 0;
+      height: 120px;
+      line-height: 120px;
+      color: #e74c3c;
+      transition: opacity 0.3s ease;
+    }
+    /* 答え入力エリア */
+    #inputDiv input[type="number"] {
+      font-size: 1.5em;
+      padding: 8px;
+      width: 200px;
+      text-align: center;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      outline: none;
+      transition: border-color 0.2s;
+      margin-right: 10px;
+    }
+    #inputDiv input[type="number"]:focus {
+      border-color: #3498db;
+    }
+    /* ボタンスタイル */
+    button {
+      font-size: 1.2em;
+      padding: 12px 25px;
+      border: none;
+      border-radius: 25px;
+      background-color: #3498db;
+      color: #fff;
+      cursor: pointer;
+      margin-top: 20px;
+      box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+      transition: background 0.3s ease, transform 0.2s ease;
+    }
+    button:hover {
+      background-color: #2980b9;
+      transform: translateY(-3px);
+    }
+    /* 結果表示エリア */
+    #result {
+      font-size: 1.6em;
+      margin-top: 20px;
+      color: #2c3e50;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>フラッシュ暗算</h1>
+    <!-- 桁数選択：デフォルト値は1 -->
+    <div class="settingDiv" id="digitSelect">
+      <span>桁数：</span>
+      <input type="radio" id="digit1" name="digit" value="1" checked>
+      <label for="digit1">1桁</label>
+      <input type="radio" id="digit2" name="digit" value="2">
+      <label for="digit2">2桁</label>
+      <input type="radio" id="digit3" name="digit" value="3">
+      <label for="digit3">3桁</label>
+    </div>
+    <!-- 出題数選択：グリッド表示 5列、デフォルト値は5 -->
+    <div class="settingDiv" id="termSelect">
+      <span>出題数：</span>
+      <div class="options">
+        <div class="option">
+          <input type="radio" id="terms1" name="terms" value="1">
+          <label for="terms1">1問</label>
+        </div>
+        <div class="option">
+          <input type="radio" id="terms2" name="terms" value="2">
+          <label for="terms2">2問</label>
+        </div>
+        <div class="option">
+          <input type="radio" id="terms3" name="terms" value="3">
+          <label for="terms3">3問</label>
+        </div>
+        <div class="option">
+          <input type="radio" id="terms4" name="terms" value="4">
+          <label for="terms4">4問</label>
+        </div>
+        <div class="option">
+          <input type="radio" id="terms5" name="terms" value="5" checked>
+          <label for="terms5">5問</label>
+        </div>
+        <div class="option">
+          <input type="radio" id="terms6" name="terms" value="6">
+          <label for="terms6">6問</label>
+        </div>
+        <div class="option">
+          <input type="radio" id="terms7" name="terms" value="7">
+          <label for="terms7">7問</label>
+        </div>
+        <div class="option">
+          <input type="radio" id="terms8" name="terms" value="8">
+          <label for="terms8">8問</label>
+        </div>
+        <div class="option">
+          <input type="radio" id="terms9" name="terms" value="9">
+          <label for="terms9">9問</label>
+        </div>
+        <div class="option">
+          <input type="radio" id="terms10" name="terms" value="10">
+          <label for="terms10">10問</label>
+        </div>
+      </div>
+    </div>
+    <!-- 表示時間選択（秒単位）：デフォルトは3秒 -->
+    <div class="settingDiv" id="timeSelect">
+      <span>表示時間：</span>
+      <input type="radio" id="time1" name="displayTime" value="1">
+      <label for="time1">1秒</label>
+      <input type="radio" id="time2" name="displayTime" value="2">
+      <label for="time2">2秒</label>
+      <input type="radio" id="time3" name="displayTime" value="3" checked>
+      <label for="time3">3秒</label>
+      <input type="radio" id="time4" name="displayTime" value="4">
+      <label for="time4">4秒</label>
+      <input type="radio" id="time5" name="displayTime" value="5">
+      <label for="time5">5秒</label>
+    </div>
+    
+    <div id="display"></div>
+    <div id="inputDiv"></div>
+    <div id="result"></div>
+    <button id="startButton">スタート</button>
+  </div>
+
+  <script>
+    let numbers = [];
+    let numTerms = 5;           // 出題数の初期値
+    let flashDuration = 3000;   // 表示時間（初期は3秒）
+    const gapDuration = 300;    // 数字間の空白
+    
+    // 桁数に応じたランダムな数字を生成
+    function generateNumbers(n, digits) {
+      let min, max;
+      switch (digits) {
+        case 1:
+          min = 1;
+          max = 9;
+          break;
+        case 2:
+          min = 10;
+          max = 99;
+          break;
+        case 3:
+          min = 100;
+          max = 999;
+          break;
+        default:
+          min = 1;
+          max = 9;
+      }
+      const arr = [];
+      for (let i = 0; i < n; i++) {
+        arr.push(Math.floor(Math.random() * (max - min + 1)) + min);
+      }
+      return arr;
+    }
+    
+    // ゲーム開始：各設定から値を取得しフラッシュ表示
+    function startGame() {
+      const digitRadio = document.querySelector('input[name="digit"]:checked');
+      const digitCount = Number(digitRadio ? digitRadio.value : 1);
+      
+      const termsRadio = document.querySelector('input[name="terms"]:checked');
+      numTerms = Number(termsRadio ? termsRadio.value : 5);
+      
+      const timeRadio = document.querySelector('input[name="displayTime"]:checked');
+      flashDuration = (Number(timeRadio ? timeRadio.value : 3)) * 1000;
+      
+      document.getElementById("startButton").style.display = "none";
+      document.getElementById("result").innerHTML = "";
+      document.getElementById("inputDiv").innerHTML = "";
+      
+      numbers = generateNumbers(numTerms, digitCount);
+      
+      let index = 0;
+      const displayDiv = document.getElementById("display");
+      
+      function flashNext() {
+        if (index < numbers.length) {
+          displayDiv.style.opacity = 1;
+          displayDiv.innerHTML = numbers[index];
+          index++;
+          setTimeout(() => {
+            displayDiv.style.opacity = 0;
+            setTimeout(flashNext, gapDuration);
+          }, flashDuration);
+        } else {
+          showInput();
+        }
+      }
+      flashNext();
+    }
+    
+    // 答え入力フォームの表示
+    function showInput() {
+      const inputDiv = document.getElementById("inputDiv");
+      inputDiv.innerHTML = '<input type="number" id="answer" placeholder="合計を入力"> ' +
+                           '<button onclick="checkAnswer()">答え合わせ</button>';
+    }
+    
+    // ユーザーの回答と正解の比較
+    function checkAnswer() {
+      const userAnswer = Number(document.getElementById("answer").value);
+      const correctAnswer = numbers.reduce((sum, num) => sum + num, 0);
+      const resultDiv = document.getElementById("result");
+      if (userAnswer === correctAnswer) {
+        resultDiv.innerHTML = "正解！お見事！";
+      } else {
+        resultDiv.innerHTML = "不正解… 正解は " + correctAnswer + " です。";
+      }
+      resultDiv.innerHTML += '<br><button onclick="restartGame()">もう一度チャレンジ</button>';
+    }
+    
+    // ゲームリセット
+    function restartGame() {
+      document.getElementById("display").innerHTML = "";
+      document.getElementById("inputDiv").innerHTML = "";
+      document.getElementById("result").innerHTML = "";
+      document.getElementById("startButton").style.display = "inline-block";
+    }
+    
+    document.getElementById("startButton").addEventListener("click", startGame);
+  </script>
+</body>
+</html>
