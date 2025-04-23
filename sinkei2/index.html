@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>カードマッチングゲーム（神経衰弱）</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Tailwind CSS CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <!-- Google Fonts (Noto Sans JP for Japanese) -->
+  <link href="https://fonts.googleapis.com/css?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome for icons -->
+  <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body { font-family: 'Noto Sans JP', sans-serif; }
+    .card {
+      perspective: 1000px;
+      cursor: pointer;
+    }
+    .card-inner {
+      transition: transform 0.4s;
+      transform-style: preserve-3d;
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+    .card.flipped .card-inner,
+    .card.matched .card-inner {
+      transform: rotateY(180deg);
+    }
+    .card-front, .card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      border-radius: 0.5rem;
+    }
+    .card-front {
+      background: #e5e7eb;
+      color: #1f2937;
+    }
+    .card-back {
+      background: #3b82f6;
+      color: #fff;
+      transform: rotateY(180deg);
+      user-select: none;
+    }
+    @media (max-width: 600px) {
+      .game-board {
+        grid-template-columns: repeat(4, minmax(55px, 1fr));
+        max-width: 350px;
+      }
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col justify-center items-center py-8">
+  <div class="w-full max-w-lg flex flex-col items-center">
+    <h1 class="text-3xl font-bold mb-4 text-blue-600"><i class="fas fa-brain mr-2"></i>カードマッチングゲーム（神経衰弱）</h1>
+    <p class="mb-2 text-gray-700 text-center">
+      同じ絵柄のカードをめくってペアを揃えましょう！
+    </p>
+    <div id="game-info" class="mb-4 flex flex-wrap justify-center items-center gap-3">
+      <span id="turns" class="text-sm text-gray-700">ターン数: 0</span>
+      <button id="restart-btn" class="ml-2 text-sm bg-blue-500 hover:bg-blue-600 text-white px-4 py-1 rounded transition">
+        <i class="fas fa-redo-alt mr-1"></i>リスタート
+      </button>
+    </div>
+    <div id="game-board" class="game-board grid grid-cols-4 gap-3 w-full max-w-md mb-4"></div>
+    <div id="message" class="text-xl font-semibold text-green-600 mt-3"></div>
+  </div>
+  <script>
+    // 絵文字セット（8ペア）
+    const EMOJIS = ["🍎","🍋","🍇","🍰","🎵","🚗","🌸","🐼"];
+
+    let board = [];
+    let firstCard = null, secondCard = null;
+    let lockBoard = false;
+    let matchedPairs = 0;
+    let turns = 0;
+
+    // Utility: シャッフル (Fisher-Yates)
+    function shuffle(array) {
+      for(let i=array.length-1; i>0; i--) {
+        const j = Math.floor(Math.random() * (i+1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    // カード生成
+    function createBoard() {
+      matchedPairs = 0;
+      turns = 0;
+      updateTurns();
+      document.getElementById('message').textContent = '';
+      firstCard = null; secondCard = null;
+      lockBoard = false;
+
+      // ペアを作る
+      let cardsArr = [];
+      EMOJIS.forEach((emoji, idx) => {
+        cardsArr.push({id: idx*2, emoji, matched: false});
+        cardsArr.push({id: idx*2+1, emoji, matched: false});
+      });
+      board = shuffle(cardsArr);
+
+      // DOM生成
+      const boardElem = document.getElementById('game-board');
+      boardElem.innerHTML = '';
+      board.forEach((card, idx) => {
+        const cardDiv = document.createElement('div');
+        cardDiv.className = "card w-20 h-28 md:w-24 md:h-32 shadow-lg relative";
+        cardDiv.dataset.index = idx;
+
+        cardDiv.innerHTML = `
+          <div class="card-inner w-full h-full">
+            <div class="card-front"></div>
+            <div class="card-back select-none">${card.emoji}</div>
+          </div>
+        `;
+        cardDiv.addEventListener('click', onCardClick);
+        boardElem.appendChild(cardDiv);
+      });
+    }
+
+    // カードクリック
+    function onCardClick(e) {
+      const cardDiv = e.currentTarget;
+      const index = cardDiv.dataset.index;
+      if(lockBoard) return;
+      if(cardDiv.classList.contains('flipped') || cardDiv.classList.contains('matched')) return;
+
+      cardDiv.classList.add('flipped');
+
+      if(!firstCard) {
+        firstCard = {index, element: cardDiv};
+        return;
+      }
+
+      if(firstCard.index === index) return;
+
+      secondCard = {index, element: cardDiv};
+      lockBoard = true;
+      turns++;
+      updateTurns();
+
+      // マッチ判定
+      if(board[firstCard.index].emoji === board[secondCard.index].emoji) {
+        // 正解
+        setTimeout(() => {
+          firstCard.element.classList.remove('flipped');
+          secondCard.element.classList.remove('flipped');
+          firstCard.element.classList.add('matched');
+          secondCard.element.classList.add('matched');
+          matchedPairs++;
+          resetSelection();
+          if(matchedPairs === EMOJIS.length) gameClear();
+        }, 550);
+      } else {
+        setTimeout(() => {
+          firstCard.element.classList.remove('flipped');
+          secondCard.element.classList.remove('flipped');
+          resetSelection();
+        }, 850);
+      }
+    }
+
+    function resetSelection() {
+      firstCard = null;
+      secondCard = null;
+      lockBoard = false;
+    }
+
+    function updateTurns() {
+      document.getElementById('turns').textContent = `ターン数: ${turns}`;
+    }
+
+    function gameClear() {
+      document.getElementById('message').textContent = `🎉 クリア！おめでとうございます（${turns}ターン）`;
+    }
+
+    document.getElementById('restart-btn').addEventListener('click', createBoard);
+
+    // 初期化
+    createBoard();
+  </script>
+</body>
+</html>
