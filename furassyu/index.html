@@ -78,7 +78,7 @@
       background: #3498db;
       border-color: #3498db;
     }
-    /* 出題数のグリッド表示 */
+    /* 出題数のグリッド表示（5列） */
     #termSelect .options {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
@@ -100,25 +100,40 @@
       color: #e74c3c;
       transition: opacity 0.3s ease;
     }
-    /* 答え入力エリア */
-    #inputDiv input[type="number"] {
-      font-size: 1.5em;
-      padding: 8px;
-      width: 200px;
-      text-align: center;
-      border: 2px solid #ddd;
-      border-radius: 8px;
-      outline: none;
-      transition: border-color 0.2s;
-      margin-right: 10px;
+    /* 入力エリア（キーパッドタイプ） */
+    #answerDisplay {
+      font-size: 2.5em;
+      font-family: 'Montserrat', sans-serif;
+      background: #fff;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 15px;
+      text-align: right;
+      min-height: 50px;
     }
-    #inputDiv input[type="number"]:focus {
-      border-color: #3498db;
+    #keypad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    #keypad .key {
+      background-color: #3498db;
+      color: #fff;
+      font-size: 2em;
+      border-radius: 10px;
+      padding: 20px;
+      cursor: pointer;
+      user-select: none;
+    }
+    #keypad .key:hover {
+      background-color: #2980b9;
     }
     /* ボタンスタイル */
     button {
-      font-size: 1.2em;
-      padding: 12px 25px;
+      font-size: 1.4em;
+      padding: 15px 30px;
       border: none;
       border-radius: 25px;
       background-color: #3498db;
@@ -138,12 +153,17 @@
       margin-top: 20px;
       color: #2c3e50;
     }
+    /* 表示時間の設定（新たに0.5秒を追加） */
+    #timeSelect input[type="radio"] {
+      /* ラベルと共に横並び */
+      margin-right: 5px;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>フラッシュ暗算</h1>
-    <!-- 桁数選択：デフォルト値は1 -->
+    <!-- 桁数選択：初期値は「1桁」 -->
     <div class="settingDiv" id="digitSelect">
       <span>桁数：</span>
       <input type="radio" id="digit1" name="digit" value="1" checked>
@@ -153,7 +173,7 @@
       <input type="radio" id="digit3" name="digit" value="3">
       <label for="digit3">3桁</label>
     </div>
-    <!-- 出題数選択：グリッド表示 5列、デフォルト値は5 -->
+    <!-- 出題数選択：グリッド表示5列、初期値は5問 -->
     <div class="settingDiv" id="termSelect">
       <span>出題数：</span>
       <div class="options">
@@ -199,14 +219,16 @@
         </div>
       </div>
     </div>
-    <!-- 表示時間選択（秒単位）：デフォルトは3秒 -->
+    <!-- 表示時間選択（秒単位）：0.5秒～5秒、初期値は2秒 -->
     <div class="settingDiv" id="timeSelect">
       <span>表示時間：</span>
+      <input type="radio" id="time0_5" name="displayTime" value="0.5">
+      <label for="time0_5">0.5秒</label>
       <input type="radio" id="time1" name="displayTime" value="1">
       <label for="time1">1秒</label>
-      <input type="radio" id="time2" name="displayTime" value="2">
+      <input type="radio" id="time2" name="displayTime" value="2" checked>
       <label for="time2">2秒</label>
-      <input type="radio" id="time3" name="displayTime" value="3" checked>
+      <input type="radio" id="time3" name="displayTime" value="3">
       <label for="time3">3秒</label>
       <input type="radio" id="time4" name="displayTime" value="4">
       <label for="time4">4秒</label>
@@ -214,8 +236,11 @@
       <label for="time5">5秒</label>
     </div>
     
+    <!-- 数字フラッシュ表示エリア -->
     <div id="display"></div>
+    <!-- 答え入力エリア（後でキーパッドへ置き換え） -->
     <div id="inputDiv"></div>
+    <!-- 結果表示エリア -->
     <div id="result"></div>
     <button id="startButton">スタート</button>
   </div>
@@ -223,10 +248,10 @@
   <script>
     let numbers = [];
     let numTerms = 5;           // 出題数の初期値
-    let flashDuration = 3000;   // 表示時間（初期は3秒）
+    let flashDuration = 2000;   // 表示時間 初期値は2秒（2000ms）
     const gapDuration = 300;    // 数字間の空白
-    
-    // 桁数に応じたランダムな数字を生成
+
+    // 指定された桁数に応じたランダムな数字を生成
     function generateNumbers(n, digits) {
       let min, max;
       switch (digits) {
@@ -262,8 +287,9 @@
       numTerms = Number(termsRadio ? termsRadio.value : 5);
       
       const timeRadio = document.querySelector('input[name="displayTime"]:checked');
-      flashDuration = (Number(timeRadio ? timeRadio.value : 3)) * 1000;
+      flashDuration = (Number(timeRadio ? timeRadio.value : 2)) * 1000;
       
+      // スタートボタン隠す、前の結果・入力をクリア
       document.getElementById("startButton").style.display = "none";
       document.getElementById("result").innerHTML = "";
       document.getElementById("inputDiv").innerHTML = "";
@@ -289,16 +315,58 @@
       flashNext();
     }
     
-    // 答え入力フォームの表示
+    // 答え入力フォーム（キーパッド形式）の表示
     function showInput() {
       const inputDiv = document.getElementById("inputDiv");
-      inputDiv.innerHTML = '<input type="number" id="answer" placeholder="合計を入力"> ' +
-                           '<button onclick="checkAnswer()">答え合わせ</button>';
+      inputDiv.innerHTML = `
+        <div id="answerDisplay">0</div>
+        <div id="keypad">
+          <div class="key">7</div>
+          <div class="key">8</div>
+          <div class="key">9</div>
+          <div class="key">4</div>
+          <div class="key">5</div>
+          <div class="key">6</div>
+          <div class="key">1</div>
+          <div class="key">2</div>
+          <div class="key">3</div>
+          <div class="key">0</div>
+          <div class="key" id="clear">C</div>
+          <div class="key" id="delete">←</div>
+        </div>
+        <button onclick="checkAnswer()">答え合わせ</button>
+      `;
+      
+      // キーパッドの各ボタンにクリックイベントを設定
+      const keypadKeys = document.querySelectorAll("#keypad .key");
+      keypadKeys.forEach(key => {
+        key.addEventListener("click", () => {
+          const keyVal = key.textContent;
+          const answerDisplay = document.getElementById("answerDisplay");
+          if(keyVal === "C") {
+            answerDisplay.textContent = "0";
+          } else if(keyVal === "←") {
+            if(answerDisplay.textContent.length > 1) {
+              answerDisplay.textContent = answerDisplay.textContent.slice(0, -1);
+            } else {
+              answerDisplay.textContent = "0";
+            }
+          } else {
+            // 数字ボタンの場合
+            if(answerDisplay.textContent === "0") {
+              answerDisplay.textContent = keyVal;
+            } else {
+              answerDisplay.textContent += keyVal;
+            }
+          }
+        });
+      });
     }
     
-    // ユーザーの回答と正解の比較
+    // ユーザーの回答と正解の合計を比較
     function checkAnswer() {
-      const userAnswer = Number(document.getElementById("answer").value);
+      const answerDisplay = document.getElementById("answerDisplay");
+      const userAnswer = Number(answerDisplay.textContent);
       const correctAnswer = numbers.reduce((sum, num) => sum + num, 0);
       const resultDiv = document.getElementById("result");
       if (userAnswer === correctAnswer) {
@@ -309,7 +377,7 @@
       resultDiv.innerHTML += '<br><button onclick="restartGame()">もう一度チャレンジ</button>';
     }
     
-    // ゲームリセット
+    // ゲームのリセット
     function restartGame() {
       document.getElementById("display").innerHTML = "";
       document.getElementById("inputDiv").innerHTML = "";
