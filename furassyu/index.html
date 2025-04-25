@@ -2,390 +2,363 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>美麗フラッシュ暗算</title>
-  <!-- Google Fonts を利用 -->
-  <link href="https://fonts.googleapis.com/css?family=Montserrat:300,400,700|Roboto:300,400" rel="stylesheet">
+  <!-- 最大スケールを1にしてダブルタップズームを無効化 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>フラッシュ暗算アプリ</title>
   <style>
-    /* 背景アニメーションと全体レイアウト */
-    body {
+    /* 共通リセット */
+    * {
+      box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: 'Roboto', sans-serif;
-      background: linear-gradient(135deg, #8EC5FC, #E0C3FC);
+    }
+    body {
+      background: linear-gradient(135deg, #7F7FD5, #86A8E7, #91EAE4);
+      font-family: Arial, sans-serif;
+      color: #333;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
       min-height: 100vh;
-      animation: gradientShift 10s ease infinite;
-    }
-    @keyframes gradientShift {
-      0% { background: linear-gradient(135deg, #8EC5FC, #E0C3FC); }
-      50% { background: linear-gradient(135deg, #E0C3FC, #8EC5FC); }
-      100% { background: linear-gradient(135deg, #8EC5FC, #E0C3FC); }
-    }
-    /* コンテンツカード */
-    .container {
-      background: rgba(255, 255, 255, 0.97);
-      border-radius: 20px;
-      padding: 40px 30px;
-      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
-      width: 90%;
-      max-width: 600px;
-      text-align: center;
+      padding: 20px;
+      -webkit-tap-highlight-color: transparent;
     }
     h1 {
-      font-family: 'Montserrat', sans-serif;
-      font-weight: 700;
-      font-size: 2.5em;
       margin-bottom: 20px;
-      color: #444;
     }
-    /* 設定項目 */
-    .settingDiv {
-      margin: 15px 0;
+    .card {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      padding: 20px;
+      width: 100%;
+      max-width: 400px;
+      margin-bottom: 20px;
     }
-    .settingDiv span {
+    /* 設定セクション */
+    #settings {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    #settings label {
       font-weight: bold;
-      margin-right: 10px;
-      font-size: 1.2em;
+      display: block;
+      margin-bottom: 5px;
     }
-    /* カスタムラジオボタン */
-    .settingDiv input[type="radio"] {
-      position: absolute;
-      opacity: 0;
-      cursor: pointer;
-    }
-    .settingDiv label {
-      margin: 0 8px;
-      font-size: 1em;
-      cursor: pointer;
-      position: relative;
-      padding-left: 25px;
-    }
-    .settingDiv label:before {
-      content: "";
-      position: absolute;
-      left: 0;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 16px;
-      height: 16px;
-      border: 2px solid #3498db;
-      border-radius: 50%;
-      background: #fff;
-    }
-    .settingDiv input[type="radio"]:checked + label:before {
-      background: #3498db;
-      border-color: #3498db;
-    }
-    /* 出題数のグリッド表示（5列） */
-    #termSelect .options {
+    .grid-select {
+      width: 100%;
+      padding: 0;
       display: grid;
       grid-template-columns: repeat(5, 1fr);
-      gap: 10px;
-      margin-top: 10px;
+      gap: 5px;
     }
-    #termSelect .option {
-      display: flex;
+    .grid-select button {
+      padding: 8px;
+      background: #ddd;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .grid-select button.selected {
+      background: #86A8E7;
+      color: white;
+    }
+    .grid-select button:hover {
+      background: #bbb;
+    }
+    /* フラッシュ表示エリア */
+    #flashSection {
+      display: none;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
     }
-    /* 数字表示エリア */
-    #display {
-      font-family: 'Montserrat', sans-serif;
-      font-size: 4em;
-      margin: 30px 0;
-      height: 120px;
-      line-height: 120px;
-      color: #e74c3c;
-      transition: opacity 0.3s ease;
+    #flashDisplay {
+      font-size: 48px;
+      margin: 20px;
+      opacity: 0;
     }
-    /* 入力エリア（キーパッドタイプ） */
+    /* 答え入力セクション */
+    #inputSection {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+    }
+    /* 答え表示フィールドのサイズを縮小 */
     #answerDisplay {
-      font-size: 2.5em;
-      font-family: 'Montserrat', sans-serif;
-      background: #fff;
+      width: 100%;
+      max-width: 350px;
+      font-size: 24px;
       border: 2px solid #ccc;
-      border-radius: 10px;
-      padding: 15px;
-      margin-bottom: 15px;
+      border-radius: 4px;
       text-align: right;
-      min-height: 50px;
+      padding: 8px;
+      margin-bottom: 10px;
+      background: #f9f9f9;
     }
-    #keypad {
+    /* キーパッド */
+    .keypad {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 15px;
-      margin-bottom: 20px;
+      gap: 10px;
+      width: 100%;
+      max-width: 400px;
+      margin-bottom: 10px;
     }
-    #keypad .key {
-      background-color: #3498db;
-      color: #fff;
-      font-size: 2em;
-      border-radius: 10px;
-      padding: 20px;
-      cursor: pointer;
-      user-select: none;
-    }
-    #keypad .key:hover {
-      background-color: #2980b9;
-    }
-    /* ボタンスタイル */
-    button {
-      font-size: 1.4em;
-      padding: 15px 30px;
+    .keypad button {
+      padding: 15px;
+      font-size: 24px;
+      background: #e0e0e0;
       border: none;
-      border-radius: 25px;
-      background-color: #3498db;
-      color: #fff;
+      border-radius: 8px;
       cursor: pointer;
-      margin-top: 20px;
-      box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
-      transition: background 0.3s ease, transform 0.2s ease;
+      transition: background 0.2s;
     }
-    button:hover {
-      background-color: #2980b9;
-      transform: translateY(-3px);
+    .keypad button:hover {
+      background: #ccc;
     }
-    /* 結果表示エリア */
-    #result {
-      font-size: 1.6em;
-      margin-top: 20px;
-      color: #2c3e50;
+    /* 結果表示セクション */
+    #resultSection {
+      display: none;
+      text-align: center;
     }
-    /* 表示時間の設定（新たに0.5秒を追加） */
-    #timeSelect input[type="radio"] {
-      /* ラベルと共に横並び */
-      margin-right: 5px;
+    button.action-btn {
+      padding: 10px 20px;
+      font-size: 18px;
+      background: #86A8E7;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button.action-btn:hover {
+      background: #6b89c9;
     }
   </style>
 </head>
-<body>
-  <div class="container">
-    <h1>フラッシュ暗算</h1>
-    <!-- 桁数選択：初期値は「1桁」 -->
-    <div class="settingDiv" id="digitSelect">
-      <span>桁数：</span>
-      <input type="radio" id="digit1" name="digit" value="1" checked>
-      <label for="digit1">1桁</label>
-      <input type="radio" id="digit2" name="digit" value="2">
-      <label for="digit2">2桁</label>
-      <input type="radio" id="digit3" name="digit" value="3">
-      <label for="digit3">3桁</label>
-    </div>
-    <!-- 出題数選択：グリッド表示5列、初期値は5問 -->
-    <div class="settingDiv" id="termSelect">
-      <span>出題数：</span>
-      <div class="options">
-        <div class="option">
-          <input type="radio" id="terms1" name="terms" value="1">
-          <label for="terms1">1問</label>
-        </div>
-        <div class="option">
-          <input type="radio" id="terms2" name="terms" value="2">
-          <label for="terms2">2問</label>
-        </div>
-        <div class="option">
-          <input type="radio" id="terms3" name="terms" value="3">
-          <label for="terms3">3問</label>
-        </div>
-        <div class="option">
-          <input type="radio" id="terms4" name="terms" value="4">
-          <label for="terms4">4問</label>
-        </div>
-        <div class="option">
-          <input type="radio" id="terms5" name="terms" value="5" checked>
-          <label for="terms5">5問</label>
-        </div>
-        <div class="option">
-          <input type="radio" id="terms6" name="terms" value="6">
-          <label for="terms6">6問</label>
-        </div>
-        <div class="option">
-          <input type="radio" id="terms7" name="terms" value="7">
-          <label for="terms7">7問</label>
-        </div>
-        <div class="option">
-          <input type="radio" id="terms8" name="terms" value="8">
-          <label for="terms8">8問</label>
-        </div>
-        <div class="option">
-          <input type="radio" id="terms9" name="terms" value="9">
-          <label for="terms9">9問</label>
-        </div>
-        <div class="option">
-          <input type="radio" id="terms10" name="terms" value="10">
-          <label for="terms10">10問</label>
-        </div>
+<!-- ondblclickでダブルクリック時の挙動を無効化 -->
+<body ondblclick="return false;">
+  <h1>フラッシュ暗算</h1>
+  <!-- 設定セクション -->
+  <div id="settings" class="card">
+    <!-- 桁数の選択 -->
+    <div>
+      <label>桁数の選択</label>
+      <div class="grid-select" id="digitGrid">
+        <button data-value="1">1桁</button>
+        <button data-value="2">2桁</button>
+        <button data-value="3" class="selected">3桁</button>
+        <button data-value="4">4桁</button>
+        <button data-value="5">5桁</button>
       </div>
     </div>
-    <!-- 表示時間選択（秒単位）：0.5秒～5秒、初期値は2秒 -->
-    <div class="settingDiv" id="timeSelect">
-      <span>表示時間：</span>
-      <input type="radio" id="time0_5" name="displayTime" value="0.5">
-      <label for="time0_5">0.5秒</label>
-      <input type="radio" id="time1" name="displayTime" value="1">
-      <label for="time1">1秒</label>
-      <input type="radio" id="time2" name="displayTime" value="2" checked>
-      <label for="time2">2秒</label>
-      <input type="radio" id="time3" name="displayTime" value="3">
-      <label for="time3">3秒</label>
-      <input type="radio" id="time4" name="displayTime" value="4">
-      <label for="time4">4秒</label>
-      <input type="radio" id="time5" name="displayTime" value="5">
-      <label for="time5">5秒</label>
+    <!-- 出題数の選択 -->
+    <div>
+      <label>出題数の選択</label>
+      <div class="grid-select" id="questionGrid">
+        <button data-value="1">1問</button>
+        <button data-value="2">2問</button>
+        <button data-value="3">3問</button>
+        <button data-value="4">4問</button>
+        <button data-value="5" class="selected">5問</button>
+        <button data-value="6">6問</button>
+        <button data-value="7">7問</button>
+        <button data-value="8">8問</button>
+        <button data-value="9">9問</button>
+        <button data-value="10">10問</button>
+      </div>
     </div>
-    
-    <!-- 数字フラッシュ表示エリア -->
-    <div id="display"></div>
-    <!-- 答え入力エリア（後でキーパッドへ置き換え） -->
-    <div id="inputDiv"></div>
-    <!-- 結果表示エリア -->
-    <div id="result"></div>
-    <button id="startButton">スタート</button>
+    <!-- 表示時間の選択 -->
+    <div>
+      <label>表示時間の選択 (秒)</label>
+      <div class="grid-select" id="timeGrid" style="grid-template-columns: repeat(3, 1fr);">
+        <button data-value="0.5">0.5秒</button>
+        <button data-value="1">1秒</button>
+        <button data-value="2" class="selected">2秒</button>
+        <button data-value="3">3秒</button>
+        <button data-value="4">4秒</button>
+        <button data-value="5">5秒</button>
+      </div>
+    </div>
+    <button id="startBtn" class="action-btn" style="margin-top:15px;">スタート</button>
+  </div>
+
+  <!-- フラッシュ表示セクション -->
+  <div id="flashSection" class="card">
+    <div id="flashDisplay"></div>
+  </div>
+
+  <!-- 答え入力セクション -->
+  <div id="inputSection" class="card">
+    <input type="text" id="answerDisplay" readonly placeholder="答えを入力">
+    <div class="keypad">
+      <!-- 数字キー 1～9 -->
+      <button class="key">1</button>
+      <button class="key">2</button>
+      <button class="key">3</button>
+      <button class="key">4</button>
+      <button class="key">5</button>
+      <button class="key">6</button>
+      <button class="key">7</button>
+      <button class="key">8</button>
+      <button class="key">9</button>
+      <!-- 特殊ボタン -->
+      <button class="key" id="clearBtn">C</button>
+      <button class="key">0</button>
+      <button class="key" id="backBtn">←</button>
+    </div>
+    <button id="checkAnswerBtn" class="action-btn">答え合わせ</button>
+  </div>
+
+  <!-- 結果表示セクション -->
+  <div id="resultSection" class="card">
+    <div id="resultText" style="font-size: 24px; margin-bottom: 10px;"></div>
+    <button id="retryBtn" class="action-btn">もう一度チャレンジ</button>
   </div>
 
   <script>
-    let numbers = [];
-    let numTerms = 5;           // 出題数の初期値
-    let flashDuration = 2000;   // 表示時間 初期値は2秒（2000ms）
-    const gapDuration = 300;    // 数字間の空白
+    // ----- ユーティリティ関数 -----
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+    
+    // 桁数に合わせたランダム数字を生成（先頭が0にならない）
+    function generateRandomNumber(digits) {
+      const min = Math.pow(10, digits - 1);
+      const max = Math.pow(10, digits) - 1;
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
 
-    // 指定された桁数に応じたランダムな数字を生成
-    function generateNumbers(n, digits) {
-      let min, max;
-      switch (digits) {
-        case 1:
-          min = 1;
-          max = 9;
-          break;
-        case 2:
-          min = 10;
-          max = 99;
-          break;
-        case 3:
-          min = 100;
-          max = 999;
-          break;
-        default:
-          min = 1;
-          max = 9;
-      }
-      const arr = [];
-      for (let i = 0; i < n; i++) {
-        arr.push(Math.floor(Math.random() * (max - min + 1)) + min);
-      }
-      return arr;
-    }
-    
-    // ゲーム開始：各設定から値を取得しフラッシュ表示
-    function startGame() {
-      const digitRadio = document.querySelector('input[name="digit"]:checked');
-      const digitCount = Number(digitRadio ? digitRadio.value : 1);
-      
-      const termsRadio = document.querySelector('input[name="terms"]:checked');
-      numTerms = Number(termsRadio ? termsRadio.value : 5);
-      
-      const timeRadio = document.querySelector('input[name="displayTime"]:checked');
-      flashDuration = (Number(timeRadio ? timeRadio.value : 2)) * 1000;
-      
-      // スタートボタン隠す、前の結果・入力をクリア
-      document.getElementById("startButton").style.display = "none";
-      document.getElementById("result").innerHTML = "";
-      document.getElementById("inputDiv").innerHTML = "";
-      
-      numbers = generateNumbers(numTerms, digitCount);
-      
-      let index = 0;
-      const displayDiv = document.getElementById("display");
-      
-      function flashNext() {
-        if (index < numbers.length) {
-          displayDiv.style.opacity = 1;
-          displayDiv.innerHTML = numbers[index];
-          index++;
-          setTimeout(() => {
-            displayDiv.style.opacity = 0;
-            setTimeout(flashNext, gapDuration);
-          }, flashDuration);
-        } else {
-          showInput();
-        }
-      }
-      flashNext();
-    }
-    
-    // 答え入力フォーム（キーパッド形式）の表示
-    function showInput() {
-      const inputDiv = document.getElementById("inputDiv");
-      inputDiv.innerHTML = `
-        <div id="answerDisplay">0</div>
-        <div id="keypad">
-          <div class="key">7</div>
-          <div class="key">8</div>
-          <div class="key">9</div>
-          <div class="key">4</div>
-          <div class="key">5</div>
-          <div class="key">6</div>
-          <div class="key">1</div>
-          <div class="key">2</div>
-          <div class="key">3</div>
-          <div class="key">0</div>
-          <div class="key" id="clear">C</div>
-          <div class="key" id="delete">←</div>
-        </div>
-        <button onclick="checkAnswer()">答え合わせ</button>
-      `;
-      
-      // キーパッドの各ボタンにクリックイベントを設定
-      const keypadKeys = document.querySelectorAll("#keypad .key");
-      keypadKeys.forEach(key => {
-        key.addEventListener("click", () => {
-          const keyVal = key.textContent;
-          const answerDisplay = document.getElementById("answerDisplay");
-          if(keyVal === "C") {
-            answerDisplay.textContent = "0";
-          } else if(keyVal === "←") {
-            if(answerDisplay.textContent.length > 1) {
-              answerDisplay.textContent = answerDisplay.textContent.slice(0, -1);
-            } else {
-              answerDisplay.textContent = "0";
-            }
-          } else {
-            // 数字ボタンの場合
-            if(answerDisplay.textContent === "0") {
-              answerDisplay.textContent = keyVal;
-            } else {
-              answerDisplay.textContent += keyVal;
-            }
-          }
-        });
+    // ----- グローバル変数 -----
+    let selectedDigitCount = 3;      // 初期値：3桁
+    let selectedQuestionCount = 5;   // 初期値：5問
+    let selectedDisplayTime = 2;     // 秒単位 初期値：2秒
+    let numbersArray = [];
+    let answerSum = 0;
+
+    // ----- 設定セクションの操作 -----
+    // 桁数ボタンの設定
+    const digitGrid = document.getElementById("digitGrid");
+    digitGrid.querySelectorAll("button").forEach(btn => {
+      btn.addEventListener("click", () => {
+        digitGrid.querySelectorAll("button").forEach(el => el.classList.remove("selected"));
+        btn.classList.add("selected");
+        selectedDigitCount = parseInt(btn.getAttribute("data-value"));
       });
-    }
-    
-    // ユーザーの回答と正解の合計を比較
-    function checkAnswer() {
-      const answerDisplay = document.getElementById("answerDisplay");
-      const userAnswer = Number(answerDisplay.textContent);
-      const correctAnswer = numbers.reduce((sum, num) => sum + num, 0);
-      const resultDiv = document.getElementById("result");
-      if (userAnswer === correctAnswer) {
-        resultDiv.innerHTML = "正解！お見事！";
-      } else {
-        resultDiv.innerHTML = "不正解… 正解は " + correctAnswer + " です。";
+    });
+
+    // 出題数ボタンの設定
+    const questionGrid = document.getElementById("questionGrid");
+    questionGrid.querySelectorAll("button").forEach(btn => {
+      btn.addEventListener("click", () => {
+        questionGrid.querySelectorAll("button").forEach(el => el.classList.remove("selected"));
+        btn.classList.add("selected");
+        selectedQuestionCount = parseInt(btn.getAttribute("data-value"));
+      });
+    });
+
+    // 表示時間ボタンの設定
+    const timeGrid = document.getElementById("timeGrid");
+    timeGrid.querySelectorAll("button").forEach(btn => {
+      btn.addEventListener("click", () => {
+        timeGrid.querySelectorAll("button").forEach(el => el.classList.remove("selected"));
+        btn.classList.add("selected");
+        selectedDisplayTime = parseFloat(btn.getAttribute("data-value"));
+      });
+    });
+
+    document.getElementById("startBtn").addEventListener("click", startGame);
+
+    // ----- ゲーム開始 -----
+    async function startGame() {
+      // 設定セクションを非表示にし、該当セクションをリセット
+      document.getElementById("settings").style.display = "none";
+      document.getElementById("resultSection").style.display = "none";
+      document.getElementById("inputSection").style.display = "none";
+      document.getElementById("flashSection").style.display = "flex";
+      
+      // 問題の生成
+      numbersArray = [];
+      answerSum = 0;
+      for (let i = 0; i < selectedQuestionCount; i++) {
+        const num = generateRandomNumber(selectedDigitCount);
+        numbersArray.push(num);
+        answerSum += num;
       }
-      resultDiv.innerHTML += '<br><button onclick="restartGame()">もう一度チャレンジ</button>';
+      
+      // フラッシュ表示開始
+      await flashNumbers();
+      // フラッシュ終了後、答え入力セクションを表示
+      document.getElementById("flashSection").style.display = "none";
+      document.getElementById("inputSection").style.display = "flex";
+      // 答え表示フィールドをクリア
+      document.getElementById("answerDisplay").value = "";
     }
-    
-    // ゲームのリセット
-    function restartGame() {
-      document.getElementById("display").innerHTML = "";
-      document.getElementById("inputDiv").innerHTML = "";
-      document.getElementById("result").innerHTML = "";
-      document.getElementById("startButton").style.display = "inline-block";
+
+    // ----- 数字のフラッシュ表示 -----
+    async function flashNumbers() {
+      const display = document.getElementById("flashDisplay");
+      const totalTimeMs = selectedDisplayTime * 1000;
+      let fadeDuration = 300;
+      if (totalTimeMs < 600) {
+        fadeDuration = totalTimeMs / 2;
+      }
+      const visibleTime = totalTimeMs - 2 * fadeDuration;
+      
+      for (let num of numbersArray) {
+        display.textContent = num;
+        // フェードイン
+        display.style.transition = `opacity ${fadeDuration}ms ease-in`;
+        display.style.opacity = 0;
+        void display.offsetWidth;
+        display.style.opacity = 1;
+        await sleep(fadeDuration + visibleTime);
+        // フェードアウト
+        display.style.transition = `opacity ${fadeDuration}ms ease-out`;
+        display.style.opacity = 0;
+        await sleep(fadeDuration);
+      }
     }
-    
-    document.getElementById("startButton").addEventListener("click", startGame);
+
+    // ----- キーパッド操作 -----
+    const answerDisplay = document.getElementById("answerDisplay");
+    document.querySelectorAll(".keypad .key").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const value = btn.textContent;
+        if (value === "C") {
+          answerDisplay.value = "";
+        } else if (value === "←") {
+          answerDisplay.value = answerDisplay.value.slice(0, -1);
+        } else {
+          answerDisplay.value += value;
+        }
+      });
+    });
+
+    // ----- 答え合わせ -----
+    document.getElementById("checkAnswerBtn").addEventListener("click", () => {
+      const userAnswer = parseInt(answerDisplay.value);
+      const resultSection = document.getElementById("resultSection");
+      const resultText = document.getElementById("resultText");
+      
+      document.getElementById("inputSection").style.display = "none";
+      resultSection.style.display = "block";
+      
+      if (userAnswer === answerSum) {
+        resultText.textContent = "正解！お見事！";
+      } else {
+        resultText.textContent = `不正解！正しい合計は ${answerSum} です。`;
+      }
+    });
+
+    // ----- 再チャレンジ -----
+    document.getElementById("retryBtn").addEventListener("click", () => {
+      // 設定画面を再表示して初期状態にリセット
+      document.getElementById("settings").style.display = "block";
+      document.getElementById("resultSection").style.display = "none";
+    });
   </script>
 </body>
 </html>
