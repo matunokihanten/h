@@ -51,12 +51,14 @@
       transform: scale(1.3);
       margin: 0 5px;
     }
-    /* 入力済み数字の表示エリア。背景に半透明エフェクト */
+    /* 入力済み数字の表示エリア。背景に半透明エフェクト。高さ固定で内容が溢れたらスクロール */
     #piDisplay {
       background: rgba(255, 255, 255, 0.1);
       padding: 15px;
       border-radius: 8px;
-      min-height: 100px;
+      min-height: 100px;   /* 最低の高さ */
+      max-height: 150px;   /* 上限の高さ */
+      overflow-y: auto;    /* 内容が溢れた場合は縦スクロール */
       line-height: 1.2;
       letter-spacing: 1px;
       margin: 20px 0;
@@ -86,6 +88,7 @@
       color: #fff;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
       transition: transform 0.1s ease;
+      touch-action: manipulation; /* タッチ操作の反応向上 */
     }
     #keypad button:hover {
       background: linear-gradient(45deg, #0055ee, #00bbee);
@@ -140,6 +143,9 @@
       &nbsp;&nbsp;
       <input type="radio" id="modeTimeAttack" name="mode" value="timeAttack">
       <label for="modeTimeAttack">タイムアタックモード</label>
+      &nbsp;&nbsp;
+      <input type="radio" id="modePuzzle" name="mode" value="puzzle">
+      <label for="modePuzzle">パズル＆補完モード</label>
     </div>
     <div id="controlButtons" class="config">
       <button id="startBtn">スタート</button>
@@ -148,7 +154,7 @@
     <div id="timerDiv" style="display:none;">タイム: 0秒</div>
     <div id="piDisplay"></div>
     <div id="message"></div>
-    <!-- 電卓型キーパッド（上から 7,8,9 / 4,5,6 / 1,2,3 / 0,．,C） -->
+    <!-- 電卓型キーパッド（上から 7,8,9 / 4,5,6 / 1,2,3 / .,0,C） -->
     <div id="keypad">
       <button class="key">7</button>
       <button class="key">8</button>
@@ -159,8 +165,8 @@
       <button class="key">1</button>
       <button class="key">2</button>
       <button class="key">3</button>
-      <button class="key">0</button>
       <button class="key">.</button>
+      <button class="key">0</button>
       <button class="key" id="clearButton">C</button>
     </div>
   </div>
@@ -184,11 +190,18 @@
         "78925903600113305305488204665213841469519415116094" +
         "33057270365759591953092186117381932611793105118548";
       
+      // モード別で利用する共通変数
       let targetCount = 0;
       let startIndex = 0;
+      // 標準／タイムアタック向け
       let currentIndex = 0;
       let digitsHistory = [];
-      let gameMode = "standard";
+      // パズルモード向け（配列、欠落位置リスト、入力位置ポインタ）
+      let puzzle = [];
+      let missingIndices = [];
+      let missingPointer = 0;
+      
+      let gameMode = "standard";  // "standard", "timeAttack", "puzzle"
       let timerInterval = null;
       let startTime = null;
       let gameActive = false;
@@ -197,6 +210,7 @@
       const targetDigitsInput = document.getElementById("targetDigits");
       const modeStandardRadio = document.getElementById("modeStandard");
       const modeTimeAttackRadio = document.getElementById("modeTimeAttack");
+      const modePuzzleRadio = document.getElementById("modePuzzle");
       const startBtn = document.getElementById("startBtn");
       const exitBtn = document.getElementById("exitBtn");
       const piDisplay = document.getElementById("piDisplay");
@@ -204,7 +218,9 @@
       const keypadButtons = document.querySelectorAll(".key");
       const timerDiv = document.getElementById("timerDiv");
       
+      // ゲーム初期化：モードに応じて処理を分岐
       function initGame() {
+        // 共通設定
         startIndex = parseInt(startIndexInput.value, 10);
         if (isNaN(startIndex) || startIndex < 0) {
           startIndex = 0;
@@ -219,23 +235,68 @@
           targetCount = pi.length - startIndex;
           targetDigitsInput.value = targetCount;
         }
-        currentIndex = startIndex;
-        digitsHistory = [];
-        piDisplay.innerHTML = "";
-        messageDiv.textContent = "";
-        gameActive = true;
         
-        if (modeTimeAttackRadio.checked) {
-          gameMode = "timeAttack";
-          timerDiv.style.display = "block";
-          startTimer();
-        } else {
-          gameMode = "standard";
+        // 判定するモードを設定
+        if (modePuzzleRadio.checked) {
+          gameMode = "puzzle";
           timerDiv.style.display = "none";
-          stopTimer();
+          initPuzzleMode();
+        } else {
+          // 標準・タイムアタック共通の処理
+          gameMode = modeTimeAttackRadio.checked ? "timeAttack" : "standard";
+          currentIndex = startIndex;
+          digitsHistory = [];
+          piDisplay.innerHTML = "";
+          messageDiv.textContent = "";
+          gameActive = true;
+          if (gameMode === "timeAttack") {
+            timerDiv.style.display = "block";
+            startTimer();
+          } else {
+            timerDiv.style.display = "none";
+            stopTimer();
+          }
         }
       }
       
+      // パズル＆補完モードの初期化
+      function initPuzzleMode() {
+        gameActive = true;
+        // puzzle 配列を初期化。各セルは正解の数字と入力状態を持つ
+        puzzle = [];
+        for (let i = 0; i < targetCount; i++) {
+          puzzle.push({
+            correct: pi.charAt(startIndex + i),
+            prefilled: false,
+            userInput: null,
+            wrong: false
+          });
+        }
+        // 例として全体の40%をランダムにプレフィル
+        const prefillProbability = 0.4;
+        for (let i = 0; i < targetCount; i++) {
+          if (Math.random() < prefillProbability) {
+            puzzle[i].prefilled = true;
+          }
+        }
+        // 少なくとも１つは入力させる（全てプレフィルになったら、先頭を未入力に修正）
+        missingIndices = [];
+        for (let i = 0; i < targetCount; i++) {
+          if (!puzzle[i].prefilled) {
+            missingIndices.push(i);
+          }
+        }
+        if (missingIndices.length === 0) {
+          puzzle[0].prefilled = false;
+          missingIndices.push(0);
+        }
+        missingPointer = 0;
+        piDisplay.innerHTML = "";
+        messageDiv.textContent = "";
+        updatePuzzleDisplay();
+      }
+      
+      // タイマー開始（タイムアタックモード向け）
       function startTimer() {
         startTime = Date.now();
         timerDiv.textContent = "タイム: 0秒";
@@ -245,6 +306,7 @@
         }, 500);
       }
       
+      // タイマー停止
       function stopTimer() {
         if (timerInterval) {
           clearInterval(timerInterval);
@@ -252,55 +314,121 @@
         }
       }
       
-      function updateDisplay() {
+      // 標準・タイムアタックモードの表示更新（20桁ごと）
+      function updateStandardDisplay() {
         let lines = [];
         for (let i = 0; i < digitsHistory.length; i += 20) {
-          let line = digitsHistory.slice(i, i + 20).map(item => {
-            return item.wrong 
-              ? `<span class="digit wrong">${item.digit}</span>` 
-              : `<span class="digit">${item.digit}</span>`;
-          }).join("");
+          let line = digitsHistory.slice(i, i + 20)
+            .map(item => item.wrong ? `<span class="digit wrong">${item.digit}</span>` : `<span class="digit">${item.digit}</span>`)
+            .join("");
           lines.push(line);
         }
         piDisplay.innerHTML = lines.join("<br>");
       }
       
+      // パズルモードの表示更新
+      function updatePuzzleDisplay() {
+        let displayStr = "";
+        for (let i = 0; i < targetCount; i++) {
+          let cell = puzzle[i];
+          let charToShow = "";
+          if (cell.prefilled) {
+            charToShow = cell.correct;
+          } else {
+            if (cell.userInput !== null) {
+              charToShow = cell.userInput;
+            } else {
+              charToShow = "_";
+            }
+          }
+          if (!cell.prefilled && cell.userInput !== null && cell.wrong) {
+            displayStr += `<span class="digit wrong">${charToShow}</span>`;
+          } else {
+            displayStr += `<span class="digit">${charToShow}</span>`;
+          }
+          if ((i + 1) % 20 === 0) {
+            displayStr += "<br>";
+          }
+        }
+        piDisplay.innerHTML = displayStr;
+      }
+      
+      // キー入力の処理（モード別）
       function handleKeyInput(value) {
         if (!gameActive) return;
         
+        // 共通の削除処理
         if (value === "C") {
-          if (currentIndex > startIndex) {
-            currentIndex--;
-            digitsHistory.pop();
-            updateDisplay();
-            messageDiv.textContent = "";
+          if (gameMode === "puzzle") {
+            if (missingPointer > 0) {
+              missingPointer--;
+              const indexToClear = missingIndices[missingPointer];
+              puzzle[indexToClear].userInput = null;
+              puzzle[indexToClear].wrong = false;
+              updatePuzzleDisplay();
+              messageDiv.textContent = "";
+            }
+          } else {
+            if (currentIndex > startIndex) {
+              currentIndex--;
+              digitsHistory.pop();
+              updateStandardDisplay();
+              messageDiv.textContent = "";
+            }
           }
           return;
         }
         
-        if (currentIndex < startIndex + targetCount) {
-          const expected = pi.charAt(currentIndex);
-          if (value === expected) {
-            digitsHistory.push({ digit: expected, wrong: false });
-            messageDiv.textContent = "正解！ 現在 " + (currentIndex - startIndex + 1) + " 桁";
-          } else {
-            digitsHistory.push({ digit: expected, wrong: true });
-            messageDiv.textContent = "間違い！ 正解は '" + expected + "' です";
+        // 入力処理
+        if (gameMode === "puzzle") {
+          if (missingPointer < missingIndices.length) {
+            const curMissing = missingIndices[missingPointer];
+            const expected = puzzle[curMissing].correct;
+            if (value === expected) {
+              puzzle[curMissing].userInput = value;
+              puzzle[curMissing].wrong = false;
+              messageDiv.textContent = "正解！ " + (missingPointer + 1) + " / " + missingIndices.length;
+            } else {
+              puzzle[curMissing].userInput = value;
+              puzzle[curMissing].wrong = true;
+              messageDiv.textContent = "間違い！ 正解は '" + expected + "' です";
+            }
+            missingPointer++;
+            updatePuzzleDisplay();
+            if (missingPointer === missingIndices.length) {
+              messageDiv.textContent += " クリア！ 全て補完しました";
+              gameActive = false;
+            }
           }
-          currentIndex++;
-          updateDisplay();
-          if (currentIndex === startIndex + targetCount) {
-            messageDiv.textContent += "（目標桁数に達しました）";
-            gameActive = false;
-            stopTimer();
+        } else {
+          if (currentIndex < startIndex + targetCount) {
+            const expected = pi.charAt(currentIndex);
+            if (value === expected) {
+              digitsHistory.push({ digit: expected, wrong: false });
+              messageDiv.textContent = "正解！ 現在 " + (currentIndex - startIndex + 1) + " 桁";
+            } else {
+              digitsHistory.push({ digit: expected, wrong: true });
+              messageDiv.textContent = "間違い！ 正解は '" + expected + "' です";
+            }
+            currentIndex++;
+            updateStandardDisplay();
+            if (currentIndex === startIndex + targetCount) {
+              messageDiv.textContent += "（目標桁数に達しました）";
+              gameActive = false;
+              stopTimer();
+            }
           }
         }
       }
       
+      // キーパッドの各ボタンにクリックと touchstart のイベントを設定
       keypadButtons.forEach(btn => {
-        btn.addEventListener("click", function() {
+        const handler = function(e) {
+          e.preventDefault();
           handleKeyInput(this.textContent);
-        });
+        };
+        btn.addEventListener("click", handler);
+        btn.addEventListener("touchstart", handler);
       });
       
       startBtn.addEventListener("click", function() {
