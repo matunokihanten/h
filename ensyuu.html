@@ -2,94 +2,124 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <!-- ズームによる誤作動防止 -->
+  <!-- ズーム操作の誤作動防止 -->
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>円周率暗記ゲーム</title>
+  <title>円周率暗記ゲーム - クールなデザイン</title>
+  <!-- Google Fonts: Roboto Mono -->
+  <link href="https://fonts.googleapis.com/css?family=Roboto+Mono:400,700&display=swap" rel="stylesheet">
   <style>
+    /* 背景はグラデーション、全体的にダークな雰囲気 */
     body {
-      font-family: sans-serif;
-      text-align: center;
-      padding: 20px;
-      background-color: #f9f9f9;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #000, #434343);
+      color: #fff;
+      font-family: 'Roboto Mono', monospace;
       -webkit-user-select: none;
       -ms-user-select: none;
       user-select: none;
     }
+    /* ゲームコンテナ：半透明の黒背景・角丸・影 */
     #gameContainer {
-      max-width: 500px;
-      margin: 0 auto;
-      padding: 15px;
-      background-color: #fff;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      max-width: 600px;
+      margin: 40px auto;
+      background: rgba(0, 0, 0, 0.7);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     }
     h1 {
+      font-size: 2em;
       margin-bottom: 10px;
+      text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.8);
     }
-    /* 入力済みの数字表示エリア（20桁ごとに改行） */
+    .config, #controlButtons {
+      margin: 15px 0;
+    }
+    label {
+      font-size: 16px;
+    }
+    input[type="number"] {
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+      width: 80px;
+      text-align: center;
+    }
+    input[type="radio"] {
+      transform: scale(1.3);
+      margin: 0 5px;
+    }
+    /* 入力済み数字の表示エリア。背景に半透明エフェクト */
     #piDisplay {
-      font-size: 14px; 
-      letter-spacing: 1px;
-      margin: 10px 0;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 15px;
+      border-radius: 8px;
       min-height: 100px;
-      word-break: break-all;
-      white-space: pre-wrap;
-      line-height: 1;
+      line-height: 1.2;
+      letter-spacing: 1px;
+      margin: 20px 0;
     }
     .digit {
-      font-size: 14px;
+      font-size: 16px;
     }
     .wrong {
-      color: red;
+      color: #ff4d4d;
+      text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.6);
     }
-    /* 電卓型配置と大きなボタン */
+    /* 電卓型キーパッド */
     #keypad {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-      max-width: 320px;
-      margin: 20px auto;
+      gap: 12px;
+      max-width: 400px;
+      margin: 0 auto 20px auto;
     }
     #keypad button {
-      padding: 25px;
+      padding: 20px;
       font-size: 24px;
-      cursor: pointer;
+      font-weight: bold;
       border: none;
-      border-radius: 4px;
-      background-color: #0078d4;
+      border-radius: 8px;
+      background: linear-gradient(45deg, #0066ff, #00ccff);
       color: #fff;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+      transition: transform 0.1s ease;
     }
     #keypad button:hover {
-      background-color: #005a9e;
+      background: linear-gradient(45deg, #0055ee, #00bbee);
     }
-    #message {
-      margin: 10px;
+    #keypad button:active {
+      transform: scale(0.95);
+    }
+    /* スタート、終了ボタン */
+    #controlButtons button {
+      padding: 10px 20px;
       font-size: 16px;
-      min-height: 24px;
+      border: none;
+      border-radius: 8px;
+      background: linear-gradient(45deg, #28a745, #218838);
+      color: #fff;
+      cursor: pointer;
+      margin: 0 10px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+      transition: background 0.2s ease;
+    }
+    #controlButtons button:hover {
+      background: linear-gradient(45deg, #218838, #1e7e34);
+    }
+    #controlButtons button:active {
+      transform: scale(0.98);
     }
     #timerDiv {
       font-size: 20px;
       margin: 10px;
     }
-    .config {
-      margin: 10px 0;
-    }
-    /* スタート、終了などのコントロールボタン */
-    #controlButtons {
-      margin: 10px 0;
-    }
-    #controlButtons button {
-      padding: 10px 20px;
+    #message {
+      margin: 10px;
       font-size: 16px;
-      cursor: pointer;
-      border: none;
-      border-radius: 4px;
-      background-color: #0078d4;
-      color: #fff;
-      margin: 0 5px;
-    }
-    #controlButtons button:hover {
-      background-color: #005a9e;
+      min-height: 24px;
     }
   </style>
 </head>
@@ -116,10 +146,9 @@
       <button id="exitBtn">終了</button>
     </div>
     <div id="timerDiv" style="display:none;">タイム: 0秒</div>
-    <!-- 入力済みの数字の表示（20桁ごとに改行） -->
     <div id="piDisplay"></div>
     <div id="message"></div>
-    <!-- 電卓型キーパッド（上から7,8,9 / 4,5,6 / 1,2,3 / 0,．,C） -->
+    <!-- 電卓型キーパッド（上から 7,8,9 / 4,5,6 / 1,2,3 / 0,．,C） -->
     <div id="keypad">
       <button class="key">7</button>
       <button class="key">8</button>
@@ -137,13 +166,13 @@
   </div>
   
   <script>
-    // ダブルクリックによるズーム防止
+    // ダブルクリックによるズーム拡大防止
     document.addEventListener('dblclick', function(e) {
       e.preventDefault();
     }, { passive: false });
     
     document.addEventListener("DOMContentLoaded", function() {
-      // πの桁（小数点含む、約500桁以上）
+      // π の数字（小数点含む、約500桁以上）
       const pi =
         "3.14159265358979323846264338327950288419716939937510" +
         "58209749445923078164062862089986280348253421170679" +
@@ -155,16 +184,15 @@
         "78925903600113305305488204665213841469519415116094" +
         "33057270365759591953092186117381932611793105118548";
       
-      let targetCount = 0;       // 入力する桁数（目標桁数）
-      let startIndex = 0;        // ゲーム開始時のpiのインデックス
-      let currentIndex = 0;      // 現在のpiの位置
-      let digitsHistory = [];    // 各桁の入力履歴（正誤の情報付き）
+      let targetCount = 0;
+      let startIndex = 0;
+      let currentIndex = 0;
+      let digitsHistory = [];
       let gameMode = "standard";
       let timerInterval = null;
       let startTime = null;
       let gameActive = false;
       
-      // 各種要素の取得
       const startIndexInput = document.getElementById("startIndex");
       const targetDigitsInput = document.getElementById("targetDigits");
       const modeStandardRadio = document.getElementById("modeStandard");
@@ -176,9 +204,7 @@
       const keypadButtons = document.querySelectorAll(".key");
       const timerDiv = document.getElementById("timerDiv");
       
-      // ゲームの初期化
       function initGame() {
-        // 入力値の取得と補正
         startIndex = parseInt(startIndexInput.value, 10);
         if (isNaN(startIndex) || startIndex < 0) {
           startIndex = 0;
@@ -189,7 +215,6 @@
           targetCount = 500;
           targetDigitsInput.value = 500;
         }
-        // pi の残り桁数を超えないように補正
         if (startIndex + targetCount > pi.length) {
           targetCount = pi.length - startIndex;
           targetDigitsInput.value = targetCount;
@@ -211,7 +236,6 @@
         }
       }
       
-      // タイマー開始
       function startTimer() {
         startTime = Date.now();
         timerDiv.textContent = "タイム: 0秒";
@@ -221,7 +245,6 @@
         }, 500);
       }
       
-      // タイマー停止
       function stopTimer() {
         if (timerInterval) {
           clearInterval(timerInterval);
@@ -229,13 +252,12 @@
         }
       }
       
-      // 入力済みの数字を20桁ごとに改行して表示
       function updateDisplay() {
         let lines = [];
         for (let i = 0; i < digitsHistory.length; i += 20) {
           let line = digitsHistory.slice(i, i + 20).map(item => {
-            return item.wrong
-              ? `<span class="digit wrong">${item.digit}</span>`
+            return item.wrong 
+              ? `<span class="digit wrong">${item.digit}</span>` 
               : `<span class="digit">${item.digit}</span>`;
           }).join("");
           lines.push(line);
@@ -243,7 +265,6 @@
         piDisplay.innerHTML = lines.join("<br>");
       }
       
-      // キー入力の処理
       function handleKeyInput(value) {
         if (!gameActive) return;
         
@@ -257,7 +278,6 @@
           return;
         }
         
-        // 入力可能な桁数の範囲内で処理
         if (currentIndex < startIndex + targetCount) {
           const expected = pi.charAt(currentIndex);
           if (value === expected) {
@@ -269,7 +289,6 @@
           }
           currentIndex++;
           updateDisplay();
-          
           if (currentIndex === startIndex + targetCount) {
             messageDiv.textContent += "（目標桁数に達しました）";
             gameActive = false;
