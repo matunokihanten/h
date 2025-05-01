@@ -2,68 +2,91 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>フィボマージパズル - スマホ対応＆フィボナッチ一覧付き</title>
+  <!-- ズーム（ダブルクリック・ダブルタップ）を防止 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>フィボマージパズル - サイズ選択＆スマホ対応版</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
   <style>
+    /* 全体設定：Robotoフォント、暗めの背景グラデーション */
     body {
-      background: #faf8ef;
-      font-family: "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(135deg, #1e1e2f, #3a3a50);
+      font-family: 'Roboto', sans-serif;
+      color: #e0e0e0;
+      margin: 0;
+      padding: 20px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      margin: 0;
-      padding: 20px;
+      /* ダブルクリックでのズーム防止用 */
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
     h1 {
       margin-bottom: 10px;
+      font-size: 2.5rem;
+      color: #ffffff;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
     }
     #score {
       margin-bottom: 10px;
-      font-size: 18px;
+      font-size: 1.25rem;
       font-weight: bold;
     }
     #instructions {
-      font-size: 16px;
+      font-size: 1.125rem;
       margin-bottom: 20px;
       text-align: center;
     }
-    /* 盤面コンテナ */
+    /* 盤面サイズ選択用ラジオボタン */
+    #board-size-selection {
+      margin-bottom: 20px;
+      font-size: 1rem;
+    }
+    #board-size-selection label {
+      margin-right: 15px;
+    }
+    /* ゲーム盤面 */
     #game-container {
       width: 420px;
       height: 420px;
-      background: #bbada0;
-      border-radius: 6px;
+      background: #2a2c36;
+      border-radius: 10px;
       padding: 10px;
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      /* grid-template-columnsはJSで動的に設定 */
       grid-gap: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
       position: relative;
     }
-    /* 各セル */
+    /* 各タイル（マス）は常に正方形になる */
     .tile {
-      width: 100%;
-      height: 100%;
-      background: #eee4da;
-      border-radius: 3px;
+      background: #3a3f51;
+      border-radius: 5px;
       display: flex;
       justify-content: center;
       align-items: center;
-      font-size: 32px;
+      font-size: 2rem;
       font-weight: bold;
-      color: #776e65;
-      transition: background-color 0.3s, transform 0.3s;
+      color: #f0f0f0;
+      transition: background 0.3s, transform 0.2s;
+      aspect-ratio: 1;
     }
-    .tile.empty { background: transparent; }
-    /* 値に応じた色分け */
-    .tile-1   { background: #ede4c9; }
-    .tile-2   { background: #f2c649; }
-    .tile-3   { background: #f2b179; }
-    .tile-5   { background: #f59563; }
-    .tile-8   { background: #f67c5f; }
-    .tile-13  { background: #f65e3b; }
-    .tile-21  { background: #edcf72; }
-    .tile:not([class*="tile-"]) { background: #3c3a32; color: #f9f6f2; }
-    
-    /* ポップインアニメーション（タイル生成時） */
+    .tile.empty {
+      background: transparent;
+    }
+    /* 数字による色分け（例） */
+    .tile-1   { background: #eceff1; color: #333; }
+    .tile-2   { background: #f48fb1; }
+    .tile-3   { background: #ce93d8; }
+    .tile-5   { background: #ba68c8; }
+    .tile-8   { background: #ab47bc; }
+    .tile-13  { background: #8e24aa; }
+    .tile-21  { background: #7b1fa2; }
+    .tile:not([class*="tile-"]) {
+      background: #3a3f51;
+      color: #f0f0f0;
+    }
+    /* ポップインアニメーション */
     @keyframes popIn {
       0% { transform: scale(0); opacity: 0; }
       70% { transform: scale(1.2); opacity: 1; }
@@ -72,8 +95,7 @@
     .tile.new {
       animation: popIn 0.3s ease-out;
     }
-    
-    /* スマホ用の十字キーコントロール */
+    /* スマホ用十字キー */
     #controls {
       margin-top: 20px;
       display: flex;
@@ -88,37 +110,67 @@
       width: 60px;
       height: 60px;
       margin: 5px;
-      font-size: 24px;
+      font-size: 1.5rem;
       font-weight: bold;
       border: none;
       border-radius: 10px;
-      background: #8f7a66;
-      color: white;
-      box-shadow: 0px 3px 0px #776e65;
-      user-select: none;
+      background: #4a4e69;
+      color: #ffffff;
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.5);
+      transition: background 0.2s;
+      cursor: pointer;
     }
-    
-    /* フィボナッチ一覧用のスタイル（5列×5行） */
+    .control-btn:active {
+      background: #3a3e59;
+    }
+    /* フィボナッチ一覧エリア：ここは固定で5列×5行（25個）の表として表示 */
     #fib-list-container {
       margin-top: 30px;
       width: 420px;
+      background: #2a2c36;
+      border-radius: 10px;
+      padding: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.6);
+      display: none;  /* 初期表示は非表示 */
     }
     #fib-list-container h2 {
       text-align: center;
       margin-bottom: 10px;
-      font-size: 18px;
+      font-size: 1.25rem;
+      color: #ffffff;
     }
     #fib-list-container table {
       width: 100%;
       border-collapse: collapse;
     }
-    #fib-list-container table, #fib-list-container th, #fib-list-container td {
-      border: 1px solid #ccc;
+    #fib-list-container table, 
+    #fib-list-container th, 
+    #fib-list-container td {
+      border: 1px solid #444;
     }
-    #fib-list-container th, #fib-list-container td {
-      padding: 4px;
+    #fib-list-container th, 
+    #fib-list-container td {
+      padding: 8px;
       text-align: center;
-      font-size: 12px;
+      font-size: 0.875rem;
+      color: #f0f0f0;
+    }
+    /* フィボナッチ一覧表示切替ボタン */
+    #toggle-fib-btn {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 1rem;
+      font-weight: bold;
+      border: none;
+      border-radius: 5px;
+      background: #4a4e69;
+      color: #ffffff;
+      cursor: pointer;
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.5);
+      transition: background 0.2s;
+    }
+    #toggle-fib-btn:active {
+      background: #3a3e59;
     }
   </style>
 </head>
@@ -128,9 +180,20 @@
   <div id="instructions">
     遊び方：キーボードの矢印キーまたは下の十字キーを使ってタイルを動かしてください。
   </div>
+  
+  <!-- 盤面サイズ選択ラジオボタン -->
+  <div id="board-size-selection">
+    盤面サイズ:
+    <label><input type="radio" name="board-size" value="5" checked> 5×5</label>
+    <label><input type="radio" name="board-size" value="6"> 6×6</label>
+    <label><input type="radio" name="board-size" value="7"> 7×7</label>
+    <label><input type="radio" name="board-size" value="8"> 8×8</label>
+  </div>
+  
+  <!-- ゲーム盤面 -->
   <div id="game-container"></div>
   
-  <!-- スマホ用コントロール（十字キー） -->
+  <!-- スマホ用十字キー -->
   <div id="controls">
     <button id="up" class="control-btn">↑</button>
     <div class="control-row">
@@ -140,55 +203,75 @@
     </div>
   </div>
   
-  <!-- フィボナッチ数一覧（5列×5行、合計25個） -->
+  <!-- フィボナッチ一覧表示切替ボタン -->
+  <button id="toggle-fib-btn">フィボナッチ一覧を表示</button>
+  
+  <!-- フィボナッチ一覧エリア（固定：5列×5行、25個） -->
   <div id="fib-list-container">
     <h2>フィボナッチ数一覧 (25個)</h2>
     <div id="fib-list"></div>
   </div>
-
+  
   <script>
-    // ゲーム盤面は4x4の2次元配列で管理
-    let board;
-    // ゲーム用のフィボナッチ数列（マージ用、今回は一部のみ使用）
+    let boardSize = 5;  // 初期盤面サイズ：5×5
+    let board = [];
+    // ゲーム用のフィボナッチ数列（マージ用：必要な部分のみ）
     const fibs = [1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144];
     let score = 0;
-    // サウンド読み込み（ファイルがなければ下記行をコメントアウトしてください）
+    // サウンド読み込み（ファイルがない場合は下記行をコメントアウト）
     const mergeSound = new Audio('sounds/merge.mp3');
     const spawnSound = new Audio('sounds/spawn.mp3');
-
+    
     document.addEventListener('DOMContentLoaded', function() {
+      // ラジオボタン変更時：盤面サイズ更新＆ゲーム盤面再初期化
+      const radios = document.getElementsByName("board-size");
+      radios.forEach(radio => {
+        radio.addEventListener("change", function() {
+          boardSize = parseInt(this.value);
+          document.getElementById("game-container").style.gridTemplateColumns = "repeat(" + boardSize + ", 1fr)";
+          initGame();
+          // ※フィボナッチ一覧は固定のため変更せず、25個のままとする
+        });
+      });
+      
+      // 初回設定
+      document.getElementById("game-container").style.gridTemplateColumns = "repeat(" + boardSize + ", 1fr)";
       initGame();
       document.addEventListener('keydown', handleKey);
-      // スマホ用ボタンのクリックイベント設定
       document.getElementById('up').addEventListener('click', () => { move('up'); });
       document.getElementById('left').addEventListener('click', () => { move('left'); });
       document.getElementById('down').addEventListener('click', () => { move('down'); });
       document.getElementById('right').addEventListener('click', () => { move('right'); });
-      // フィボナッチ数一覧を生成（25個、5列×5行）
-      generateFibonacciList();
+      
+      // フィボナッチ一覧は初期状態は非表示（表示はボタンで切替）
+      generateFibonacciList();  // 25個固定
+      // トグルボタンのイベント設定
+      document.getElementById('toggle-fib-btn').addEventListener('click', toggleFibonacciList);
     });
-
-    // ゲーム初期化
+    
+    // ゲーム盤面の初期化：boardSize×boardSize の盤面配列を作成し、タイルを2個配置
     function initGame() {
-      board = [
-        [null, null, null, null],
-        [null, null, null, null],
-        [null, null, null, null],
-        [null, null, null, null]
-      ];
+      board = [];
+      for (let r = 0; r < boardSize; r++) {
+        let row = [];
+        for (let c = 0; c < boardSize; c++) {
+          row.push(null);
+        }
+        board.push(row);
+      }
       score = 0;
       createBoardUI();
       spawnTile();
       spawnTile();
       updateUI();
     }
-
-    // 盤面のセルをHTML上に生成
+    
+    // ゲーム盤面UI生成
     function createBoardUI() {
       const container = document.getElementById('game-container');
       container.innerHTML = '';
-      for (let r = 0; r < 4; r++) {
-        for (let c = 0; c < 4; c++) {
+      for (let r = 0; r < boardSize; r++) {
+        for (let c = 0; c < boardSize; c++) {
           let cell = document.createElement('div');
           cell.className = "tile empty";
           cell.id = "cell-" + r + "-" + c;
@@ -196,11 +279,11 @@
         }
       }
     }
-
-    // 盤面状態とアニメーションの更新
+    
+    // UI更新
     function updateUI() {
-      for (let r = 0; r < 4; r++) {
-        for (let c = 0; c < 4; c++) {
+      for (let r = 0; r < boardSize; r++) {
+        for (let c = 0; c < boardSize; c++) {
           let cell = document.getElementById("cell-" + r + "-" + c);
           let value = board[r][c];
           cell.textContent = value ? value : '';
@@ -213,27 +296,28 @@
       }
       updateScore();
     }
-
-    // スコアと最大フィボナッチ数の更新
+    
+    // スコアおよび最大フィボナッチ数の更新
     function updateScore() {
       let maxTile = 0;
-      for (let r = 0; r < 4; r++) {
-        for (let c = 0; c < 4; c++) {
+      for (let r = 0; r < boardSize; r++) {
+        for (let c = 0; c < boardSize; c++) {
           if (board[r][c] && board[r][c] > maxTile) {
             maxTile = board[r][c];
           }
         }
       }
-      document.getElementById("score").textContent =
-        "スコア: " + score + "  最大フィボナッチ数: " + maxTile;
+      document.getElementById("score").textContent = "スコア: " + score + "  最大フィボナッチ数: " + maxTile;
     }
-
-    // 空セルに新規タイル出現（90%で1、10%で2）
+    
+    // 空セルに新規タイル出現：90%で1、10%で2
     function spawnTile() {
       let emptyCells = [];
-      for (let r = 0; r < 4; r++) {
-        for (let c = 0; c < 4; c++) {
-          if (board[r][c] === null) emptyCells.push({ r, c });
+      for (let r = 0; r < boardSize; r++) {
+        for (let c = 0; c < boardSize; c++) {
+          if (board[r][c] === null) {
+            emptyCells.push({ r, c });
+          }
         }
       }
       if (emptyCells.length === 0) return;
@@ -241,8 +325,8 @@
       let newValue = Math.random() < 0.9 ? 1 : 2;
       board[randomCell.r][randomCell.c] = newValue;
     }
-
-    // 2つのタイルがマージ可能か（1同士、またはフィボナッチ数列上で隣接しているか）
+    
+    // マージ可能かの判定：1同士またはフィボナッチ数列上で隣接している場合
     function canMerge(a, b) {
       if (a === null || b === null) return false;
       if (a === 1 && b === 1) return true;
@@ -251,8 +335,8 @@
       if (idxA === -1 || idxB === -1) return false;
       return Math.abs(idxA - idxB) === 1;
     }
-
-    // タイルのマージ処理（合体後、次のフィボナッチ数へ）
+    
+    // マージ処理：合体後、次のフィボナッチ数に
     function merge(a, b) {
       if (a === 1 && b === 1) {
         score += 2;
@@ -267,8 +351,8 @@
       }
       return larger;
     }
-
-    // 1行または1列のスライド＆マージ処理
+    
+    // 1行（または1列）のスライド＆マージ処理
     function slideAndMergeRow(row) {
       let filtered = row.filter(val => val !== null);
       let merged = [];
@@ -282,17 +366,17 @@
           i++;
         }
       }
-      while (merged.length < 4) merged.push(null);
+      while (merged.length < boardSize) merged.push(null);
       return merged;
     }
-
-    // 指定方向に盤面移動を実行
+    
+    // 指定方向への盤面移動
     function move(direction) {
       const oldBoard = JSON.stringify(board);
       let mergedOccurred = false;
       
       if (direction === 'left') {
-        for (let r = 0; r < 4; r++) {
+        for (let r = 0; r < boardSize; r++) {
           const originalRow = board[r].slice();
           const newRow = slideAndMergeRow(board[r]);
           if (JSON.stringify(originalRow) !== JSON.stringify(newRow))
@@ -300,7 +384,7 @@
           board[r] = newRow;
         }
       } else if (direction === 'right') {
-        for (let r = 0; r < 4; r++) {
+        for (let r = 0; r < boardSize; r++) {
           const originalRow = board[r].slice();
           const reversedRow = board[r].slice().reverse();
           let mergedRow = slideAndMergeRow(reversedRow);
@@ -310,23 +394,23 @@
           board[r] = mergedRow;
         }
       } else if (direction === 'up') {
-        for (let c = 0; c < 4; c++) {
+        for (let c = 0; c < boardSize; c++) {
           let col = [];
-          for (let r = 0; r < 4; r++) {
+          for (let r = 0; r < boardSize; r++) {
             col.push(board[r][c]);
           }
           const originalCol = col.slice();
           const mergedCol = slideAndMergeRow(col);
           if (JSON.stringify(originalCol) !== JSON.stringify(mergedCol))
             mergedOccurred = true;
-          for (let r = 0; r < 4; r++) {
+          for (let r = 0; r < boardSize; r++) {
             board[r][c] = mergedCol[r];
           }
         }
       } else if (direction === 'down') {
-        for (let c = 0; c < 4; c++) {
+        for (let c = 0; c < boardSize; c++) {
           let col = [];
-          for (let r = 0; r < 4; r++) {
+          for (let r = 0; r < boardSize; r++) {
             col.push(board[r][c]);
           }
           const originalCol = col.slice();
@@ -335,17 +419,14 @@
           mergedCol.reverse();
           if (JSON.stringify(originalCol) !== JSON.stringify(mergedCol))
             mergedOccurred = true;
-          for (let r = 0; r < 4; r++) {
+          for (let r = 0; r < boardSize; r++) {
             board[r][c] = mergedCol[r];
           }
         }
       }
       
       if (JSON.stringify(board) !== oldBoard) {
-        if (mergedOccurred) {
-          // サウンド再生（ファイルがなければコメントアウト）
-          mergeSound.play();
-        }
+        if (mergedOccurred) mergeSound.play();
         spawnTile();
         spawnSound.play();
         updateUI();
@@ -354,38 +435,30 @@
         }
       }
     }
-
-    // ゲームオーバーチェック：空セルがなく隣接でマージ可能なタイルも無い場合
+    
+    // ゲームオーバーチェック：全セル埋まっていて隣接マージ可能なタイルがない場合
     function checkGameOver() {
-      for (let r = 0; r < 4; r++) {
-        for (let c = 0; c < 4; c++) {
+      for (let r = 0; r < boardSize; r++) {
+        for (let c = 0; c < boardSize; c++) {
           if (board[r][c] === null) return false;
-          if (r < 3 && canMerge(board[r][c], board[r+1][c])) return false;
-          if (c < 3 && canMerge(board[r][c], board[r][c+1])) return false;
+          if (r < boardSize - 1 && canMerge(board[r][c], board[r+1][c])) return false;
+          if (c < boardSize - 1 && canMerge(board[r][c], board[r][c+1])) return false;
         }
       }
       return true;
     }
-
-    // キー操作のハンドラ（矢印キー対応）
+    
+    // 矢印キー操作のハンドラ
     function handleKey(e) {
       switch (e.key) {
-        case 'ArrowLeft':
-          move('left');
-          break;
-        case 'ArrowRight':
-          move('right');
-          break;
-        case 'ArrowUp':
-          move('up');
-          break;
-        case 'ArrowDown':
-          move('down');
-          break;
+        case 'ArrowLeft': move('left'); break;
+        case 'ArrowRight': move('right'); break;
+        case 'ArrowUp': move('up'); break;
+        case 'ArrowDown': move('down'); break;
       }
     }
     
-    // 25個のフィボナッチ数（標準的に 1, 1, 2, 3, 5, ...）を生成する
+    // --- フィボナッチ数一覧の生成（固定：5列×5行、25個） ---
     function generateFibonacci(n) {
       let fib = [];
       fib[0] = 1;
@@ -396,9 +469,10 @@
       return fib;
     }
     
-    // フィボナッチ数一覧（5列×5行）をHTMLに出力する
+    // ここでは常に固定で5×5（25個）のフィボナッチ数を生成し、表示
     function generateFibonacciList() {
-      const fibNumbers = generateFibonacci(25);
+      const totalCells = 25;
+      const fibNumbers = generateFibonacci(totalCells);
       let html = '<table>';
       for (let row = 0; row < 5; row++) {
         html += '<tr>';
@@ -410,6 +484,19 @@
       }
       html += '</table>';
       document.getElementById('fib-list').innerHTML = html;
+    }
+    
+    // フィボナッチ一覧表示のトグル（切替）関数
+    function toggleFibonacciList() {
+      const container = document.getElementById('fib-list-container');
+      const btn = document.getElementById('toggle-fib-btn');
+      if (container.style.display === "none" || container.style.display === "") {
+        container.style.display = "block";
+        btn.textContent = "フィボナッチ一覧を非表示";
+      } else {
+        container.style.display = "none";
+        btn.textContent = "フィボナッチ一覧を表示";
+      }
     }
   </script>
 </body>
