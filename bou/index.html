@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>縦棒グラフ当てゲーム 豪華版</title>
+  <style>
+    /* 全体のデザイン */
+    body {
+      background: linear-gradient(135deg, #f0f8ff, #e6f7ff);
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 20px;
+      color: #333;
+    }
+    /* タイマー設定 */
+    #settings {
+      margin: 10px auto 20px;
+      display: inline-block;
+      text-align: left;
+    }
+    fieldset {
+      border: 1px solid #666;
+      border-radius: 5px;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+    legend {
+      font-weight: bold;
+    }
+    label {
+      margin-right: 10px;
+      font-size: 14px;
+    }
+    /* 棒グラフ描画用 Canvas */
+    #barCanvas {
+      border: 2px solid #666;
+      background-color: #fff;
+      display: block;
+      margin: 0 auto 15px;
+    }
+    /* 入力フィールド */
+    #guessContainer {
+      margin-bottom: 10px;
+    }
+    #guessInput {
+      width: 140px;
+      font-size: 24px;
+      text-align: right;
+      padding: 5px 10px;
+      border: 2px solid #666;
+      border-radius: 5px;
+      background: #f9f9f9;
+    }
+    /* 電卓風 キーパッド */
+    .keypad {
+      display: grid;
+      grid-template-columns: repeat(3, 60px);
+      grid-gap: 10px;
+      justify-content: center;
+      margin: 10px 0 15px;
+    }
+    .key {
+      font-size: 20px;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      background-color: #4CAF50;
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .key:hover:not(:disabled) {
+      background-color: #45a047;
+    }
+    .key:disabled {
+      background-color: #aaa;
+      cursor: not-allowed;
+    }
+    /* その他のボタン */
+    button {
+      font-size: 16px;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 5px;
+      background-color: #008CBA;
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin: 5px;
+    }
+    button:hover:not(:disabled) {
+      background-color: #007bb5;
+    }
+    button:disabled {
+      background-color: #aaa;
+      cursor: not-allowed;
+    }
+    /* タイマー、スコア、ラウンド、コンボ表示 */
+    #timerDisplay, #scoreDisplay, #result {
+      margin-top: 15px;
+      font-size: 18px;
+    }
+    #scoreDisplay {
+      margin-bottom: 15px;
+    }
+    #result {
+      min-height: 60px;
+      padding: 10px;
+    }
+    /* コンフェッティ用 Canvas（全画面オーバーレイ） */
+    #confettiCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      z-index: 1000;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- タイマー設定 -->
+  <div id="settings">
+    <fieldset>
+      <legend>タイマー設定</legend>
+      <label><input type="radio" name="timerOption" value="10">10秒</label>
+      <label><input type="radio" name="timerOption" value="15" checked>15秒</label>
+      <label><input type="radio" name="timerOption" value="20">20秒</label>
+    </fieldset>
+  </div>
+  
+  <!-- 棒グラフ表示用 Canvas -->
+  <canvas id="barCanvas" width="150" height="350"></canvas>
+  
+  <!-- 入力フィールド -->
+  <div id="guessContainer">
+    <input type="text" id="guessInput" readonly placeholder="0">
+  </div>
+  
+  <!-- 数字キーボード -->
+  <div class="keypad">
+    <button class="key" data-key="7">7</button>
+    <button class="key" data-key="8">8</button>
+    <button class="key" data-key="9">9</button>
+    <button class="key" data-key="4">4</button>
+    <button class="key" data-key="5">5</button>
+    <button class="key" data-key="6">6</button>
+    <button class="key" data-key="1">1</button>
+    <button class="key" data-key="2">2</button>
+    <button class="key" data-key="3">3</button>
+    <button class="key" data-key="C">C</button>
+    <button class="key" data-key="0">0</button>
+    <button class="key" data-key="=">=</button>
+  </div>
+  
+  <!-- ヒント＆次のラウンドボタン -->
+  <div>
+    <button id="hint">ヒント</button>
+    <button id="reset">次のラウンド</button>
+  </div>
+  
+  <!-- タイマー・スコア・ラウンド・コンボ表示 -->
+  <div id="timerDisplay">残り時間: <span id="timeLeft">15</span> 秒</div>
+  <div id="scoreDisplay">
+    スコア: <span id="score">0</span> |
+    ラウンド: <span id="round">1</span> |
+    コンボ: <span id="combo">0</span>
+  </div>
+  
+  <!-- 結果表示 -->
+  <div id="result"></div>
+  
+  <!-- コンフェッティ描画用 Canvas -->
+  <canvas id="confettiCanvas"></canvas>
+  
+  <script>
+    // グローバル変数
+    let actualLength;       // 棒の実際の長さ（mm）
+    let score = 0;
+    let round = 1;
+    let combo = 0;
+    let timeLeft = 15;
+    let timerInterval = null;
+    let hintUsed = false;
+    const scaleFactor = 3;  // 1mm = 3px に換算
+
+    const canvas = document.getElementById('barCanvas');
+    const ctx = canvas.getContext('2d');
+    const guessInput = document.getElementById('guessInput');
+    const timeLeftSpan = document.getElementById('timeLeft');
+    const scoreSpan = document.getElementById('score');
+    const roundSpan = document.getElementById('round');
+    const comboSpan = document.getElementById('combo');
+    const resultDiv = document.getElementById('result');
+
+    // 数字キーボードの操作
+    function onKeypadClick(e) {
+      const key = e.target.getAttribute("data-key");
+      if (key === "C") {
+        guessInput.value = "";
+      } else if (key === "=") {
+        evaluateGuess();
+      } else {
+        if (guessInput.value === "0") {
+          guessInput.value = key;
+        } else {
+          guessInput.value += key;
+        }
+      }
+    }
+    document.querySelectorAll(".key").forEach(btn => {
+      btn.addEventListener("click", onKeypadClick);
+    });
+    function disableKeypad() {
+      document.querySelectorAll(".key").forEach(btn => btn.disabled = true);
+    }
+    function enableKeypad() {
+      document.querySelectorAll(".key").forEach(btn => btn.disabled = false);
+    }
+
+    // 棒グラフを立体的にアニメーションで描画
+    function drawBar() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const barWidth = 40;
+      const targetHeight = actualLength * scaleFactor;
+      const x = (canvas.width - barWidth) / 2;
+      let currentHeight = 0;
+      function animate() {
+        currentHeight += 3;
+        if (currentHeight > targetHeight) currentHeight = targetHeight;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const y = canvas.height - currentHeight;
+        let gradient = ctx.createLinearGradient(x, y, x, y + currentHeight);
+        gradient.addColorStop(0, '#66BB6A');
+        gradient.addColorStop(1, '#388E3C');
+        ctx.save();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+        ctx.shadowOffsetX = 3;
+        ctx.shadowOffsetY = 3;
+        ctx.shadowBlur = 3;
+        ctx.fillStyle = gradient;
+        ctx.fillRect(x, y, barWidth, currentHeight);
+        ctx.restore();
+        if (currentHeight < targetHeight) {
+          requestAnimationFrame(animate);
+        }
+      }
+      requestAnimationFrame(animate);
+    }
+
+    // コンフェッティ演出（完璧な回答時）
+    function launchConfetti() {
+      const confettiCanvas = document.getElementById('confettiCanvas');
+      confettiCanvas.style.display = 'block';
+      confettiCanvas.width = window.innerWidth;
+      confettiCanvas.height = window.innerHeight;
+      const confettiCtx = confettiCanvas.getContext('2d');
+      const particles = [];
+      const colors = ['#fcf403', '#fc4a03', '#03fc03', '#0303fc', '#fc03d8'];
+      
+      for (let i = 0; i < 100; i++) {
+        particles.push({
+          x: Math.random() * confettiCanvas.width,
+          y: Math.random() * confettiCanvas.height - confettiCanvas.height,
+          r: Math.random() * 6 + 2,
+          d: Math.random() * 5 + 1,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          tilt: Math.floor(Math.random() * 10) - 10
+        });
+      }
+      
+      function drawParticles() {
+        confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+        particles.forEach(p => {
+          confettiCtx.beginPath();
+          confettiCtx.lineWidth = p.r;
+          confettiCtx.strokeStyle = p.color;
+          confettiCtx.moveTo(p.x, p.y);
+          confettiCtx.lineTo(p.x + p.tilt, p.y + p.r);
+          confettiCtx.stroke();
+        });
+      }
+      
+      let angle = 0;
+      function updateParticles() {
+        angle += 0.01;
+        particles.forEach((p, i) => {
+          p.y += (Math.cos(angle) + p.d + 1);
+          p.x += Math.sin(angle);
+          if (p.y > confettiCanvas.height) {
+            particles[i] = {
+              x: Math.random() * confettiCanvas.width,
+              y: -10,
+              r: p.r,
+              d: p.d,
+              color: p.color,
+              tilt: p.tilt
+            };
+          }
+        });
+      }
+      
+      const confettiAnimation = setInterval(() => {
+        drawParticles();
+        updateParticles();
+      }, 20);
+      
+      setTimeout(() => {
+        clearInterval(confettiAnimation);
+        confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+        confettiCanvas.style.display = 'none';
+      }, 3000);
+    }
+
+    // 新ラウンド開始（自動移行）
+    function startRound() {
+      clearInterval(timerInterval);
+      // タイマー秒数はラジオボタンから取得（初期は15秒）
+      const timerSetting = parseInt(document.querySelector('input[name="timerOption"]:checked').value);
+      timeLeft = timerSetting;
+      timeLeftSpan.textContent = timeLeft;
+      // 棒グラフの長さは常に20～100 mmの範囲
+      const maxSetting = 100;
+      hintUsed = false;
+      document.getElementById('hint').disabled = false;
+      guessInput.value = "";
+      resultDiv.innerHTML = "";
+      
+      actualLength = Math.floor(Math.random() * (maxSetting - 20 + 1)) + 20;
+      drawBar();
+      enableKeypad();
+      
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        timeLeftSpan.textContent = timeLeft;
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          disableKeypad();
+          resultDiv.innerHTML = "時間切れ！ 実際の長さは " + actualLength + " mm でした。";
+          combo = 0;
+          comboSpan.textContent = combo;
+          round++;
+          roundSpan.textContent = round;
+          setTimeout(startRound, 1000);
+        }
+      }, 1000);
+    }
+
+    // ユーザー回答の評価
+    function evaluateGuess() {
+      if (timeLeft <= 0) return;
+      clearInterval(timerInterval);
+      disableKeypad();
+      
+      const guess = parseInt(guessInput.value, 10);
+      if (isNaN(guess) || guessInput.value === "") {
+        resultDiv.innerHTML = "数字を入力してください。";
+        return;
+      }
+      
+      const diff = Math.abs(actualLength - guess);
+      let feedback = "";
+      let points = 0;
+      
+      if (diff === 0) {
+        feedback = "完璧！大正解です！";
+        points = 10;
+        combo++;
+        comboSpan.textContent = combo;
+        launchConfetti();
+      } else if (diff <= 2) {
+        feedback = "ほぼ正解！あと少し！";
+        points = 7;
+        combo = 0;
+        comboSpan.textContent = combo;
+      } else if (diff <= 5) {
+        feedback = "近いです！頑張って！";
+        points = 5;
+        combo = 0;
+        comboSpan.textContent = combo;
+      } else if (diff <= 10) {
+        feedback = "まあまあです。";
+        points = 3;
+        combo = 0;
+        comboSpan.textContent = combo;
+      } else {
+        feedback = "残念…";
+        points = 0;
+        combo = 0;
+        comboSpan.textContent = combo;
+      }
+      
+      if (guess !== actualLength) {
+        feedback += (guess > actualLength)
+          ? " ヒント: もう少し短い数値を。"
+          : " ヒント: もう少し長い数値を。";
+      }
+      
+      resultDiv.innerHTML =
+        "あなたの予想: " + guess + " mm<br>" +
+        "実際の長さ: " + actualLength + " mm<br>" +
+        feedback;
+      
+      score += points;
+      scoreSpan.textContent = score;
+      round++;
+      roundSpan.textContent = round;
+    }
+
+    // ヒント（各ラウンド1回のみ）
+    document.getElementById('hint').addEventListener("click", function () {
+      if (hintUsed) return;
+      hintUsed = true;
+      this.disabled = true;
+      let hintMessage = "";
+      if (actualLength < 60) {
+        hintMessage = "ヒント: 棒は比較的短いです。";
+      } else if (actualLength > 60) {
+        hintMessage = "ヒント: 棒は比較的長いです。";
+      } else {
+        hintMessage = "ヒント: 棒はちょうど中間の長さです。";
+      }
+      resultDiv.innerHTML = hintMessage;
+    });
+
+    // 次のラウンドボタン（手動でも自動でも）
+    document.getElementById('reset').addEventListener("click", function () {
+      enableKeypad();
+      startRound();
+    });
+
+    window.onload = startRound;
+  </script>
+</body>
+</html>
