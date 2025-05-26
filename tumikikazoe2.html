@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>積み木数えゲーム – 2倍サイズ版</title>
+    <style>
+        /*
+         * 基本的なレイアウトとリセット
+         */
+        body {
+            margin: 0;
+            overflow: hidden; /* スクロールバーを非表示に */
+            display: flex;
+            flex-direction: column;
+            height: 100vh; /* 画面全体の高さを確保 */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f0f0; /* canvas外の背景色 */
+        }
+
+        /*
+         * ゲームコンテナ (Three.jsのCanvasがここに表示される)
+         */
+        #game-container {
+            flex-grow: 1; /* 残りのスペースを全て占める */
+            position: relative;
+            background-color: white; /* Three.jsの背景色と揃える */
+        }
+
+        /*
+         * UIオーバーレイ
+         */
+        #ui-overlay {
+            position: absolute;
+            top: 0; /* PC/横画面時は上部 */
+            left: 0;
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap; /* 要素が折り返せるように */
+            background: rgba(0, 0, 0, 0.6); /* 半透明の暗い背景 */
+            color: white;
+            z-index: 10; /* 最前面に表示 */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3); /* 影 */
+        }
+
+        /*
+         * スマホ縦画面時のUI位置調整
+         */
+        @media (orientation: portrait) {
+            #ui-overlay {
+                top: auto; /* 上部の設定を解除 */
+                bottom: 0; /* 下部に配置 */
+            }
+        }
+
+        /*
+         * 回答入力欄
+         */
+        #answer-input {
+            padding: 10px;
+            font-size: 1.3em;
+            width: 90px;
+            text-align: center;
+            border: none;
+            border-radius: 8px;
+            margin-right: 15px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+            transition: all 0.3s ease; /* ホバーやフォーカス時のアニメーション */
+        }
+        #answer-input:focus {
+            outline: none; /* デフォルトのアウトラインを消す */
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.3), 0 0 0 3px rgba(76, 175, 80, 0.5); /* フォーカス時の影 */
+        }
+
+        /*
+         * 回答送信ボタン
+         */
+        #submit-button {
+            padding: 10px 20px;
+            font-size: 1.3em;
+            background-color: #4CAF50; /* 緑色 */
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: background-color 0.3s ease, transform 0.1s ease;
+        }
+        #submit-button:hover {
+            background-color: #45a049; /* ホバーで少し色を暗く */
+            transform: translateY(-1px); /* 少し上に移動 */
+        }
+        #submit-button:active {
+            transform: translateY(0); /* クリックで元の位置に */
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2); /* クリック時の影 */
+        }
+
+        /*
+         * 結果メッセージ表示エリア
+         */
+        #result-message {
+            margin-left: 20px;
+            font-size: 1.4em;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5); /* 文字の影 */
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+    <div id="ui-overlay">
+        <input type="number" id="answer-input" placeholder="数">
+        <button id="submit-button">答える</button>
+        <div id="result-message"></div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'https://unpkg.com/three@0.164.1/build/three.module.js';
+
+        let scene, camera, renderer;
+        let ambientLight, directionalLight;
+        let cubes = [];
+        let correctAnswer = 0;
+        let gameActive = false;
+
+        // ゲーム定数
+        const CUBE_SIZE = 1.6; // 積み木のサイズ（元サイズの2倍）
+        const MIN_CUBES = 3;   // 生成される積み木の最小数
+        const MAX_CUBES = 100; // 生成される積み木の最大数
+        const MIN_DISTANCE_BETWEEN_CUBES = CUBE_SIZE * 1.5; // 積み木間の最小距離
+        const BOUND = 10; // 積み木の配置範囲（中心からの最大距離）
+
+        const RESULT_MESSAGE_DISPLAY_TIME = 1500; // 結果表示時間（ミリ秒）
+
+        // DOM要素の取得
+        const gameContainer = document.getElementById('game-container');
+        const answerInput = document.getElementById('answer-input');
+        const submitButton = document.getElementById('submit-button');
+        const resultMessage = document.getElementById('result-message');
+
+        /**
+         * ゲームの初期化
+         */
+        function init() {
+            // シーンの作成
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xffffff); // 背景を白に設定
+
+            // カメラの作成
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            updateCameraPosition(); // カメラ位置を初期設定
+
+            // レンダラーの作成
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            gameContainer.appendChild(renderer.domElement);
+
+            // 環境光の追加 (全体的な明るさ)
+            ambientLight = new THREE.AmbientLight(0xffffff, 1.0); // 強度を1.0に設定
+            scene.add(ambientLight);
+
+            // 平行光源の追加 (光沢感を出すため)
+            directionalLight = new THREE.DirectionalLight(0xffffff, 1.2); // 強度を1.2に設定
+            directionalLight.position.set(5, 10, 7).normalize(); // 光源の位置
+            scene.add(directionalLight);
+
+            // UIイベントリスナーの設定
+            submitButton.addEventListener('click', handleSubmit);
+            answerInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    handleSubmit();
+                }
+            });
+
+            // ウィンドウのリサイズイベント
+            window.addEventListener('resize', onWindowResize, false);
+
+            // スマホでの誤操作防止 (ズーム、スクロールの無効化)
+            document.addEventListener('gesturestart', (e) => e.preventDefault()); // ズーム開始を防止
+            document.addEventListener('touchmove', (e) => {
+                if (e.touches.length > 1) { // 2本指以上での操作（ピンチズームなど）を無効化
+                    e.preventDefault();
+                }
+            }, { passive: false });
+            document.addEventListener('wheel', (e) => e.preventDefault(), { passive: false }); // マウスホイールでのズーム防止
+
+            startGame(); // ゲーム開始
+        }
+
+        /**
+         * 画面サイズに応じてカメラ位置を調整
+         */
+        function updateCameraPosition() {
+            if (window.innerWidth < window.innerHeight) { // 縦画面
+                camera.position.set(0, 20, 40); // より遠ざけ、Y軸も高めに
+                camera.lookAt(0, 0, 0); // 中心を見る
+            } else { // 横画面
+                camera.position.set(0, 15, 25);
+                camera.lookAt(0, 0, 0);
+            }
+        }
+
+        /**
+         * ウィンドウリサイズ時の処理
+         */
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            updateCameraPosition(); // カメラ位置も再調整
+        }
+
+        /**
+         * 新しいゲームを開始
+         */
+        function startGame() {
+            clearCubes();       // 既存の積み木をクリア
+            generateCubes();    // 新しい積み木を生成
+            correctAnswer = cubes.length; // 正解数を設定
+            gameActive = true;  // ゲームをアクティブに
+            answerInput.value = ''; // 入力欄をクリア
+            resultMessage.textContent = ''; // 結果メッセージをクリア
+            answerInput.focus(); // 入力欄にフォーカスを設定
+        }
+
+        /**
+         * 全ての積み木をシーンから削除
+         */
+        function clearCubes() {
+            cubes.forEach(cube => scene.remove(cube));
+            cubes = [];
+        }
+
+        /**
+         * ランダムな数の積み木を生成し配置
+         */
+        function generateCubes() {
+            const numberOfCubes = Math.floor(Math.random() * (MAX_CUBES - MIN_CUBES + 1)) + MIN_CUBES;
+
+            for (let i = 0; i < numberOfCubes; i++) {
+                let position;
+                let foundValidPosition = false;
+                let attempts = 0;
+                const MAX_ATTEMPTS = 500; // 無限ループ防止のための最大試行回数
+
+                // 他の積み木と重ならない位置を見つける
+                while (!foundValidPosition && attempts < MAX_ATTEMPTS) {
+                    position = new THREE.Vector3(
+                        (Math.random() - 0.5) * BOUND * 2,
+                        (Math.random() - 0.5) * BOUND * 2,
+                        (Math.random() - 0.5) * BOUND * 2
+                    );
+
+                    foundValidPosition = true;
+                    for (let j = 0; j < cubes.length; j++) {
+                        const existingCube = cubes[j];
+                        const distance = position.distanceTo(existingCube.position);
+                        if (distance < MIN_DISTANCE_BETWEEN_CUBES) {
+                            foundValidPosition = false;
+                            break;
+                        }
+                    }
+                    attempts++;
+                }
+
+                if (foundValidPosition) {
+                    const geometry = new THREE.BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE);
+                    
+                    // HSLでランダムな明るい色を生成 (白を避ける)
+                    const hue = Math.random();
+                    const saturation = Math.random() * 0.5 + 0.5; // 彩度を高めに
+                    const lightness = Math.random() * 0.3 + 0.5; // 明るさも高めに
+                    const color = new THREE.Color().setHSL(hue, saturation, lightness);
+
+                    // 金属的な質感とクリアコートの光沢を持つマテリアル
+                    const material = new THREE.MeshPhysicalMaterial({
+                        color: color,
+                        metalness: 0.8, // 金属感
+                        roughness: 0.2, // 表面のざらつき
+                        clearcoat: 1.0, // クリアコートの有無
+                        clearcoatRoughness: 0.1 // クリアコートのざらつき
+                    });
+                    
+                    const cube = new THREE.Mesh(geometry, material);
+                    cube.position.copy(position);
+                    // 各積み木にランダムな回転速度を設定
+                    cube.rotationSpeed = new THREE.Vector3(
+                        (Math.random() - 0.5) * 0.01,
+                        (Math.random() - 0.5) * 0.01,
+                        (Math.random() - 0.5) * 0.01
+                    );
+                    scene.add(cube);
+                    cubes.push(cube);
+                } else {
+                    console.warn('有効な積み木の位置を見つけられませんでした。この問題では、一部の積み木が生成されない可能性があります。');
+                }
+            }
+        }
+
+        /**
+         * プレイヤーの回答を処理
+         */
+        function handleSubmit() {
+            if (!gameActive) return; // ゲームが非アクティブなら何もしない
+
+            gameActive = false; // 回答中はゲームを一時停止
+            const playerAnswer = parseInt(answerInput.value, 10); // 数値に変換
+
+            if (isNaN(playerAnswer)) {
+                resultMessage.textContent = '数字を入力してください。';
+                resultMessage.style.color = 'yellow';
+                gameActive = true; // 再度入力可能にする
+                return;
+            }
+
+            if (playerAnswer === correctAnswer) {
+                resultMessage.textContent = '正解！';
+                resultMessage.style.color = 'lightgreen';
+            } else {
+                resultMessage.textContent = `不正解。正しい数は ${correctAnswer} 個です。`;
+                resultMessage.style.color = 'salmon';
+            }
+
+            // 一定時間後に次の問題へ
+            setTimeout(() => {
+                startGame();
+            }, RESULT_MESSAGE_DISPLAY_TIME);
+        }
+
+        /**
+         * アニメーションループ
+         */
+        function animate() {
+            requestAnimationFrame(animate); // 次のフレームを要求
+
+            // 各積み木を回転させる
+            cubes.forEach(cube => {
+                cube.rotation.x += cube.rotationSpeed.x;
+                cube.rotation.y += cube.rotationSpeed.y;
+                cube.rotation.z += cube.rotationSpeed.z;
+            });
+
+            renderer.render(scene, camera); // シーンをレンダリング
+        }
+
+        // ゲームの開始
+        init();
+        animate();
+    </script>
+</body>
+</html>
