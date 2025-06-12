@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>豪華フィボナッチクリスタル</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: radial-gradient(ellipse at center, #1a1a2e 0%, #16213e 25%, #0f3460 50%, #533483 75%, #e94560 100%);
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+            touch-action: none;
+        }
+        
+        canvas {
+            display: block;
+            cursor: grab;
+            filter: drop-shadow(0 0 20px rgba(233, 69, 96, 0.3));
+        }
+        
+        canvas:active {
+            cursor: grabbing;
+        }
+        
+        .info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 16px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+            padding: 15px 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            z-index: 100;
+            font-weight: 300;
+            letter-spacing: 0.5px;
+        }
+        
+        .info h3 {
+            margin: 0 0 8px 0;
+            font-size: 18px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #ffeaa7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 600;
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: white;
+            font-size: 13px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+            padding: 15px 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            z-index: 100;
+            line-height: 1.6;
+        }
+        
+        .controls div {
+            margin: 3px 0;
+            opacity: 0.9;
+        }
+        
+        .zoom-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            font-size: 14px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+            padding: 10px 15px;
+            border-radius: 15px;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            z-index: 100;
+            min-width: 80px;
+            text-align: center;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .shimmer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            animation: shimmer 3s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="info shimmer">
+        <h3>✨ フィボナッチクリスタル ✨</h3>
+        <div>黄金比の神秘的な美しさ</div>
+    </div>
+    
+    <div class="controls">
+        <div>🖱️ ドラッグ: 回転</div>
+        <div>📱 ピンチ: 拡大縮小</div>
+        <div>🔄 スペース: 自動回転切替</div>
+        <div>🎨 マウスホイール: ズーム</div>
+    </div>
+    
+    <div class="zoom-indicator" id="zoomIndicator">
+        100%
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // シーンの設定
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x000000, 0);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        document.body.appendChild(renderer.domElement);
+
+        // フィボナッチクリスタルの作成
+        const crystalGroup = new THREE.Group();
+        
+        // フィボナッチ数列
+        const fibonacci = [1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377];
+        
+        // 豪華なクリスタル構造
+        const layers = 35;
+        const maxSize = 4;
+        
+        // パーティクルシステム
+        const particleGeometry = new THREE.BufferGeometry();
+        const particleCount = 200;
+        const particlePositions = new Float32Array(particleCount * 3);
+        const particleColors = new Float32Array(particleCount * 3);
+        
+        for (let i = 0; i < particleCount; i++) {
+            const radius = 8 + Math.random() * 5;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.random() * Math.PI;
+            
+            particlePositions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
+            particlePositions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+            particlePositions[i * 3 + 2] = radius * Math.cos(phi);
+            
+            const color = new THREE.Color().setHSL(Math.random(), 0.8, 0.6);
+            particleColors[i * 3] = color.r;
+            particleColors[i * 3 + 1] = color.g;
+            particleColors[i * 3 + 2] = color.b;
+        }
+        
+        particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+        particleGeometry.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
+        
+        const particleMaterial = new THREE.PointsMaterial({
+            size: 0.1,
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.6,
+            blending: THREE.AdditiveBlending
+        });
+        
+        const particles = new THREE.Points(particleGeometry, particleMaterial);
+        scene.add(particles);
+        
+        // メインクリスタル構造
+        for (let i = 0; i < layers; i++) {
+            const progress = i / (layers - 1);
+            const size = maxSize * (1 - progress * 0.7);
+            const holeSize = size * 0.4 * (1 - progress * 0.2);
+            
+            // より複雑な形状を作成
+            const segments = 8;
+            const rings = 6;
+            
+            // トーラス状のセグメント
+            for (let ring = 0; ring < rings; ring++) {
+                const ringProgress = ring / (rings - 1);
+                const ringRadius = (size - holeSize) / 2;
+                const tubeRadius = ringRadius * 0.3 * (1 - ringProgress * 0.5);
+                
+                const torusGeometry = new THREE.TorusGeometry(
+                    holeSize / 2 + ringRadius * ringProgress,
+                    tubeRadius,
+                    8,
+                    16
+                );
+                
+                // 黄金比に基づく色相計算
+                const goldenRatio = 1.618033988749;
+                const hue = ((progress * goldenRatio + ring * 0.2 + i * 0.1) % 1) * 360;
+                const saturation = 0.8 + Math.sin(progress * Math.PI) * 0.2;
+                const lightness = 0.4 + Math.sin(progress * Math.PI * 2) * 0.3;
+                
+                const color = new THREE.Color().setHSL(hue / 360, saturation, lightness);
+                
+                // グラデーション効果のある高級マテリアル
+                const material = new THREE.MeshPhysicalMaterial({
+                    color: color,
+                    metalness: 0.8,
+                    roughness: 0.2,
+                    transparent: true,
+                    opacity: 0.7 + progress * 0.3,
+                    emissive: color.clone().multiplyScalar(0.1),
+                    clearcoat: 1.0,
+                    clearcoatRoughness: 0.1,
+                    transmission: 0.3,
+                    thickness: 0.5,
+                    ior: 1.5
+                });
+                
+                const mesh = new THREE.Mesh(torusGeometry, material);
+                
+                // フィボナッチ螺旋の回転
+                const fibIndex = (i + ring) % fibonacci.length;
+                const rotation = (fibonacci[fibIndex] * progress * Math.PI) / 4;
+                
+                mesh.rotation.set(
+                    rotation * 0.7 + ring * 0.3,
+                    rotation + ring * 0.5,
+                    rotation * 0.5 + ring * 0.2
+                );
+                
+                mesh.position.set(
+                    Math.sin(ring * Math.PI / 3) * 0.2,
+                    Math.cos(ring * Math.PI / 3) * 0.2,
+                    (ring - rings/2) * 0.1
+                );
+                
+                mesh.scale.set(
+                    1 + Math.sin(progress * Math.PI) * 0.2,
+                    1 + Math.cos(progress * Math.PI) * 0.2,
+                    1
+                );
+                
+                crystalGroup.add(mesh);
+            }
+            
+            // 中央のクリスタルコア
+            if (i % 3 === 0) {
+                const coreGeometry = new THREE.OctahedronGeometry(holeSize * 0.3, 2);
+                const coreMaterial = new THREE.MeshPhysicalMaterial({
+                    color: new THREE.Color().setHSL((progress * 0.8) % 1, 1, 0.5),
+                    metalness: 0.9,
+                    roughness: 0.1,
+                    transparent: true,
+                    opacity: 0.8,
+                    emissive: new THREE.Color().setHSL((progress * 0.8) % 1, 0.5, 0.2),
+                    transmission: 0.5,
+                    thickness: 1.0
+                });
+                
+                const coreMesh = new THREE.Mesh(coreGeometry, coreMaterial);
+                coreMesh.position.set(0, 0, 0);
+                crystalGroup.add(coreMesh);
+            }
+        }
+        
+        scene.add(crystalGroup);
+
+        // 豪華なライティングシステム
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+        scene.add(ambientLight);
+        
+        // メインライト
+        const mainLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        mainLight.position.set(10, 10, 5);
+        mainLight.castShadow = true;
+        scene.add(mainLight);
+        
+        // カラーライト
+        const colorLights = [
+            { color: 0xff6b6b, position: [5, 0, 5] },
+            { color: 0x4ecdc4, position: [-5, 0, 5] },
+            { color: 0x45b7d1, position: [0, 5, -5] },
+            { color: 0x96ceb4, position: [0, -5, -5] }
+        ];
+        
+        colorLights.forEach(light => {
+            const pointLight = new THREE.PointLight(light.color, 0.8, 50);
+            pointLight.position.set(...light.position);
+            scene.add(pointLight);
+        });
+        
+        // 背景の星空
+        const starGeometry = new THREE.BufferGeometry();
+        const starCount = 1000;
+        const starPositions = new Float32Array(starCount * 3);
+        
+        for (let i = 0; i < starCount; i++) {
+            starPositions[i * 3] = (Math.random() - 0.5) * 200;
+            starPositions[i * 3 + 1] = (Math.random() - 0.5) * 200;
+            starPositions[i * 3 + 2] = (Math.random() - 0.5) * 200;
+        }
+        
+        starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+        const starMaterial = new THREE.PointsMaterial({
+            color: 0xffffff,
+            size: 0.5,
+            transparent: true,
+            opacity: 0.8
+        });
+        
+        const stars = new THREE.Points(starGeometry, starMaterial);
+        scene.add(stars);
+
+        // カメラとズーム設定
+        camera.position.set(8, 8, 12);
+        camera.lookAt(0, 0, 0);
+        
+        let cameraDistance = 15;
+        let zoomLevel = 1.0;
+        const minZoom = 0.3;
+        const maxZoom = 3.0;
+
+        // 回転とタッチ制御
+        let isMouseDown = false;
+        let isTouching = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        let previousTouchPosition = { x: 0, y: 0 };
+        let rotationVelocity = { x: 0, y: 0 };
+        let autoRotate = true;
+        let dampingFactor = 0.96;
+        
+        // ピンチズーム用
+        let initialPinchDistance = 0;
+        let initialZoom = 1.0;
+
+        // ズーム表示更新
+        function updateZoomIndicator() {
+            document.getElementById('zoomIndicator').textContent = Math.round(zoomLevel * 100) + '%';
+        }
+
+        // マウスイベント
+        renderer.domElement.addEventListener('mousedown', (event) => {
+            isMouseDown = true;
+            autoRotate = false;
+            previousMousePosition = {
+                x: event.clientX,
+                y: event.clientY
+            };
+        });
+
+        renderer.domElement.addEventListener('mousemove', (event) => {
+            if (isMouseDown) {
+                const deltaMove = {
+                    x: event.clientX - previousMousePosition.x,
+                    y: event.clientY - previousMousePosition.y
+                };
+
+                rotationVelocity.x = deltaMove.y * 0.008;
+                rotationVelocity.y = deltaMove.x * 0.008;
+
+                previousMousePosition = {
+                    x: event.clientX,
+                    y: event.clientY
+                };
+            }
+        });
+
+        renderer.domElement.addEventListener('mouseup', () => {
+            isMouseDown = false;
+        });
+
+        // マウスホイールズーム
+        renderer.domElement.addEventListener('wheel', (event) => {
+            event.preventDefault();
+            const delta = event.deltaY > 0 ? 1.1 : 0.9;
+            zoomLevel = Math.max(minZoom, Math.min(maxZoom, zoomLevel * delta));
+            updateZoomIndicator();
+        });
+
+        // タッチイベント
+        renderer.domElement.addEventListener('touchstart', (event) => {
+            event.preventDefault();
+            
+            if (event.touches.length === 1) {
+                // 単指タッチ - 回転
+                isTouching = true;
+                autoRotate = false;
+                const touch = event.touches[0];
+                previousTouchPosition = {
+                    x: touch.clientX,
+                    y: touch.clientY
+                };
+            } else if (event.touches.length === 2) {
+                // 二指タッチ - ピンチズーム
+                const touch1 = event.touches[0];
+                const touch2 = event.touches[1];
+                initialPinchDistance = Math.sqrt(
+                    Math.pow(touch2.clientX - touch1.clientX, 2) +
+                    Math.pow(touch2.clientY - touch1.clientY, 2)
+                );
+                initialZoom = zoomLevel;
+                isTouching = false;
+                autoRotate = false;
+            }
+        }, { passive: false });
+
+        renderer.domElement.addEventListener('touchmove', (event) => {
+            event.preventDefault();
+            
+            if (event.touches.length === 1 && isTouching) {
+                // 単指移動 - 回転
+                const touch = event.touches[0];
+                const deltaMove = {
+                    x: touch.clientX - previousTouchPosition.x,
+                    y: touch.clientY - previousTouchPosition.y
+                };
+
+                rotationVelocity.x = deltaMove.y * 0.012;
+                rotationVelocity.y = deltaMove.x * 0.012;
+
+                previousTouchPosition = {
+                    x: touch.clientX,
+                    y: touch.clientY
+                };
+            } else if (event.touches.length === 2) {
+                // 二指移動 - ピンチズーム
+                const touch1 = event.touches[0];
+                const touch2 = event.touches[1];
+                const currentPinchDistance = Math.sqrt(
+                    Math.pow(touch2.clientX - touch1.clientX, 2) +
+                    Math.pow(touch2.clientY - touch1.clientY, 2)
+                );
+                
+                if (initialPinchDistance > 0) {
+                    const scale = currentPinchDistance / initialPinchDistance;
+                    zoomLevel = Math.max(minZoom, Math.min(maxZoom, initialZoom * scale));
+                    updateZoomIndicator();
+                }
+            }
+        }, { passive: false });
+
+        renderer.domElement.addEventListener('touchend', (event) => {
+            event.preventDefault();
+            isTouching = false;
+            initialPinchDistance = 0;
+        }, { passive: false });
+
+        // キーボードイベント
+        document.addEventListener('keydown', (event) => {
+            if (event.code === 'Space') {
+                event.preventDefault();
+                autoRotate = !autoRotate;
+                if (autoRotate) {
+                    rotationVelocity.x = 0;
+                    rotationVelocity.y = 0;
+                }
+            }
+        });
+
+        // ウィンドウリサイズ
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // アニメーションループ
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const time = Date.now() * 0.001;
+
+            // カメラズーム適用
+            const targetDistance = cameraDistance / zoomLevel;
+            camera.position.normalize().multiplyScalar(targetDistance);
+            camera.lookAt(0, 0, 0);
+
+            if (autoRotate) {
+                crystalGroup.rotation.x += 0.003;
+                crystalGroup.rotation.y += 0.007;
+                crystalGroup.rotation.z += 0.002;
+            } else {
+                crystalGroup.rotation.x += rotationVelocity.x;
+                crystalGroup.rotation.y += rotationVelocity.y;
+                
+                if (!isMouseDown && !isTouching) {
+                    rotationVelocity.x *= dampingFactor;
+                    rotationVelocity.y *= dampingFactor;
+                    
+                    if (Math.abs(rotationVelocity.x) < 0.001 && Math.abs(rotationVelocity.y) < 0.001) {
+                        setTimeout(() => {
+                            if (!isMouseDown && !isTouching) {
+                                autoRotate = true;
+                            }
+                        }, 1500);
+                    }
+                }
+            }
+
+            // 各要素の独立したアニメーション
+            crystalGroup.children.forEach((child, index) => {
+                if (child.geometry && child.geometry.type === 'TorusGeometry') {
+                    const offset = index * 0.05;
+                    child.rotation.z += Math.sin(time * 0.5 + offset) * 0.002;
+                    child.scale.setScalar(1 + Math.sin(time * 0.8 + offset) * 0.02);
+                }
+                if (child.geometry && child.geometry.type === 'OctahedronGeometry') {
+                    child.rotation.x += 0.01;
+                    child.rotation.y += 0.015;
+                    child.material.emissiveIntensity = 0.2 + Math.sin(time * 2 + index) * 0.1;
+                }
+            });
+
+            // パーティクルアニメーション
+            particles.rotation.x += 0.0005;
+            particles.rotation.y += 0.001;
+            
+            // 星空の回転
+            stars.rotation.x += 0.0001;
+            stars.rotation.y += 0.0002;
+
+            // ライトの動的変更
+            colorLights.forEach((lightData, index) => {
+                const light = scene.children.find(child => 
+                    child.type === 'PointLight' && 
+                    child.color.getHex() === lightData.color
+                );
+                if (light) {
+                    light.intensity = 0.8 + Math.sin(time * 0.5 + index) * 0.3;
+                }
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        // 初期化
+        updateZoomIndicator();
+        animate();
+    </script>
+</body>
+</html>
