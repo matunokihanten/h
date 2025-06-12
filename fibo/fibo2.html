@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>インタラクティブフィボナッチキューブ</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            touch-action: none;
+        }
+        
+        canvas {
+            display: block;
+            cursor: grab;
+        }
+        
+        canvas:active {
+            cursor: grabbing;
+        }
+        
+        .info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 14px;
+            background: rgba(0,0,0,0.3);
+            padding: 10px;
+            border-radius: 8px;
+            backdrop-filter: blur(5px);
+            z-index: 100;
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: white;
+            font-size: 12px;
+            background: rgba(0,0,0,0.3);
+            padding: 10px;
+            border-radius: 8px;
+            backdrop-filter: blur(5px);
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <div class="info">
+        <div>フィボナッチキューブ</div>
+        <div>ドラッグまたはタッチで回転</div>
+    </div>
+    
+    <div class="controls">
+        <div>🖱️ マウス: ドラッグで回転</div>
+        <div>📱 タッチ: スワイプで回転</div>
+        <div>🔄 自動回転: スペースキーで切り替え</div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // シーンの設定
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x000000, 0);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
+
+        // フィボナッチキューブの作成
+        const cubeGroup = new THREE.Group();
+        
+        // フィボナッチ数列
+        const fibonacci = [1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144];
+        
+        // キューブの層を作成
+        const layers = 25;
+        const maxSize = 3;
+        
+        for (let i = 0; i < layers; i++) {
+            const progress = i / (layers - 1);
+            const size = maxSize * (1 - progress * 0.8);
+            
+            // 内側の穴のサイズ
+            const holeSize = size * 0.6 * (1 - progress * 0.3);
+            
+            // 外側のキューブ
+            const outerGeometry = new THREE.BoxGeometry(size, size, size);
+            
+            // 内側の穴（キューブ）
+            const innerGeometry = new THREE.BoxGeometry(holeSize, holeSize, holeSize);
+            
+            // CSG演算の代わりに、フレーム状の構造を作成
+            const frameThickness = (size - holeSize) / 2;
+            
+            // フレームの各面を作成
+            const frames = [];
+            
+            // 上下の面
+            const topBottomGeometry = new THREE.BoxGeometry(size, frameThickness, size);
+            frames.push(new THREE.Vector3(0, (size - frameThickness) / 2, 0));
+            frames.push(new THREE.Vector3(0, -(size - frameThickness) / 2, 0));
+            
+            // 左右の面
+            const leftRightGeometry = new THREE.BoxGeometry(frameThickness, holeSize, size);
+            frames.push(new THREE.Vector3((size - frameThickness) / 2, 0, 0));
+            frames.push(new THREE.Vector3(-(size - frameThickness) / 2, 0, 0));
+            
+            // 前後の面
+            const frontBackGeometry = new THREE.BoxGeometry(holeSize, holeSize, frameThickness);
+            frames.push(new THREE.Vector3(0, 0, (size - frameThickness) / 2));
+            frames.push(new THREE.Vector3(0, 0, -(size - frameThickness) / 2));
+            
+            // 色の計算（レインボーグラデーション）
+            const hue = (progress * 360 + i * 15) % 360;
+            const saturation = 0.8 + Math.sin(progress * Math.PI) * 0.2;
+            const lightness = 0.5 + Math.sin(progress * Math.PI * 2) * 0.3;
+            
+            const color = new THREE.Color().setHSL(hue / 360, saturation, lightness);
+            
+            const material = new THREE.MeshPhongMaterial({
+                color: color,
+                transparent: true,
+                opacity: 0.8 + progress * 0.2,
+                shininess: 100,
+                specular: 0x444444
+            });
+            
+            // フレームの各部分を作成
+            const geometries = [
+                topBottomGeometry, topBottomGeometry,
+                leftRightGeometry, leftRightGeometry,
+                frontBackGeometry, frontBackGeometry
+            ];
+            
+            geometries.forEach((geo, index) => {
+                const mesh = new THREE.Mesh(geo, material);
+                mesh.position.copy(frames[index]);
+                
+                // フィボナッチ螺旋に基づく回転
+                const fibIndex = i % fibonacci.length;
+                const rotation = (fibonacci[fibIndex] * progress * Math.PI * 2) / 8;
+                mesh.rotation.set(
+                    rotation * 0.5,
+                    rotation,
+                    rotation * 0.3
+                );
+                
+                cubeGroup.add(mesh);
+            });
+        }
+        
+        scene.add(cubeGroup);
+
+        // ライティング
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+        scene.add(ambientLight);
+        
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(5, 5, 5);
+        directionalLight.castShadow = true;
+        scene.add(directionalLight);
+        
+        const pointLight = new THREE.PointLight(0x00ffff, 0.5, 100);
+        pointLight.position.set(-5, -5, 5);
+        scene.add(pointLight);
+
+        // カメラの位置
+        camera.position.set(5, 5, 8);
+        camera.lookAt(0, 0, 0);
+
+        // 回転制御の変数
+        let isMouseDown = false;
+        let isTouching = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        let previousTouchPosition = { x: 0, y: 0 };
+        let rotationVelocity = { x: 0, y: 0 };
+        let autoRotate = true;
+        let dampingFactor = 0.95;
+
+        // マウスイベント
+        renderer.domElement.addEventListener('mousedown', (event) => {
+            isMouseDown = true;
+            autoRotate = false;
+            previousMousePosition = {
+                x: event.clientX,
+                y: event.clientY
+            };
+        });
+
+        renderer.domElement.addEventListener('mousemove', (event) => {
+            if (isMouseDown) {
+                const deltaMove = {
+                    x: event.clientX - previousMousePosition.x,
+                    y: event.clientY - previousMousePosition.y
+                };
+
+                rotationVelocity.x = deltaMove.y * 0.01;
+                rotationVelocity.y = deltaMove.x * 0.01;
+
+                previousMousePosition = {
+                    x: event.clientX,
+                    y: event.clientY
+                };
+            }
+        });
+
+        renderer.domElement.addEventListener('mouseup', () => {
+            isMouseDown = false;
+        });
+
+        // タッチイベント
+        renderer.domElement.addEventListener('touchstart', (event) => {
+            event.preventDefault();
+            isTouching = true;
+            autoRotate = false;
+            const touch = event.touches[0];
+            previousTouchPosition = {
+                x: touch.clientX,
+                y: touch.clientY
+            };
+        }, { passive: false });
+
+        renderer.domElement.addEventListener('touchmove', (event) => {
+            event.preventDefault();
+            if (isTouching && event.touches.length === 1) {
+                const touch = event.touches[0];
+                const deltaMove = {
+                    x: touch.clientX - previousTouchPosition.x,
+                    y: touch.clientY - previousTouchPosition.y
+                };
+
+                rotationVelocity.x = deltaMove.y * 0.015;
+                rotationVelocity.y = deltaMove.x * 0.015;
+
+                previousTouchPosition = {
+                    x: touch.clientX,
+                    y: touch.clientY
+                };
+            }
+        }, { passive: false });
+
+        renderer.domElement.addEventListener('touchend', (event) => {
+            event.preventDefault();
+            isTouching = false;
+        }, { passive: false });
+
+        // キーボードイベント（自動回転の切り替え）
+        document.addEventListener('keydown', (event) => {
+            if (event.code === 'Space') {
+                event.preventDefault();
+                autoRotate = !autoRotate;
+                if (autoRotate) {
+                    rotationVelocity.x = 0;
+                    rotationVelocity.y = 0;
+                }
+            }
+        });
+
+        // ウィンドウリサイズ対応
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // アニメーションループ
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (autoRotate) {
+                // 自動回転
+                cubeGroup.rotation.x += 0.005;
+                cubeGroup.rotation.y += 0.01;
+            } else {
+                // 手動回転
+                cubeGroup.rotation.x += rotationVelocity.x;
+                cubeGroup.rotation.y += rotationVelocity.y;
+                
+                // 慣性の適用
+                if (!isMouseDown && !isTouching) {
+                    rotationVelocity.x *= dampingFactor;
+                    rotationVelocity.y *= dampingFactor;
+                    
+                    // 速度が十分小さくなったら自動回転を再開
+                    if (Math.abs(rotationVelocity.x) < 0.001 && Math.abs(rotationVelocity.y) < 0.001) {
+                        setTimeout(() => {
+                            if (!isMouseDown && !isTouching) {
+                                autoRotate = true;
+                            }
+                        }, 2000);
+                    }
+                }
+            }
+
+            // 各層に微妙な独立した回転を追加
+            cubeGroup.children.forEach((child, index) => {
+                const time = Date.now() * 0.001;
+                const offset = index * 0.1;
+                child.rotation.z = Math.sin(time + offset) * 0.05;
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
