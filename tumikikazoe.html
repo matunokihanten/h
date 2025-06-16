@@ -326,93 +326,152 @@
         blocks.push(cube);
     }
 
-    // 積み木生成関数（複数の積み木パターンからランダムに選択）
+    // 積み木生成関数（ピラミッド型で、下に支えがあることを確認して配置）
     function generateBlocks() {
         // 既存のブロックをシーンから削除
         blocks.forEach(block => scene.remove(block));
         blocks = [];
         blockCount = 0; // 積み木の総数をリセット
 
-        // 積み木パターンを定義 (座標は BLOCK_SIZE の倍数で設定)
-        const patterns = [
-            // パターン1: L字型 (5個)
-            [
-                { x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }, { x: 2, y: 0, z: 0 },
-                { x: 0, y: 1, z: 0 }, { x: 0, y: 2, z: 0 },
-            ],
-            // パターン2: 階段型 (6個)
-            [
-                { x: -1, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 },
-                { x: 0, y: 1, z: 0 }, { x: 1, y: 1, z: 0 },
-                { x: 1, y: 2, z: 0 },
-            ],
-            // パターン3: 小さなピラミッド型 (5個)
-            [
-                { x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }, { x: 0, y: 0, z: 1 }, { x: 1, y: 0, z: 1 },
-                { x: 0.5, y: 1, z: 0.5 }, // 中央に配置
-            ],
-        ];
-
         // ユーザー設定の最小・最大数を使用
         const currentMin = userMinBlocks;
         const currentMax = userMaxBlocks;
 
-        let generatedCount = 0;
-        let chosenPattern = null;
+        let generatedCount = Math.floor(Math.random() * (currentMax - currentMin + 1)) + currentMin;
 
-        // ピラミッド型に近づけるためのランダム生成
-        // 既存のパターンは使用せず、常にランダムな塊を生成する
-        generatedCount = Math.floor(Math.random() * (currentMax - currentMin + 1)) + currentMin;
-
-        // 塊の生成範囲と高さをブロック数に応じて動的に調整
-        const baseSize = Math.max(2, Math.min(6, Math.ceil(Math.sqrt(generatedCount)))); // 底面のサイズ
-        const heightLimit = Math.max(1, Math.min(5, Math.ceil(generatedCount / (baseSize * baseSize)))); // 最大高さ
+        // 生成するブロックの最大範囲を動的に決定
+        // ブロック数が多いほど広くなるように調整
+        const maxDimension = Math.max(3, Math.ceil(Math.cbrt(generatedCount))); // おおよその一辺の長さ
+        const baseGridSize = Math.max(3, Math.ceil(Math.sqrt(generatedCount / maxDimension))); // 底面のグリッドサイズ
+        const maxHeight = Math.max(1, Math.ceil(generatedCount / (baseGridSize * baseGridSize))); // 最大の高さ
 
         const occupiedPositions = new Set(); // 既にブロックがある座標を記録 (文字列として "x,y,z")
+        const pendingPositions = []; // 後で処理するために一時的に保存する候補座標
 
-        // 底面から積み上げてピラミッド型になるように配置を試みる
-        for (let y = 0; y < heightLimit; y++) {
-            // 各層の範囲を決定 (上に行くほど狭くなるように調整)
-            const layerRadius = baseSize - y;
-            if (layerRadius <= 0) break; // 範囲がなくなったら終了
+        // まず、一番下の層 (y=0) にブロックを配置する候補を生成し、追加
+        // よりピラミッド型になるように、中央に集中させる
+        const baseCenterX = Math.floor(baseGridSize / 2);
+        const baseCenterZ = Math.floor(baseGridSize / 2);
 
-            const startX = -Math.floor(layerRadius / 2);
-            const endX = Math.ceil(layerRadius / 2);
-            const startZ = -Math.floor(layerRadius / 2);
-            const endZ = Math.ceil(layerRadius / 2);
+        for (let x_offset = -baseCenterX; x_offset <= baseCenterX; x_offset++) {
+            for (let z_offset = -baseCenterZ; z_offset <= baseCenterZ; z_offset++) {
+                const x = x_offset;
+                const z = z_offset;
+                // ピラミッドの底面はランダムに穴が開かないように、全て埋める
+                const posKey = `${x},0,${z}`;
+                pendingPositions.push({x: x, y: 0, z: z});
+            }
+        }
 
-            for (let x = startX; x < endX; x++) {
-                for (let z = startZ; z < endZ; z++) {
-                    // 下にブロックがあるか、または一番下の層かを確認
-                    const positionKey = `${x},${y - 1},${z}`;
-                    if (y === 0 || occupiedPositions.has(positionKey)) {
-                        // ランダムにブロックを配置するか、または必要なブロック数に達するまで配置
-                        if (blockCount < generatedCount && Math.random() < (1.0 - y / heightLimit)) { // 上に行くほど配置確率を減らす
-                            const currentPosKey = `${x},${y},${z}`;
-                            createAndAddBlock(x * BLOCK_SIZE, y * BLOCK_SIZE, z * BLOCK_SIZE);
-                            blockCount++;
-                            occupiedPositions.add(currentPosKey);
+        // pendingPositions をシャッフルしてランダム性を高める
+        for (let i = pendingPositions.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [pendingPositions[i], pendingPositions[j]] = [pendingPositions[j], pendingPositions[i]];
+        }
+
+
+        let blocksToGenerate = generatedCount;
+        let attempts = 0;
+        const maxAttempts = generatedCount * 5; // 無限ループ防止のための最大試行回数
+
+        // 下から上に積み上げる形でブロックを配置
+        // Y座標の低いところから優先的に処理することで、確実に支えの上に配置される
+        pendingPositions.sort((a, b) => a.y - b.y);
+
+        while (blockCount < blocksToGenerate && attempts < maxAttempts) {
+            attempts++;
+
+            if (pendingPositions.length === 0) {
+                // 新しい候補を生成 (上層に積むための候補)
+                // 既存ブロックの上と、その周辺にのみ候補を生成する
+                const existingBlockKeys = Array.from(occupiedPositions);
+                if (existingBlockKeys.length === 0) break; // どこにも置けない場合は終了
+
+                const randomExistingKey = existingBlockKeys[Math.floor(Math.random() * existingBlockKeys.length)];
+                const [bx, by, bz] = randomExistingKey.split(',').map(Number);
+
+                // 既存ブロックの上の座標
+                const nextY = by + 1;
+                if (nextY >= maxHeight) continue; // 最大高さを超える場合はスキップ
+
+                // 既存ブロックの真上、またはその隣接する上に積む可能性がある場所
+                // ピラミッド型にするため、上層に行くほど中央に寄せる傾向を作る
+                for (let dx = -1; dx <= 1; dx++) {
+                    for (let dz = -1; dz <= 1; dz++) {
+                        const nx = bx + dx;
+                        const nz = bz + dz;
+                        // 中心からの距離に応じて配置確率を調整することもできるが、まずはシンプルに
+                        const newPosKey = `${nx},${nextY},${nz}`;
+                        if (!occupiedPositions.has(newPosKey) && !pendingPositions.some(p => `${p.x},${p.y},${p.z}` === newPosKey)) {
+                            // 真下にブロックがあるか、新しいブロックが地面にあるか確認
+                            if (nextY === 0 || occupiedPositions.has(`${nx},${nextY - 1},${nz}`)) {
+                                pendingPositions.push({x: nx, y: nextY, z: nz});
+                            }
                         }
                     }
+                }
+                // 新しい候補を生成したら、Y座標でソートし直して、低い層から処理されるようにする
+                pendingPositions.sort((a, b) => a.y - b.y);
+                continue; // 次のループで新しい候補を処理
+            }
+
+
+            const currentPos = pendingPositions.shift(); // 先頭の候補から処理
+            const { x, y, z } = currentPos;
+            const currentPosKey = `${x},${y},${z}`;
+
+            if (occupiedPositions.has(currentPosKey)) {
+                continue; // 既にブロックがある場合はスキップ
+            }
+
+            // 真下にブロックがあるか、または一番下の層 (Y=0) であるかを確認
+            if (y === 0 || occupiedPositions.has(`${x},${y - 1},${z}`)) {
+                createAndAddBlock(x * BLOCK_SIZE, y * BLOCK_SIZE, z * BLOCK_SIZE);
+                blockCount++;
+                occupiedPositions.add(currentPosKey);
+
+                // 新しくブロックを置いた場所の上に積む候補を追加
+                if (y + 1 < maxHeight) {
+                    const nextY = y + 1;
+                    for (let dx = -1; dx <= 1; dx++) {
+                        for (let dz = -1; dz <= 1; dz++) {
+                            const nx = x + dx;
+                            const nz = z + dz;
+                            const nextPosKey = `${nx},${nextY},${nz}`;
+                            if (!occupiedPositions.has(nextPosKey) && !pendingPositions.some(p => `${p.x},${p.y},${p.z}` === nextPosKey)) {
+                                pendingPositions.push({x: nx, y: nextY, z: nz});
+                            }
+                        }
+                    }
+                    // 新しい候補を追加したら、Y座標でソートし直して、低い層から処理されるようにする
+                    pendingPositions.sort((a, b) => a.y - b.y);
                 }
             }
         }
 
-        // もし生成数が足りなければ、無理やり追加（ただし形状は崩れる可能性がある）
+        // 生成数が足りない場合は、既存ブロックの真上に単純に追加して数を補う
+        // ただし、これによりピラミッド形状が崩れる可能性もある
         while (blockCount < generatedCount) {
-             const x = Math.floor(Math.random() * baseSize) - Math.floor(baseSize / 2);
-             const y = Math.floor(Math.random() * heightLimit);
-             const z = Math.floor(Math.random() * baseSize) - Math.floor(baseSize / 2);
-             const currentPosKey = `${x},${y},${z}`;
-             if (!occupiedPositions.has(currentPosKey)) {
-                createAndAddBlock(x * BLOCK_SIZE, y * BLOCK_SIZE, z * BLOCK_SIZE);
+            const existingBlockKeys = Array.from(occupiedPositions);
+            if (existingBlockKeys.length === 0) break; // 積む場所がない場合
+
+            const randomExistingKey = existingBlockKeys[Math.floor(Math.random() * existingBlockKeys.length)];
+            const [bx, by, bz] = randomExistingKey.split(',').map(Number);
+            const newY = by + 1;
+            const newPosKey = `${bx},${newY},${bz}`;
+
+            if (newY < maxHeight + 2 && !occupiedPositions.has(newPosKey)) { // ある程度の高さ制限を設ける
+                createAndAddBlock(bx * BLOCK_SIZE, newY * BLOCK_SIZE, bz * BLOCK_SIZE);
                 blockCount++;
-                occupiedPositions.add(currentPosKey);
+                occupiedPositions.add(newPosKey);
+            } else {
+                // 新しいランダムな場所を探すか、次の試行へ
+                attempts++;
+                if (attempts > maxAttempts) break;
             }
         }
 
-
-        console.log("Generated blocks (Pyramid-like):", blockCount); // デバッグ用
+        console.log("Generated blocks (Pyramid-like, supported):", blockCount); // デバッグ用
     }
 
 
