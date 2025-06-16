@@ -8,7 +8,7 @@
     html, body {
       margin: 0;
       overflow: hidden;
-      background-color: #ffffff;
+      background-color: #f8f8f8; /* 背景を少しグレーに */
       font-family: Arial, sans-serif;
     }
     /* UI部分：上部中央に固定 */
@@ -18,145 +18,421 @@
       width: 100%;
       text-align: center;
       z-index: 10;
+      pointer-events: none; /* UI以外のクリックイベントをスルーさせる */
     }
+    #ui > * {
+        pointer-events: auto; /* 子要素にはクリックイベントを戻す */
+    }
+
     #ui h1 {
       margin: 0;
-      font-size: 1.8em;
-      color: #333;
+      font-size: 2em; /* タイトルを少し大きく */
+      color: #2c3e50; /* ダークな色に */
     }
-    #ui p, #ui input, #ui button {
-      font-size: 1em;
-      color: #333;
-      margin: 5px;
+    #ui p {
+      font-size: 1.1em;
+      color: #34495e;
+      margin: 8px;
     }
     #result {
-      font-size: 1.5em;
+      font-size: 1.6em;
       font-weight: bold;
-      margin-top: 10px;
-      color: #333;
+      margin-top: 15px;
+      color: #e74c3c; /* 結果は赤系で目立つように */
+      min-height: 1.6em; /* レイアウト崩れ防止 */
     }
     #score {
-      font-size: 1.2em;
+      font-size: 1.3em;
       font-weight: bold;
       margin-top: 10px;
-      color: #333;
+      color: #27ae60; /* スコアは緑系で */
     }
+
+    /* 数量設定UI */
+    #setting-controls {
+        margin-top: 10px;
+        margin-bottom: 20px;
+        background-color: #e7e7e7;
+        padding: 10px;
+        border-radius: 8px;
+        display: inline-block;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    #setting-controls label, #setting-controls input, #setting-controls button {
+        font-size: 0.9em;
+        margin: 0 5px;
+        vertical-align: middle;
+    }
+    #setting-controls input[type="number"] {
+        width: 60px;
+        padding: 5px;
+        border: 1px solid #ccc;
+        border-radius: 4鳴;
+        text-align: center;
+    }
+    #applySettingsBtn {
+        padding: 5px 15px;
+        background-color: #5bc0de; /* 青系 */
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    #applySettingsBtn:hover {
+        background-color: #31b0d5;
+    }
+
+
+    /* 回答表示エリア */
+    #answerDisplayContainer {
+        margin-top: 15px;
+        background-color: #ecf0f1;
+        border: 2px solid #bdc3c7;
+        border-radius: 8px;
+        padding: 10px 20px;
+        display: inline-block; /* 内容に合わせて幅を調整 */
+        min-width: 150px; /* ある程度の幅を確保 */
+        box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
+    }
+    #currentAnswerDisplay {
+        font-size: 3.5em; /* 回答表示をさらに大きく */
+        font-weight: bold;
+        color: #2c3e50;
+        min-height: 1.2em; /* 桁数が増えても崩れないように */
+        text-align: right; /* 右寄せ */
+        padding-right: 5px;
+    }
+
+    /* 電卓テンキー部分 */
+    #numpad {
+        display: grid;
+        grid-template-columns: repeat(3, 80px); /* 3列で各ボタン80px幅 */
+        gap: 10px; /* ボタン間の間隔 */
+        justify-content: center; /* 中央寄せ */
+        margin-top: 20px;
+    }
+    #numpad button {
+        width: 80px;
+        height: 60px;
+        font-size: 2em; /* ボタンのフォントサイズ */
+        border: 1px solid #ccc;
+        background-color: #ffffff;
+        cursor: pointer;
+        border-radius: 8px;
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+        transition: background-color 0.2s, transform 0.1s;
+        outline: none; /* フォーカス時のアウトラインを消す */
+    }
+    #numpad button:active {
+        transform: translateY(1px); /* クリック時に少し沈む */
+        box-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+    }
+    #numpad button.action-btn { /* C, 00 ボタンなど */
+        background-color: #f1c40f; /* アクションボタンは黄色系 */
+        color: white;
+    }
+    #numpad button.action-btn:hover {
+        background-color: #f39c12;
+    }
+    #numpad button:hover {
+        background-color: #f0f0f0;
+    }
+
+    /* 答えるボタン */
+    #submitBtn {
+      font-size: 2em;
+      padding: 12px 40px;
+      margin-top: 25px;
+      background-color: #3498db; /* 青系の色に */
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 3px 3px 8px rgba(0,0,0,0.2);
+      transition: background-color 0.2s, transform 0.1s;
+      opacity: 0.7; /* 最初は半透明 */
+      pointer-events: none; /* 最初はクリックできないように */
+    }
+    #submitBtn.active {
+        opacity: 1; /* 入力があると不透明に */
+        pointer-events: auto; /* クリック可能に */
+    }
+    #submitBtn:active {
+        transform: translateY(1px);
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+    }
+    #submitBtn:hover.active {
+      background-color: #2980b9;
+    }
+
+
     /* レンダラーのキャンバスは中央表示 */
     canvas {
       display: block;
       margin: 0 auto;
     }
   </style>
-  <!-- Three.js の読み込み -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
   <div id="ui">
     <h1>積み木数えゲーム</h1>
-    <p>3Dの積み木（黒い縁取り付き）が回転しながら現れます。<br>
-       総数を入力して、正解を目指しましょう！</p>
-    <input type="number" id="answer" placeholder="積み木の数を入力">
+    <p>3Dの積み木が出現します。カメラを動かして、総数を数えましょう！</p>
+
+    <div id="setting-controls">
+        <label for="minBlocksInput">最小の数:</label>
+        <input type="number" id="minBlocksInput" value="6" min="1" max="999">
+        <label for="maxBlocksInput">最大の数:</label>
+        <input type="number" id="maxBlocksInput" value="100" min="2" max="1000">
+        <button id="applySettingsBtn">設定を適用</button>
+    </div>
+
+    <div id="answerDisplayContainer">
+        <span id="currentAnswerDisplay">0</span>
+    </div>
+
+    <div id="numpad">
+        <button data-value="7">7</button>
+        <button data-value="8">8</button>
+        <button data-value="9">9</button>
+        <button data-value="4">4</button>
+        <button data-value="5">5</button>
+        <button data-value="6">6</button>
+        <button data-value="1">1</button>
+        <button data-value="2">2</button>
+        <button data-value="3">3</button>
+        <button data-value="C" class="action-btn">C</button>
+        <button data-value="0">0</button>
+        <button data-value="00" class="action-btn">00</button>
+    </div>
+
     <button id="submitBtn">答える</button>
+
     <p id="result"></p>
     <p id="score">Score: 0</p>
   </div>
   <div id="gameContainer"></div>
-  
+
   <script>
     // グローバル変数
-    let scene, camera, renderer;
+    let scene, camera, renderer, controls;
     let blocks = [];
-    let blockCount;
+    let blockCount; // 正解の積み木の数
+
     let score = 0;
+    let currentAnswerString = "0"; // ユーザーが現在入力している回答の文字列
+
+    // ユーザー設定可能な最小・最大ブロック数
+    let userMinBlocks = 6; // 初期値を変更
+    let userMaxBlocks = 100; // 初期値を変更
+
+    // UI要素の取得
+    const resultParagraph = document.getElementById("result");
+    const scoreParagraph = document.getElementById("score");
+    const currentAnswerDisplay = document.getElementById("currentAnswerDisplay");
+    const numpad = document.getElementById("numpad");
+    const submitBtn = document.getElementById("submitBtn");
+
+    const minBlocksInput = document.getElementById("minBlocksInput");
+    const maxBlocksInput = document.getElementById("maxBlocksInput");
+    const applySettingsBtn = document.getElementById("applySettingsBtn");
+
+
+    // 定数
+    const BLOCK_SIZE = 0.5; // 積み木のサイズ
+    const BLOCK_COLOR = 0x8B4513; // 木目調の茶色
+    const EDGE_COLOR = 0xffffff; // 積み木の縁取りの色を白に！
+    const SCALE_ANIMATION_SPEED = 0.05; // 拡大アニメーションの速度
+    // MIN_BLOCKS と MAX_BLOCKS は userMinBlocks/userMaxBlocks で上書きされる
 
     // ゲーム初期化関数
     function initGame() {
       const container = document.getElementById("gameContainer");
-      
+
       // シーン作成（背景は白）
       scene = new THREE.Scene();
-      scene.background = new THREE.Color(0xffffff);
-      
+      scene.background = new THREE.Color(0xf8f8f8);
+
       // カメラ設定
       camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-      camera.position.set(0, 5, 10);
+      camera.position.set(2, 4, 8); // 初期カメラ位置を調整
       camera.lookAt(0, 0, 0);
-      
+
       // レンダラー設定（抗エイリアス有効、影も有効）
       renderer = new THREE.WebGLRenderer({ antialias: true });
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.shadowMap.enabled = true;
-      container.innerHTML = "";
+      container.innerHTML = ""; // 既存のキャンバスをクリア
       container.appendChild(renderer.domElement);
-      
+
       // 照明の追加（方向光）
       const light = new THREE.DirectionalLight(0xffffff, 1);
       light.position.set(3, 10, 3);
       light.castShadow = true;
       scene.add(light);
-      
-      // 積み木生成
-      generateBlocks();
-      
+
+      // 地面（影を受けるため）
+      const groundGeometry = new THREE.PlaneGeometry(100, 100);
+      const groundMaterial = new THREE.MeshStandardMaterial({ color: 0xcccccc });
+      const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+      ground.rotation.x = -Math.PI / 2; // X軸に90度回転させて水平にする
+      ground.position.y = -BLOCK_SIZE / 2; // 積み木の底に合わせる
+      ground.receiveShadow = true; // 影を受け取る
+      scene.add(ground);
+
+      // OrbitControlsの追加
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true; // 減衰を有効にして、よりスムーズなコントロールを実現
+      controls.dampingFactor = 0.05;
+      controls.screenSpacePanning = false; // パンを無効にする（必要な場合のみ有効化）
+      controls.minDistance = 3; // 最も近いズーム (多くのブロックにも対応できるよう調整)
+      controls.maxDistance = 50; // 最も遠いズーム (多くのブロックにも対応できるよう調整)
+      controls.maxPolarAngle = Math.PI / 2 - 0.1; // カメラが地面の下に行かないように制限 (真下からのぞけないように)
+
+      // イベントリスナー設定
       window.addEventListener("resize", onWindowResize, false);
-      animate();
+      numpad.addEventListener("click", onNumpadButtonClick);
+      submitBtn.addEventListener("click", onSubmitAnswer);
+      applySettingsBtn.addEventListener("click", applySettings);
+
+
+      generateBlocks(); // 積み木生成
+      animate(); // アニメーション開始
+      updateAnswerDisplay(); // 回答表示を初期化
+      updateSubmitButtonState(); // 提出ボタンの状態を更新
     }
 
-    // 積み木生成関数（積み木数は3〜100個のランダム値）
-    function generateBlocks() {
-      // 既存のブロックをシーンから削除
-      blocks.forEach(block => scene.remove(block));
-      blocks = [];
-      
-      // ランダムな積み木の数（3〜100）
-      blockCount = Math.floor(Math.random() * (100 - 3 + 1)) + 3;
-      
-      for (let i = 0; i < blockCount; i++) {
-        // 立方体ジオメトリ（サイズ0.5×0.5×0.5）
-        const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
-        // 材質は木目調の茶色
-        const material = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+    // 積み木を一つ作成し、シーンに追加するヘルパー関数
+    function createAndAddBlock(x, y, z) {
+        const geometry = new THREE.BoxGeometry(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+        const material = new THREE.MeshStandardMaterial({ color: BLOCK_COLOR });
         const cube = new THREE.Mesh(geometry, material);
-        
-        // 新規生成時は小さくしておき、後で拡大する演出を追加
-        cube.scale.set(0.1, 0.1, 0.1);
-        
-        // ランダムな位置に配置（画面中央付近に散らばる）
-        cube.position.set(
-          Math.random() * 4 - 2,
-          Math.random() * 4,
-          Math.random() * 4 - 2
-        );
-        cube.castShadow = true;
+
+        cube.scale.set(0.1, 0.1, 0.1); // 初期スケールは小さく
+
+        // 位置調整: 積み木のY座標は中心が基準なので、底面がy=0になるように調整
+        cube.position.set(x, y + BLOCK_SIZE / 2, z);
+        cube.castShadow = true; // 影を落とす
         scene.add(cube);
-        
-        // 黒い縁取り：EdgesGeometry により全エッジを抽出し、LineSegments で描画
+
+        // 白い縁取り
         const edges = new THREE.EdgesGeometry(geometry);
-        const lineMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
+        const lineMaterial = new THREE.LineBasicMaterial({ color: EDGE_COLOR }); // 白い縁取り
         const edgeLines = new THREE.LineSegments(edges, lineMaterial);
         cube.add(edgeLines);
-        
+
         blocks.push(cube);
-      }
     }
+
+    // 積み木生成関数（複数の積み木パターンからランダムに選択）
+    function generateBlocks() {
+        // 既存のブロックをシーンから削除
+        blocks.forEach(block => scene.remove(block));
+        blocks = [];
+        blockCount = 0; // 積み木の総数をリセット
+
+        // 積み木パターンを定義 (座標は BLOCK_SIZE の倍数で設定)
+        const patterns = [
+            // パターン1: L字型 (5個)
+            [
+                { x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }, { x: 2, y: 0, z: 0 },
+                { x: 0, y: 1, z: 0 }, { x: 0, y: 2, z: 0 },
+            ],
+            // パターン2: 階段型 (6個)
+            [
+                { x: -1, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 },
+                { x: 0, y: 1, z: 0 }, { x: 1, y: 1, z: 0 },
+                { x: 1, y: 2, z: 0 },
+            ],
+            // パターン3: 小さなピラミッド型 (5個)
+            [
+                { x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }, { x: 0, y: 0, z: 1 }, { x: 1, y: 0, z: 1 },
+                { x: 0.5, y: 1, z: 0.5 }, // 中央に配置
+            ],
+        ];
+
+        // ユーザー設定の最小・最大数を使用
+        const currentMin = userMinBlocks;
+        const currentMax = userMaxBlocks;
+
+        let generatedCount = 0;
+        let chosenPattern = null;
+
+        // ピラミッド型に近づけるためのランダム生成
+        // 既存のパターンは使用せず、常にランダムな塊を生成する
+        generatedCount = Math.floor(Math.random() * (currentMax - currentMin + 1)) + currentMin;
+
+        // 塊の生成範囲と高さをブロック数に応じて動的に調整
+        const baseSize = Math.max(2, Math.min(6, Math.ceil(Math.sqrt(generatedCount)))); // 底面のサイズ
+        const heightLimit = Math.max(1, Math.min(5, Math.ceil(generatedCount / (baseSize * baseSize)))); // 最大高さ
+
+        const occupiedPositions = new Set(); // 既にブロックがある座標を記録 (文字列として "x,y,z")
+
+        // 底面から積み上げてピラミッド型になるように配置を試みる
+        for (let y = 0; y < heightLimit; y++) {
+            // 各層の範囲を決定 (上に行くほど狭くなるように調整)
+            const layerRadius = baseSize - y;
+            if (layerRadius <= 0) break; // 範囲がなくなったら終了
+
+            const startX = -Math.floor(layerRadius / 2);
+            const endX = Math.ceil(layerRadius / 2);
+            const startZ = -Math.floor(layerRadius / 2);
+            const endZ = Math.ceil(layerRadius / 2);
+
+            for (let x = startX; x < endX; x++) {
+                for (let z = startZ; z < endZ; z++) {
+                    // 下にブロックがあるか、または一番下の層かを確認
+                    const positionKey = `${x},${y - 1},${z}`;
+                    if (y === 0 || occupiedPositions.has(positionKey)) {
+                        // ランダムにブロックを配置するか、または必要なブロック数に達するまで配置
+                        if (blockCount < generatedCount && Math.random() < (1.0 - y / heightLimit)) { // 上に行くほど配置確率を減らす
+                            const currentPosKey = `${x},${y},${z}`;
+                            createAndAddBlock(x * BLOCK_SIZE, y * BLOCK_SIZE, z * BLOCK_SIZE);
+                            blockCount++;
+                            occupiedPositions.add(currentPosKey);
+                        }
+                    }
+                }
+            }
+        }
+
+        // もし生成数が足りなければ、無理やり追加（ただし形状は崩れる可能性がある）
+        while (blockCount < generatedCount) {
+             const x = Math.floor(Math.random() * baseSize) - Math.floor(baseSize / 2);
+             const y = Math.floor(Math.random() * heightLimit);
+             const z = Math.floor(Math.random() * baseSize) - Math.floor(baseSize / 2);
+             const currentPosKey = `${x},${y},${z}`;
+             if (!occupiedPositions.has(currentPosKey)) {
+                createAndAddBlock(x * BLOCK_SIZE, y * BLOCK_SIZE, z * BLOCK_SIZE);
+                blockCount++;
+                occupiedPositions.add(currentPosKey);
+            }
+        }
+
+
+        console.log("Generated blocks (Pyramid-like):", blockCount); // デバッグ用
+    }
+
 
     // アニメーションループ
     function animate() {
       requestAnimationFrame(animate);
-      
-      // 各ブロックにゆっくりと回転させ、スケールアップ演出を追加
+
+      // OrbitControlsを更新 (カメラ操作を可能にする)
+      controls.update();
+
+      // 各ブロックの拡大アニメーションのみ実行（回転はしない）
       blocks.forEach(cube => {
-        cube.rotation.x += 0.005;
-        cube.rotation.y += 0.005;
-        // 生成時は小さいサイズから本来のサイズ（1,1,1）に段階的に拡大
         if (cube.scale.x < 1) {
-          cube.scale.x += 0.05;
-          cube.scale.y += 0.05;
-          cube.scale.z += 0.05;
+          cube.scale.x += SCALE_ANIMATION_SPEED;
+          cube.scale.y += SCALE_ANIMATION_SPEED;
+          cube.scale.z += SCALE_ANIMATION_SPEED;
           if (cube.scale.x > 1) cube.scale.set(1, 1, 1);
         }
       });
-      
+
       renderer.render(scene, camera);
     }
 
@@ -167,30 +443,113 @@
       renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
+    // 回答表示を更新する関数
+    function updateAnswerDisplay() {
+        // 先頭の0を削除（例: "05" -> "5"）ただし"0"だけの場合はそのまま
+        currentAnswerString = currentAnswerString === "0" ? "0" : currentAnswerString.replace(/^0+/, '');
+        currentAnswerDisplay.textContent = currentAnswerString;
+        updateSubmitButtonState(); // 数字が入力されたら提出ボタンを活性化
+    }
+
+    // 提出ボタンの活性/非活性を制御する関数
+    function updateSubmitButtonState() {
+        if (currentAnswerString === "0" || currentAnswerString === "") {
+            submitBtn.classList.remove('active');
+        } else {
+            submitBtn.classList.add('active');
+        }
+    }
+
+
+    // テンキーボタンクリック時の処理
+    function onNumpadButtonClick(event) {
+        const value = event.target.dataset.value;
+        if (!value) return; // ボタン以外のクリックは無視
+
+        if (value === "C") {
+            currentAnswerString = "0"; // クリア
+        } else if (value === "00") {
+            if (currentAnswerString !== "0") { // 0以外の時に"00"を追加
+                currentAnswerString += "00";
+            }
+        } else {
+            if (currentAnswerString === "0") {
+                currentAnswerString = value; // "0"の後に数字が来たら置き換え
+            } else {
+                currentAnswerString += value; // 数字を追加
+            }
+        }
+        // 数字の最大桁数を制限 (例: 4桁まで、最大1000に対応)
+        if (currentAnswerString.length > 4) {
+            currentAnswerString = currentAnswerString.substring(currentAnswerString.length - 4);
+        }
+        updateAnswerDisplay();
+    }
+
+
     // ユーザー回答の判定処理
-    document.getElementById("submitBtn").addEventListener("click", () => {
-      const userAnswer = parseInt(document.getElementById("answer").value, 10);
-      const resultParagraph = document.getElementById("result");
-      const scoreParagraph = document.getElementById("score");
+    function onSubmitAnswer() {
+      if (!submitBtn.classList.contains('active')) {
+          return; // ボタンが非活性なら何もしない
+      }
+
+      const userAnswer = parseInt(currentAnswerString, 10);
 
       if (userAnswer === blockCount) {
-        resultParagraph.textContent = "正解！次の問題へ...";
+        resultParagraph.textContent = "お見事！ 正解です！";
+        resultParagraph.style.color = "#27ae60"; // 正解は緑色
         score++;
         scoreParagraph.textContent = "Score: " + score;
         setTimeout(() => {
           resultParagraph.textContent = "";
+          currentAnswerString = "0"; // 回答値をリセット
+          updateAnswerDisplay(); // 表示もリセット
           generateBlocks(); // 新たな問題を出題
-          document.getElementById("answer").value = "";
-        }, 1500);
+        }, 2000); // メッセージ表示時間を少し長く
       } else {
-        resultParagraph.textContent = "違うよ！正解は " + blockCount + " 個でした。次の問題へ...";
+        resultParagraph.textContent = "残念！ 正解は " + blockCount + " 個でした。";
+        resultParagraph.style.color = "#e74c3c"; // 不正解は赤色
         setTimeout(() => {
           resultParagraph.textContent = "";
+          currentAnswerString = "0"; // 回答値をリセット
+          updateAnswerDisplay(); // 表示もリセット
           generateBlocks(); // 新たな問題を出題
-          document.getElementById("answer").value = "";
-        }, 1500);
+        }, 2000); // メッセージ表示時間を少し長く
       }
-    });
+    }
+
+    // 設定を適用する関数
+    function applySettings() {
+        let min = parseInt(minBlocksInput.value, 10);
+        let max = parseInt(maxBlocksInput.value, 10);
+
+        // 入力値のバリデーション
+        if (isNaN(min) || min < 1) {
+            min = 1;
+            minBlocksInput.value = 1;
+        }
+        if (isNaN(max) || max < 2) {
+            max = 2;
+            maxBlocksInput.value = 2;
+        }
+        if (min > max) {
+            alert("最小の数は最大の数より小さくしてください。");
+            // 値を入れ替えるか、リセットするか
+            [min, max] = [max, min]; // スワップ
+            minBlocksInput.value = min;
+            maxBlocksInput.value = max;
+        }
+
+        userMinBlocks = min;
+        userMaxBlocks = max;
+
+        alert(`新しい設定が適用されました。\n最小ブロック数: ${userMinBlocks}\n最大ブロック数: ${userMaxBlocks}`);
+        // 設定適用後、新しい設定で問題を出題
+        generateBlocks();
+        currentAnswerString = "0";
+        updateAnswerDisplay();
+    }
+
 
     // ゲームの初期化実行
     initGame();
