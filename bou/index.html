@@ -440,17 +440,12 @@
       btn.addEventListener("click", onKeypadClick);
     });
     
-    // =ボタンは初期状態で有効にするので、ここでは無効化しない
-    // equalsButton.disabled = true;
-
 
     function disableKeypad() {
       document.querySelectorAll(".key").forEach(btn => btn.disabled = true);
     }
     function enableKeypad() {
       document.querySelectorAll(".key").forEach(btn => btn.disabled = false);
-      // =ボタンは有効にするので、ここでは無効化しない
-      // equalsButton.disabled = true;
     }
 
     // 棒グラフの描画 (四角い棒に戻し、レンガ模様を追加)
@@ -462,11 +457,21 @@
       const startY = canvas.height; // 下から描画開始
       let currentHeight = 0;
       let animationStartTime = null;
+      const animationDuration = 300; // 初期描画アニメーション時間 (ms)
+      const glowDuration = 1000; // 光るアニメーション時間 (ms)
 
       function animate(timestamp) {
         if (!animationStartTime) animationStartTime = timestamp;
-        const progress = (timestamp - animationStartTime) / 300; // 300msで描画
-        currentHeight = targetHeight * Math.min(progress, 1);
+        
+        let progress;
+        if (!animateGlow) { // 初期描画アニメーション
+            progress = (timestamp - animationStartTime) / animationDuration;
+            currentHeight = targetHeight * Math.min(progress, 1);
+        } else { // 光るアニメーション
+            progress = (timestamp - animationStartTime) / glowDuration;
+            // 光るアニメーション中は高さ固定
+            currentHeight = targetHeight; 
+        }
 
         ctx.clearRect(0, 0, canvas.width, canvas.height); // 再描画前にクリア
 
@@ -488,12 +493,20 @@
         const brickColor = '#CD5C5C'; // IndianRed (レンガの色)
 
         for (let i = 0; i * (brickHeight + brickGap) < currentHeight; i++) {
-            let rowY = y + currentHeight - (i * (brickHeight + brickGap) + brickHeight); // 下から上に描画
-            if (rowY < y) rowY = y; // 描画範囲を棒の高さ内に収める
-            if (rowY + brickHeight > startY) rowY = startY - brickHeight; // Canvasの下端からはみ出さないように
+            let rowY = startY - (i * (brickHeight + brickGap) + brickHeight); // 下から上に描画
+            
+            // 描画範囲を現在の棒の高さ内に収める
+            if (rowY < y) rowY = y;
+            if (rowY + brickHeight > startY) rowY = startY - brickHeight;
 
             // 各行のレンガの開始X座標をずらす
-            const offset = (i % 2 === 0) ? 0 : barWidth / 4; // 偶数行と奇数行でずらす
+            const offset = (i % 2 === 0) ? 0 : (barWidth / 2 - brickGap * 1.5) / 2; // 偶数行と奇数行でずらす
+            
+            // レンガ間の横線（レンガの上に描画されるようにループの前に移動）
+            if (i > 0) {
+                ctx.fillStyle = '#777'; // 隙間の色
+                ctx.fillRect(x, rowY + brickHeight + brickGap, barWidth, brickGap);
+            }
 
             // 奇数行の特殊処理（左右に半分のレンガ）
             if (i % 2 !== 0) {
@@ -510,18 +523,17 @@
                 ctx.fillStyle = '#777'; // 隙間の色
                 ctx.fillRect(x + barWidth / 2 - brickGap / 2, rowY, brickGap, brickHeight);
             }
-
-            // レンガ間の横線
-            if (i > 0) {
-                ctx.fillStyle = '#777';
-                ctx.fillRect(x, rowY + brickHeight, barWidth, brickGap);
-            }
         }
 
 
         // 光るエフェクト
         if (animateGlow) {
-            const glowAlpha = Math.abs(Math.sin(timestamp / 200)) * 0.8; // 周期的に明るさが変わる
+            const currentGlowProgress = (timestamp - animationStartTime) / glowDuration;
+            if (currentGlowProgress >= 1) {
+                ctx.restore(); // アニメーション終了時にrestoreしてシャドウを元に戻す
+                return; // 光るアニメーション終了
+            }
+            const glowAlpha = Math.abs(Math.sin(currentGlowProgress * Math.PI)) * 0.8; // 0から1まで変化し、元に戻る
             ctx.shadowColor = `rgba(150, 255, 150, ${glowAlpha})`; // 明るい緑色の光
             ctx.shadowBlur = 20;
             ctx.shadowOffsetX = 0;
@@ -531,12 +543,53 @@
         }
         ctx.restore();
 
-        if (currentHeight < targetHeight || animateGlow) { // 光るアニメーション中も継続
+        // アニメーションの継続条件
+        if (!animateGlow && currentHeight < targetHeight) { // 通常のアニメーションが完了していない場合
             requestAnimationFrame(animate);
+        } else if (animateGlow && (timestamp - animationStartTime) < glowDuration) { // 光るアニメーションが継続時間内の場合
+            requestAnimationFrame(animate);
+        } else if (animateGlow && (timestamp - animationStartTime) >= glowDuration) {
+             // 光るアニメーションが終了したら、通常の棒グラフを最終状態として一度描画し直す
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // クリア
+            ctx.save();
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+            ctx.shadowOffsetX = 4;
+            ctx.shadowOffsetY = 4;
+            ctx.shadowBlur = 6;
+            ctx.fillStyle = '#A0522D';
+            ctx.fillRect(x, y, barWidth, currentHeight);
+            // レンガも最終状態で描画し直す
+            for (let i = 0; i * (brickHeight + brickGap) < currentHeight; i++) {
+                let rowY = startY - (i * (brickHeight + brickGap) + brickHeight);
+                if (rowY < y) rowY = y;
+                if (rowY + brickHeight > startY) rowY = startY - brickHeight;
+
+                if (i > 0) {
+                    ctx.fillStyle = '#777';
+                    ctx.fillRect(x, rowY + brickHeight + brickGap, barWidth, brickGap);
+                }
+
+                const offset = (i % 2 === 0) ? 0 : (barWidth / 2 - brickGap * 1.5) / 2;
+                if (i % 2 !== 0) {
+                    const halfBrickWidth = (barWidth - brickGap * 3) / 2;
+                    ctx.fillStyle = brickColor;
+                    ctx.fillRect(x + brickGap, rowY, halfBrickWidth, brickHeight);
+                    ctx.fillRect(x + barWidth - brickGap - halfBrickWidth, rowY, halfBrickWidth, brickHeight);
+                } else {
+                    const fullBrickWidth = (barWidth - brickGap * 3) / 2;
+                    ctx.fillStyle = brickColor;
+                    ctx.fillRect(x + brickGap, rowY, fullBrickWidth, brickHeight);
+                    ctx.fillRect(x + brickGap * 2 + fullBrickWidth, rowY, fullBrickWidth, brickHeight);
+                    ctx.fillStyle = '#777';
+                    ctx.fillRect(x + barWidth / 2 - brickGap / 2, rowY, brickGap, brickHeight);
+                }
+            }
+            ctx.restore();
         }
       }
       requestAnimationFrame(animate);
     }
+
 
     // コンフェッティ演出（完璧な回答時）
     function launchConfetti() {
