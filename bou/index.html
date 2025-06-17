@@ -170,10 +170,11 @@
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
       color: #333;
     }
-    #highScoreDisplay {
+    .high-score-display { /* ハイスコア表示用のクラス */
         color: #e67e22; /* オレンジ色 */
         font-size: 22px;
         margin-bottom: 10px;
+        display: block; /* デフォルトで表示 */
     }
     /* コンフェッティ用 Canvas（全画面オーバーレイ） */
     #confettiCanvas {
@@ -223,10 +224,13 @@
 <body>
   <div id="settings">
     <fieldset>
-      <legend>タイマー設定</legend>
+      <legend>ゲームモード / タイマー設定</legend>
       <label><input type="radio" name="timerOption" value="10">10秒</label>
       <label><input type="radio" name="timerOption" value="15" checked>15秒</label>
       <label><input type="radio" name="timerOption" value="20">20秒</label>
+      <label><input type="radio" name="timerOption" value="30_challenge">30秒チャレンジ</label>
+      <label><input type="radio" name="timerOption" value="60_challenge">1分チャレンジ</label>
+      <label><input type="radio" name="timerOption" value="120_challenge">2分チャレンジ</label>
     </fieldset>
   </div>
 
@@ -259,7 +263,10 @@
   </div>
 
   <div id="timerDisplay">残り時間: <span id="timeLeft">15</span> 秒</div>
-  <div id="highScoreDisplay">ハイスコア: <span id="highScore">0</span></div>
+  <div id="highScoreDisplay" class="high-score-display">ハイスコア: <span id="highScore">0</span></div>
+  <div id="30sChallengeHighScoreDisplay" class="high-score-display" style="display:none;">30秒チャレンジハイスコア: <span id="30sChallengeHighScore">0</span></div>
+  <div id="60sChallengeHighScoreDisplay" class="high-score-display" style="display:none;">1分チャレンジハイスコア: <span id="60sChallengeHighScore">0</span></div>
+  <div id="120sChallengeHighScoreDisplay" class="high-score-display" style="display:none;">2分チャレンジハイスコア: <span id="120sChallengeHighScore">0</span></div>
   <div id="scoreDisplay">
     スコア: <span id="score">0</span> |
     ラウンド: <span id="round">1</span> |
@@ -283,13 +290,21 @@
     // グローバル変数
     let actualLength;       // 棒の実際の長さ（mm）
     let score = 0;
-    let highScore = 0; // ハイスコア
+    let highScore = 0; // 通常モードハイスコア
+    let challengeHighScores = { // 各チャレンジモードのハイスコア
+        '30s': 0,
+        '60s': 0,
+        '120s': 0
+    };
+    let currentChallengeModeKey = null; // 現在のチャレンジモードのキー (例: '30s', '60s', '120s')
+
     let round = 1;
     let combo = 0;
     let timeLeft = 15;
     let timerInterval = null;
     let hintUsed = false;
     let gameActive = true; // ゲームがアクティブかどうかを管理するフラグ
+    let isChallengeMode = false; // チャレンジモードかどうかを判定するフラグ
     const scaleFactor = 3;  // 1mm = 3px に換算
 
     // サウンド関連
@@ -297,6 +312,7 @@
     const incorrectSound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-failure-trombone-01.mp3'); // 失敗音
     const comboSound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-arcade-game-explosion-1698.mp3'); // コンボ音
     const timerWarningSound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-small-bell-ring-1249.mp3'); // タイマー警告音（残り5秒）
+    const gameOverSound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-arcade-retro-game-over-213.mp3'); // ゲームオーバー音
 
     // ゲーム要素の参照
     const canvas = document.getElementById('barCanvas');
@@ -307,7 +323,18 @@
     const roundSpan = document.getElementById('round');
     const comboSpan = document.getElementById('combo');
     const resultDiv = document.getElementById('result');
-    const highScoreSpan = document.getElementById('highScore'); // ハイスコア表示用
+    const highScoreSpan = document.getElementById('highScore'); // 通常モードハイスコア表示用
+    const challengeHighScoreDisplays = { // チャレンジモードハイスコア表示用のDOM要素をマップ
+        '30s': document.getElementById('30sChallengeHighScoreDisplay').querySelector('span'),
+        '60s': document.getElementById('60sChallengeHighScoreDisplay').querySelector('span'),
+        '120s': document.getElementById('120sChallengeHighScoreDisplay').querySelector('span')
+    };
+    const challengeHighScoreContainers = { // チャレンジモードハイスコア表示用の親divをマップ
+        '30s': document.getElementById('30sChallengeHighScoreDisplay'),
+        '60s': document.getElementById('60sChallengeHighScoreDisplay'),
+        '120s': document.getElementById('120sChallengeHighScoreDisplay')
+    };
+
     const roundHistoryDiv = document.getElementById('roundHistory'); // 履歴表示エリア
     const historyListUl = document.getElementById('historyList'); // 履歴リスト
     const showHistoryButton = document.getElementById('showHistory');
@@ -315,12 +342,13 @@
     const closeHistoryButton = document.getElementById('closeHistory');
     const endGameButton = document.getElementById('endGame'); // ゲーム終了ボタン
     const equalsButton = document.querySelector('.key[data-key="="]'); // =ボタンへの参照
+    const timerOptionRadios = document.querySelectorAll('input[name="timerOption"]'); // タイマー設定ラジオボタン
 
     let roundResults = []; // 各ラウンドの結果を保存する配列
 
     // 初期化処理
     function initializeGame() {
-        loadHighScore();
+        loadHighScores(); // 全てのハイスコアをロード
         loadRoundHistory(); // 履歴をロード
         resetGameState(); // ゲーム状態をリセット
         startRound();
@@ -332,7 +360,33 @@
         score = 0;
         round = 1;
         combo = 0;
-        timeLeft = parseInt(document.querySelector('input[name="timerOption"]:checked').value); // タイマー設定を再読み込み
+        hintUsed = false;
+        gameActive = true; // ゲームをアクティブにする
+        
+        const selectedOptionValue = document.querySelector('input[name="timerOption"]:checked').value;
+        
+        // モード判定と初期タイマー値の設定
+        if (selectedOptionValue.endsWith('_challenge')) {
+            isChallengeMode = true;
+            currentChallengeModeKey = selectedOptionValue.replace('_challenge', ''); // '30s', '60s', '120s'
+            timeLeft = parseInt(selectedOptionValue.split('_')[0]); // 例: "30_challenge" から 30 を取得
+            roundSpan.style.display = 'none'; // チャレンジモードではラウンド表示を非表示に
+            comboSpan.style.display = 'none'; // コンボ表示も非表示に
+            document.getElementById('highScoreDisplay').style.display = 'none'; // 通常ハイスコア非表示
+            // 全てのチャレンジハイスコア表示を一旦非表示にして、現在のモードのハイスコアだけ表示
+            Object.values(challengeHighScoreContainers).forEach(el => el.style.display = 'none');
+            if (challengeHighScoreContainers[currentChallengeModeKey]) {
+                challengeHighScoreContainers[currentChallengeModeKey].style.display = 'block';
+            }
+        } else {
+            isChallengeMode = false;
+            currentChallengeModeKey = null;
+            timeLeft = parseInt(selectedOptionValue);
+            roundSpan.style.display = 'inline';
+            comboSpan.style.display = 'inline';
+            document.getElementById('highScoreDisplay').style.display = 'block'; // 通常ハイスコア表示
+            Object.values(challengeHighScoreContainers).forEach(el => el.style.display = 'none'); // チャレンジハイスコア非表示
+        }
 
         scoreSpan.textContent = score;
         roundSpan.textContent = round;
@@ -340,28 +394,47 @@
         timeLeftSpan.textContent = timeLeft;
         guessInput.value = "";
         resultDiv.innerHTML = "";
-        hintUsed = false;
         document.getElementById('hint').disabled = false;
-        gameActive = true; // ゲームをアクティブにする
         enableKeypad();
-        document.getElementById('reset').textContent = '次のラウンド'; // ボタンテキストを元に戻す
+        document.getElementById('reset').textContent = isChallengeMode ? 'もう一度プレイ' : '次のラウンド';
     }
 
 
     // ハイスコアのロードと保存
-    function loadHighScore() {
+    function loadHighScores() {
         const storedHighScore = localStorage.getItem('barGuessingHighScore');
         if (storedHighScore) {
             highScore = parseInt(storedHighScore, 10);
             highScoreSpan.textContent = highScore;
         }
+
+        for (const key in challengeHighScores) {
+            const storedChallengeHighScore = localStorage.getItem(`barGuessingChallengeHighScore_${key}`);
+            if (storedChallengeHighScore) {
+                challengeHighScores[key] = parseInt(storedChallengeHighScore, 10);
+                if (challengeHighScoreDisplays[key]) {
+                    challengeHighScoreDisplays[key].textContent = challengeHighScores[key];
+                }
+            }
+        }
     }
 
-    function saveHighScore() {
-        if (score > highScore) {
-            highScore = score;
-            localStorage.setItem('barGuessingHighScore', highScore);
-            highScoreSpan.textContent = highScore;
+    function saveHighScores() {
+        if (isChallengeMode && currentChallengeModeKey) {
+            if (score > challengeHighScores[currentChallengeModeKey]) {
+                challengeHighScores[currentChallengeModeKey] = score;
+                localStorage.setItem(`barGuessingChallengeHighScore_${currentChallengeModeKey}`, challengeHighScores[currentChallengeModeKey]);
+                if (challengeHighScoreDisplays[currentChallengeModeKey]) {
+                    challengeHighScoreDisplays[currentChallengeModeKey].textContent = challengeHighScores[currentChallengeModeKey];
+                }
+                resultDiv.innerHTML += `<br><strong><span style="color: #e67e22;">新記録達成！</span></strong>`;
+            }
+        } else {
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('barGuessingHighScore', highScore);
+                highScoreSpan.textContent = highScore;
+            }
         }
     }
 
@@ -396,9 +469,14 @@
             historyListUl.appendChild(li);
             return;
         }
-        roundResults.forEach((result, index) => {
+        // 最新のものを上にするためにreverse()
+        [...roundResults].reverse().forEach((result, index) => {
             const li = document.createElement('li');
-            li.textContent = `R${index + 1}: 予想 ${result.guess}mm, 実際 ${result.actual}mm, 差 ${result.diff}mm, スコア ${result.points}点`;
+            // チャレンジモードの結果表示を考慮
+            const roundNumber = roundResults.length - index; // 逆順なので元のラウンド番号を計算
+            const guessText = result.guess !== null ? `${result.guess}mm` : '未入力';
+            const diffText = result.diff !== '時間切れ' ? `${result.diff}mm` : '時間切れ';
+            li.textContent = `R${roundNumber}: 予想 ${guessText}, 実際 ${result.actual}mm, 差 ${diffText}, スコア ${result.points}点`;
             li.style.color = result.points > 0 ? '#28a745' : '#dc3545'; // スコアによって色分け
             historyListUl.appendChild(li);
         });
@@ -431,7 +509,8 @@
         guessInput.value = currentValue;
 
         // 入力が3桁になったら自動で答え合わせ（=ボタンが有効でもこの機能は残す）
-        if (currentValue.length === 3) {
+        // チャレンジモードでは、入力が3桁になったら自動で答え合わせしない（ユーザーが「=」を押すまで待つ）
+        if (currentValue.length === 3 && !isChallengeMode) {
           evaluateGuess();
         }
       }
@@ -665,9 +744,14 @@
       if (!gameActive) return; // ゲームが非アクティブなら開始しない
 
       clearInterval(timerInterval);
-      const timerSetting = parseInt(document.querySelector('input[name="timerOption"]:checked').value);
-      timeLeft = timerSetting;
+      
+      // チャレンジモードの場合は残り時間リセットしない
+      if (!isChallengeMode) {
+        const timerSetting = parseInt(document.querySelector('input[name="timerOption"]:checked').value);
+        timeLeft = timerSetting;
+      }
       timeLeftSpan.textContent = timeLeft;
+
       const maxSetting = 100; // 最大100mm
       hintUsed = false;
       document.getElementById('hint').disabled = false;
@@ -687,22 +771,31 @@
         if (timeLeft <= 0) {
           clearInterval(timerInterval);
           disableKeypad();
-          resultDiv.innerHTML = `時間切れ！ 実際の長さは ${actualLength} mm でした。<br>+0 ポイント`;
-          combo = 0;
-          comboSpan.textContent = combo;
           
-          // 履歴に記録
-          roundResults.push({
-              guess: null, // 時間切れなのでnull
-              actual: actualLength,
-              diff: '時間切れ',
-              points: 0
-          });
-          saveRoundHistory();
+          if (isChallengeMode) {
+              gameOverSound.play(); // ゲームオーバー音
+              resultDiv.innerHTML = `時間切れ！ゲーム終了です！<br>最終スコア: ${score}点`;
+              saveHighScores(); // チャレンジモードのハイスコアを保存
+              gameActive = false; // ゲームを完全に非アクティブに
+              document.getElementById('hint').disabled = true;
+              document.getElementById('reset').textContent = 'もう一度プレイ';
+          } else {
+              resultDiv.innerHTML = `時間切れ！ 実際の長さは ${actualLength} mm でした。<br>+0 ポイント`;
+              combo = 0;
+              comboSpan.textContent = combo;
+              // 履歴に記録
+              roundResults.push({
+                  guess: null, // 時間切れなのでnull
+                  actual: actualLength,
+                  diff: '時間切れ',
+                  points: 0
+              });
+              saveRoundHistory();
 
-          round++;
-          roundSpan.textContent = round;
-          setTimeout(startRound, 2000); // 2秒後に次のラウンド
+              round++;
+              roundSpan.textContent = round;
+              setTimeout(startRound, 2000); // 2秒後に次のラウンド
+          }
         }
       }, 1000);
     }
@@ -710,13 +803,16 @@
     // ユーザー回答の評価
     function evaluateGuess() {
       if (timeLeft <= 0 || !gameActive) return; // 時間切れまたはゲーム非アクティブなら評価しない
-      clearInterval(timerInterval);
-      disableKeypad(); // 評価中はキーパッドを無効化
       
       const guess = parseInt(guessInput.value, 10);
       if (isNaN(guess) || guessInput.value === "") {
         resultDiv.innerHTML = "数字を入力してください。";
-        enableKeypad(); // 再入力を促すためキーパッドは有効
+        // チャレンジモードでない場合はタイマーを停止して次のラウンドへ
+        if (!isChallengeMode) {
+            clearInterval(timerInterval);
+            disableKeypad();
+            setTimeout(startRound, 1000); // 1秒後に次のラウンド
+        }
         return;
       }
       
@@ -777,11 +873,24 @@
           points: points
       });
       saveRoundHistory();
-      saveHighScore(); // スコア評価後にハイスコアをチェック＆保存
+      saveHighScores(); // スコア評価後にハイスコアをチェック＆保存
 
-      round++;
-      roundSpan.textContent = round;
-      setTimeout(startRound, 2000); // 2秒後に次のラウンド
+      // チャレンジモード以外は自動で次のラウンドへ
+      if (!isChallengeMode) {
+          clearInterval(timerInterval); // タイマーを停止
+          disableKeypad(); // 評価中はキーパッドを無効化
+          round++;
+          roundSpan.textContent = round;
+          setTimeout(startRound, 2000); // 2秒後に次のラウンド
+      } else {
+          // チャレンジモードの場合は、次の棒をすぐに描画し、入力欄をクリアする
+          // タイマーは継続しているので、clearIntervalはしない
+          guessInput.value = "";
+          const maxSetting = 100;
+          actualLength = Math.floor(Math.random() * (maxSetting - 20 + 1)) + 20; // 20-100mm
+          drawBar(); // 棒グラフを描画
+          enableKeypad();
+      }
     }
 
     // ヒント（各ラウンド1回のみ）
@@ -800,13 +909,9 @@
       resultDiv.innerHTML = hintMessage;
     });
 
-    // 次のラウンドボタン
+    // 次のラウンド/新しいゲームを開始ボタン
     document.getElementById('reset').addEventListener("click", function () {
-      if (!gameActive) { // ゲームが非アクティブなら、ゲームを再開
-          initializeGame();
-      } else { // アクティブなら次のラウンドへ
-          startRound();
-      }
+      initializeGame(); // モード選択から再初期化する
     });
 
     // 履歴表示ボタン
@@ -829,12 +934,21 @@
             clearInterval(timerInterval); // タイマー停止
             disableKeypad(); // キーパッド無効化
             gameActive = false; // ゲームを非アクティブに
-            resultDiv.innerHTML = `ゲーム終了！最終スコア: ${score}点<br>「次のラウンド」ボタンで新しいゲームを開始できます。`;
+            resultDiv.innerHTML = `ゲーム終了！最終スコア: ${score}点<br>「${document.getElementById('reset').textContent}」ボタンで新しいゲームを開始できます。`;
             document.getElementById('hint').disabled = true; // ヒントも無効化
             document.getElementById('reset').textContent = '新しいゲームを開始'; // ボタンテキスト変更
+            gameOverSound.play(); // ゲームオーバー音を鳴らす
+            saveHighScores(); // 念のためスコアを保存
         }
     });
 
+    // タイマー設定ラジオボタンのイベントリスナー
+    timerOptionRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            // モードが切り替わったらゲームの状態をリセット
+            initializeGame();
+        });
+    });
 
     // ゲーム開始
     window.onload = initializeGame;
