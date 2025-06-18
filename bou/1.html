@@ -141,7 +141,7 @@
     }
     button:active:not(:disabled) {
       background-color: #004085;
-      box_shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
       transform: translateY(0);
     }
     button:disabled {
@@ -240,6 +240,11 @@
       <label><input type="radio" name="difficultyOption" value="normal" checked>ノーマル (20-100mm)</label>
       <label><input type="radio" name="difficultyOption" value="easy">イージー (30-80mm)</label>
       <label><input type="radio" name="difficultyOption" value="hard">ハード (10-120mm)</label>
+    </fieldset>
+    <fieldset>
+      <legend>目盛りの表示</legend>
+      <label><input type="radio" name="rulerOption" value="none" checked>無し</label>
+      <label><input type="radio" name="rulerOption" value="show">有り</label>
     </fieldset>
   </div>
 
@@ -352,6 +357,7 @@
     const equalsButton = document.querySelector('.key[data-key="="]'); // =ボタンへの参照
     const timerOptionRadios = document.querySelectorAll('input[name="timerOption"]'); // タイマー設定ラジオボタン
     const difficultyOptionRadios = document.querySelectorAll('input[name="difficultyOption"]'); // 難易度設定ラジオボタン
+    const rulerOptionRadios = document.querySelectorAll('input[name="rulerOption"]'); // **目盛り表示オプションラジオボタン**
 
     let roundResults = []; // 各ラウンドの結果を保存する配列
 
@@ -550,4 +556,548 @@
         } else {
             // 入力中の値が3桁になる場合はそれ以上入力させない
             if (guessInput.value.length >= 3 && key !== 'Backspace') {
-                e.pr
+                e.preventDefault();
+            }
+        }
+    });
+
+    // guessInputの変更イベントで、値が非数字になったらクリアする
+    guessInput.addEventListener('input', (e) => {
+        // 数字以外が入力された場合（ペーストなど）に対応
+        if (!/^\d*$/.test(guessInput.value)) {
+            guessInput.value = guessInput.value.replace(/\D/g, ''); // 数字以外を削除
+        }
+        // 桁数制限（3桁を超えたら切り詰める）
+        if (guessInput.value.length > 3) {
+            guessInput.value = guessInput.value.slice(0, 3);
+        }
+    });
+
+    function disableKeypad() {
+      document.querySelectorAll(".key").forEach(btn => btn.disabled = true);
+      guessInput.disabled = true; // キーボード入力も無効化
+    }
+    function enableKeypad() {
+      document.querySelectorAll(".key").forEach(btn => btn.disabled = false);
+      guessInput.disabled = false; // キーボード入力も有効化
+    }
+
+    // 棒グラフの描画 (四角い棒に戻し、レンガ模様を追加、目盛り追加)
+    function drawBar(animateGlow = false) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const barWidth = 80; // 棒の幅を太く
+      const targetHeight = actualLength * scaleFactor;
+      const x = (canvas.width - barWidth) / 2;
+      const startY = canvas.height; // 下から描画開始
+      let currentHeight = 0;
+      let animationStartTime = null;
+      const animationDuration = 300; // 初期描画アニメーション時間 (ms)
+      const glowDuration = 1000; // 光るアニメーション時間 (ms)
+
+      function animate(timestamp) {
+        if (!animationStartTime) animationStartTime = timestamp;
+        
+        let progress;
+        if (!animateGlow) { // 初期描画アニメーション
+            progress = (timestamp - animationStartTime) / animationDuration;
+            currentHeight = targetHeight * Math.min(progress, 1);
+        } else { // 光るアニメーション
+            progress = (timestamp - animationStartTime) / glowDuration;
+            // 光るアニメーション中は高さ固定
+            currentHeight = targetHeight; 
+        }
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height); // 再描画前にクリア
+
+        const y = startY - currentHeight; // 棒の描画開始Y座標
+
+        ctx.save();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+        ctx.shadowOffsetX = 4;
+        ctx.shadowOffsetY = 4;
+        ctx.shadowBlur = 6;
+
+        // 棒の本体部分の描画
+        ctx.fillStyle = '#A0522D'; // Sienna (レンガのベース色)
+        ctx.fillRect(x, y, barWidth, currentHeight);
+
+        // レンガ模様の描画
+        const brickHeight = 20; // レンガの高さ
+        const brickGap = 2;     // レンガの隙間
+        const brickColor = '#CD5C5C'; // IndianRed (レンガの色)
+
+        for (let i = 0; i * (brickHeight + brickGap) < currentHeight; i++) {
+            let rowY = startY - (i * (brickHeight + brickGap) + brickHeight); // 下から上に描画
+            
+            // 描画範囲を現在の棒の高さ内に収める
+            if (rowY < y) rowY = y;
+            if (rowY + brickHeight > startY) rowY = startY - brickHeight;
+
+            // 各行のレンガの開始X座標をずらす
+            const offset = (i % 2 === 0) ? 0 : (barWidth / 2 - brickGap * 1.5) / 2; // 偶数行と奇数行でずらす
+            
+            // レンガ間の横線（レンガの上に描画されるようにループの前に移動）
+            if (i > 0) {
+                ctx.fillStyle = '#777'; // 隙間の色
+                ctx.fillRect(x, rowY + brickHeight + brickGap, barWidth, brickGap);
+            }
+
+            // 奇数行の特殊処理（左右に半分のレンガ）
+            if (i % 2 !== 0) {
+                const halfBrickWidth = (barWidth - brickGap * 3) / 2;
+                ctx.fillStyle = brickColor;
+                ctx.fillRect(x + brickGap, rowY, halfBrickWidth, brickHeight); // 左側の半レンガ
+                ctx.fillRect(x + barWidth - brickGap - halfBrickWidth, rowY, halfBrickWidth, brickHeight); // 右側の半レンガ
+            } else { // 偶数行
+                const fullBrickWidth = (barWidth - brickGap * 3) / 2;
+                ctx.fillStyle = brickColor;
+                ctx.fillRect(x + brickGap, rowY, fullBrickWidth, brickHeight); // 左のレンガ
+                ctx.fillRect(x + brickGap * 2 + fullBrickWidth, rowY, fullBrickWidth, brickHeight); // 右のレンガ
+                // レンガの間の縦線
+                ctx.fillStyle = '#777'; // 隙間の色
+                ctx.fillRect(x + barWidth / 2 - brickGap / 2, rowY, brickGap, brickHeight);
+            }
+        }
+
+
+        // 光るエフェクト
+        if (animateGlow) {
+            const currentGlowProgress = (timestamp - animationStartTime) / glowDuration;
+            if (currentGlowProgress >= 1) {
+                ctx.restore(); // アニメーション終了時にrestoreしてシャドウを元に戻す
+                // アニメーション終了後、通常の描画を完了させるために再描画
+                drawBar(false);
+                return; 
+            }
+            const glowAlpha = Math.abs(Math.sin(currentGlowProgress * Math.PI)) * 0.8; // 0から1まで変化し、元に戻る
+            ctx.shadowColor = `rgba(150, 255, 150, ${glowAlpha})`; // 明るい緑色の光
+            ctx.shadowBlur = 20;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+            ctx.fillStyle = `rgba(255, 255, 255, ${glowAlpha * 0.5})`; // 棒自体も少し光らせる
+            ctx.fillRect(x, y, barWidth, currentHeight);
+        }
+        ctx.restore();
+
+        // 目盛り線の描画 (選択された場合のみ)
+        const selectedRulerOption = document.querySelector('input[name="rulerOption"]:checked').value;
+        if (selectedRulerOption === 'show') {
+            const rulerX = x + barWidth + 10; // 棒の右側に10px間隔を空けて配置
+            const rulerWidth = 20; // 定規の幅
+            const maxMillimeter = getMaxMillimeterForCurrentDifficulty(); // 現在の難易度設定の最大値
+
+            ctx.fillStyle = '#777';
+            ctx.font = '10px Arial';
+            ctx.textAlign = 'left';
+
+            // 0mmの線
+            ctx.fillRect(rulerX, canvas.height - 1, rulerWidth, 1);
+            ctx.fillText('0mm', rulerX + rulerWidth + 2, canvas.height);
+
+            for (let mm = 10; mm <= maxMillimeter; mm += 10) {
+                const lineY = canvas.height - (mm * scaleFactor);
+                if (lineY < 0) break; // Canvasの範囲外に出る場合は描画しない
+
+                ctx.fillRect(rulerX, lineY, rulerWidth, 1); // 長い目盛り線
+                ctx.fillText(`${mm}mm`, rulerX + rulerWidth + 2, lineY + 4);
+            }
+
+            // 5mmごとの短い目盛り線
+            for (let mm = 5; mm <= maxMillimeter; mm += 10) {
+                const lineY = canvas.height - (mm * scaleFactor);
+                if (lineY < 0) break;
+                ctx.fillRect(rulerX, lineY, rulerWidth / 2, 1); // 短い目盛り線
+            }
+        }
+
+
+        // アニメーションの継続条件
+        if (!animateGlow && currentHeight < targetHeight) { // 通常のアニメーションが完了していない場合
+            requestAnimationFrame(animate);
+        } else if (animateGlow && (timestamp - animationStartTime) < glowDuration) { // 光るアニメーションが継続時間内の場合
+            requestAnimationFrame(animate);
+        } else if (animateGlow && (timestamp - animationStartTime) >= glowDuration) {
+             // 光るアニメーションが終了したら、通常の棒グラフを最終状態として一度描画し直す
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // クリア
+            ctx.save();
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+            ctx.shadowOffsetX = 4;
+            ctx.shadowOffsetY = 4;
+            ctx.shadowBlur = 6;
+            ctx.fillStyle = '#A0522D';
+            ctx.fillRect(x, y, barWidth, currentHeight);
+            // レンガも最終状態で描画し直す
+            for (let i = 0; i * (brickHeight + brickGap) < currentHeight; i++) {
+                let rowY = startY - (i * (brickHeight + brickGap) + brickHeight);
+                if (rowY < y) rowY = y;
+                if (rowY + brickHeight > startY) rowY = startY - brickHeight;
+
+                if (i > 0) {
+                    ctx.fillStyle = '#777';
+                    ctx.fillRect(x, rowY + brickHeight + brickGap, barWidth, brickGap);
+                }
+
+                const offset = (i % 2 === 0) ? 0 : (barWidth / 2 - brickGap * 1.5) / 2;
+                if (i % 2 !== 0) {
+                    const halfBrickWidth = (barWidth - brickGap * 3) / 2;
+                    ctx.fillStyle = brickColor;
+                    ctx.fillRect(x + brickGap, rowY, halfBrickWidth, brickHeight);
+                    ctx.fillRect(x + barWidth - brickGap - halfBrickWidth, rowY, halfBrickWidth, brickHeight);
+                } else {
+                    const fullBrickWidth = (barWidth - brickGap * 3) / 2;
+                    ctx.fillStyle = brickColor;
+                    ctx.fillRect(x + brickGap, rowY, fullBrickWidth, brickHeight);
+                    ctx.fillRect(x + brickGap * 2 + fullBrickWidth, rowY, fullBrickWidth, brickHeight);
+                    ctx.fillStyle = '#777';
+                    ctx.fillRect(x + barWidth / 2 - brickGap / 2, rowY, brickGap, brickHeight);
+                }
+            }
+            ctx.restore();
+             // 目盛りも描画
+            if (selectedRulerOption === 'show') { // アニメーション終了時にも選択されていれば描画
+                for (let mm = 10; mm <= maxMillimeter; mm += 10) {
+                    const lineY = canvas.height - (mm * scaleFactor);
+                    if (lineY < 0) break;
+                    ctx.fillRect(rulerX, lineY, rulerWidth, 1);
+                    ctx.fillText(`${mm}mm`, rulerX + rulerWidth + 2, lineY + 4);
+                }
+                for (let mm = 5; mm <= maxMillimeter; mm += 10) {
+                    const lineY = canvas.height - (mm * scaleFactor);
+                    if (lineY < 0) break;
+                    ctx.fillRect(rulerX, lineY, rulerWidth / 2, 1);
+                }
+            }
+        }
+      }
+      requestAnimationFrame(animate);
+    }
+
+
+    // コンフェッティ演出（完璧な回答時）
+    function launchConfetti() {
+      const confettiCanvas = document.getElementById('confettiCanvas');
+      confettiCanvas.style.display = 'block';
+      confettiCanvas.width = window.innerWidth;
+      confettiCanvas.height = window.innerHeight;
+      const confettiCtx = confettiCanvas.getContext('2d');
+      const particles = [];
+      const colors = ['#fcf403', '#fc4a03', '#03fc03', '#0303fc', '#fc03d8'];
+      
+      for (let i = 0; i < 150; i++) { // パーティクル数を増やす
+        particles.push({
+          x: Math.random() * confettiCanvas.width,
+          y: Math.random() * confettiCanvas.height - confettiCanvas.height,
+          r: Math.random() * 8 + 3, // サイズを少し大きく
+          d: Math.random() * 7 + 2, // 落ちる速度
+          color: colors[Math.floor(Math.random() * colors.length)],
+          tilt: Math.floor(Math.random() * 20) - 10, // 傾きを大きく
+          tiltAngle: 0,
+          tiltAngleIncrement: Math.random() * 0.1 + 0.05 // 傾き変化の速度
+        });
+      }
+      
+      function drawParticles() {
+        confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+        particles.forEach(p => {
+          confettiCtx.beginPath();
+          confettiCtx.lineWidth = p.r;
+          confettiCtx.strokeStyle = p.color;
+          confettiCtx.moveTo(p.x + p.tilt + Math.sin(p.tiltAngle) * p.r, p.y);
+          confettiCtx.lineTo(p.x + p.tilt, p.y + p.r * Math.cos(p.tiltAngle));
+          confettiCtx.stroke();
+        });
+      }
+      
+      let angle = 0;
+      function updateParticles() {
+        angle += 0.01;
+        particles.forEach((p, i) => {
+          p.y += (Math.cos(angle) + p.d + 1);
+          p.x += Math.sin(angle);
+          p.tiltAngle += p.tiltAngleIncrement; // 傾きを変化させる
+          if (p.y > confettiCanvas.height) {
+            particles[i] = {
+              x: Math.random() * confettiCanvas.width,
+              y: -10,
+              r: p.r,
+              d: p.d,
+              color: p.color,
+              tilt: p.tilt,
+              tiltAngle: 0,
+              tiltAngleIncrement: p.tiltAngleIncrement
+            };
+          }
+        });
+      }
+      
+      const confettiAnimation = setInterval(() => {
+        drawParticles();
+        updateParticles();
+      }, 20);
+      
+      setTimeout(() => {
+        clearInterval(confettiAnimation);
+        confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+        confettiCanvas.style.display = 'none';
+      }, 3500); // 少し長く表示
+    }
+
+    // 現在の難易度設定に応じて棒の長さの範囲を取得する関数
+    function getBarLengthRange() {
+        const selectedDifficulty = document.querySelector('input[name="difficultyOption"]:checked').value;
+        switch (selectedDifficulty) {
+            case 'easy':
+                return { min: 30, max: 80 }; // イージーモード: 30mm-80mm
+            case 'hard':
+                return { min: 10, max: 120 }; // ハードモード: 10mm-120mm
+            case 'normal':
+            default:
+                return { min: 20, max: 100 }; // ノーマルモード: 20mm-100mm
+        }
+    }
+    
+    // 現在の難易度設定の最大ミリメートル値を取得する関数（目盛り描画用）
+    function getMaxMillimeterForCurrentDifficulty() {
+        const { max } = getBarLengthRange();
+        // Canvasの高さに合わせて表示する最大値を調整
+        // 棒が最大値の時にcanvasの高さに収まるように
+        const maxPx = canvas.height / scaleFactor;
+        return Math.min(max, Math.floor(maxPx / 10) * 10); // 10mm単位で切り捨てて表示
+    }
+
+
+    // 新ラウンド開始（自動移行）
+    function startRound() {
+      if (!gameActive) return; // ゲームが非アクティブなら開始しない
+
+      clearInterval(timerInterval);
+      
+      // チャレンジモードの場合は残り時間リセットしない
+      if (!isChallengeMode) {
+        const timerSetting = parseInt(document.querySelector('input[name="timerOption"]:checked').value);
+        timeLeft = timerSetting;
+      }
+      timeLeftSpan.textContent = timeLeft;
+
+      hintUsed = false;
+      document.getElementById('hint').disabled = false;
+      guessInput.value = "";
+      resultDiv.innerHTML = "";
+      
+      const { min, max } = getBarLengthRange(); // 選択された難易度に応じた範囲を取得
+      actualLength = Math.floor(Math.random() * (max - min + 1)) + min;
+      drawBar(); // 棒グラフを描画
+      enableKeypad();
+      guessInput.focus(); // 新しいラウンド開始時にテキストボックスにフォーカス
+
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        timeLeftSpan.textContent = timeLeft;
+        if (timeLeft === 5) { // 残り5秒で警告音
+            timerWarningSound.play();
+        }
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          disableKeypad();
+          
+          if (isChallengeMode) {
+              gameOverSound.play(); // ゲームオーバー音
+              resultDiv.innerHTML = `時間切れ！ゲーム終了です！<br>最終スコア: ${score}点`;
+              saveHighScores(); // チャレンジモードのハイスコアを保存
+              gameActive = false; // ゲームを完全に非アクティブに
+              document.getElementById('hint').disabled = true;
+              document.getElementById('reset').textContent = 'もう一度プレイ';
+          } else {
+              resultDiv.innerHTML = `時間切れ！<br>実際の長さは <span style="color: blue;">${actualLength}mm</span> でした。<br>+0 ポイント`;
+              combo = 0;
+              comboSpan.textContent = combo;
+              // 履歴に記録
+              roundResults.push({
+                  guess: null, // 時間切れなのでnull
+                  actual: actualLength,
+                  diff: '時間切れ',
+                  points: 0
+              });
+              saveRoundHistory();
+
+              round++;
+              roundSpan.textContent = round;
+              setTimeout(startRound, 2000); // 2秒後に次のラウンド
+          }
+        }
+      }, 1000);
+    }
+
+    // ユーザー回答の評価
+    function evaluateGuess() {
+      if (timeLeft <= 0 || !gameActive) return; // 時間切れまたはゲーム非アクティブなら評価しない
+      
+      const guess = parseInt(guessInput.value, 10);
+      if (isNaN(guess) || guessInput.value === "") {
+        resultDiv.innerHTML = "数字を入力してください。";
+        // チャレンジモードでない場合はタイマーを停止して次のラウンドへ
+        if (!isChallengeMode) {
+            clearInterval(timerInterval);
+            disableKeypad();
+            setTimeout(startRound, 1000); // 1秒後に次のラウンド
+        }
+        return;
+      }
+      
+      const diff = Math.abs(actualLength - guess);
+      let feedback = "";
+      let points = 0;
+      
+      if (diff === 0) {
+        feedback = "完璧！大正解です！";
+        points = 10;
+        combo++;
+        comboSound.play(); // コンボ音
+        launchConfetti();
+        drawBar(true); // 棒を光らせるアニメーション
+      } else if (diff <= 2) {
+        feedback = "ほぼ正解！あと少し！";
+        points = 7;
+        combo = 0;
+        correctSound.play(); // 成功音
+      } else if (diff <= 5) {
+        feedback = "近いです！頑張って！";
+        points = 5;
+        combo = 0;
+        correctSound.play(); // 成功音
+      } else if (diff <= 10) {
+        feedback = "まあまあです。";
+        points = 3;
+        combo = 0;
+        incorrectSound.play(); // 失敗音
+      } else {
+        feedback = "残念…";
+        points = 0;
+        combo = 0;
+        incorrectSound.play(); // 失敗音
+      }
+      
+      resultDiv.innerHTML =
+        `あなたの予想: <span style="color: green;">${guess}mm</span><br>` +
+        `実際の長さ: <span style="color: blue;">${actualLength}mm</span><br>` +
+        `誤差: <span style="color: red;">${diff}mm</span><br>` +
+        `${feedback}<br>` +
+        `+${points} ポイント`;
+      
+      score += points;
+      scoreSpan.textContent = score;
+      comboSpan.textContent = combo;
+
+      // 履歴に記録
+      roundResults.push({
+          guess: guess,
+          actual: actualLength,
+          diff: diff,
+          points: points
+      });
+      saveRoundHistory();
+      saveHighScores(); // スコア評価後にハイスコアをチェック＆保存
+
+      // チャレンジモード以外は自動で次のラウンドへ
+      if (!isChallengeMode) {
+          clearInterval(timerInterval); // タイマーを停止
+          disableKeypad(); // 評価中はキーパッドを無効化
+          round++;
+          roundSpan.textContent = round;
+          setTimeout(startRound, 2000); // 2秒後に次のラウンド
+      } else {
+          // チャレンジモードの場合は、次の棒をすぐに描画し、入力欄をクリアする
+          // タイマーは継続しているので、clearIntervalはしない
+          guessInput.value = "";
+          const { min, max } = getBarLengthRange();
+          actualLength = Math.floor(Math.random() * (max - min + 1)) + min;
+          drawBar(); // 棒グラフを描画
+          enableKeypad();
+          guessInput.focus(); // 次の棒描画後にテキストボックスにフォーカス
+      }
+    }
+
+    // ヒント（各ラウンド1回のみ）
+    document.getElementById('hint').addEventListener("click", function () {
+      if (hintUsed || timeLeft <= 0 || !gameActive) return; // 時間切れ、ヒント使用済み、ゲーム非アクティブではヒント不可
+      hintUsed = true;
+      this.disabled = true;
+      let hintMessage = "";
+      
+      const { min, max } = getBarLengthRange(); // 現在の難易度設定の範囲を取得
+      const range = max - min;
+      
+      if (actualLength < min + range * 0.25) { // 下位25%
+        hintMessage = "ヒント: 棒はかなり短いです。";
+      } else if (actualLength < min + range * 0.5) { // 下位50% (中くらいの下半分)
+        hintMessage = "ヒント: 棒はやや短いです。";
+      } else if (actualLength < min + range * 0.75) { // 上位50% (中くらいの上半分)
+        hintMessage = "ヒント: 棒はやや長いです。";
+      } else { // 上位25%
+        hintMessage = "ヒント: 棒はかなり長いです。";
+      }
+      resultDiv.innerHTML = hintMessage;
+    });
+
+    // 次のラウンド/新しいゲームを開始ボタン
+    document.getElementById('reset').addEventListener("click", function () {
+      initializeGame(); // モード選択から再初期化する
+    });
+
+    // 履歴表示ボタン
+    showHistoryButton.addEventListener("click", function() {
+        renderRoundHistory();
+        roundHistoryDiv.style.display = 'block';
+    });
+
+    // 履歴クリアボタン
+    clearHistoryButton.addEventListener("click", clearRoundHistory);
+
+    // 履歴閉じるボタン
+    closeHistoryButton.addEventListener("click", function() {
+        roundHistoryDiv.style.display = 'none';
+    });
+
+    // ゲーム終了ボタンのイベントリスナー
+    endGameButton.addEventListener("click", function() {
+        if (confirm('ゲームを終了しますか？現在のスコアはリセットされます。')) {
+            clearInterval(timerInterval); // タイマー停止
+            disableKeypad(); // キーパッド無効化
+            gameActive = false; // ゲームを非アクティブに
+            resultDiv.innerHTML = `ゲーム終了！最終スコア: ${score}点<br>「${document.getElementById('reset').textContent}」ボタンで新しいゲームを開始できます。`;
+            document.getElementById('hint').disabled = true; // ヒントも無効化
+            document.getElementById('reset').textContent = '新しいゲームを開始'; // ボタンテキスト変更
+            gameOverSound.play(); // ゲームオーバー音を鳴らす
+            saveHighScores(); // 念のためスコアを保存
+        }
+    });
+
+    // タイマー設定ラジオボタンのイベントリスナー
+    timerOptionRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            // モードが切り替わったらゲームの状態をリセット
+            initializeGame();
+        });
+    });
+
+    // 難易度設定ラジオボタンのイベントリスナー
+    difficultyOptionRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            // 難易度が切り替わったらゲームの状態をリセット
+            initializeGame();
+        });
+    });
+
+    // **目盛り表示オプションラジオボタンのイベントリスナー**
+    rulerOptionRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            // 目盛り表示オプションが切り替わったら、棒グラフを再描画して変更を反映
+            drawBar();
+        });
+    });
+
+    // ゲーム開始
+    window.onload = initializeGame;
+  </script>
+</body>
+</html>
