@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>記憶の宮殿 - 思考進化版</title>
+    <title>記憶の宮殿 - 立体進化版</title>
     <style>
         :root {
-            --bg-color: #f0f2f5; --main-color: #ffffff; --primary-color: #007bff;
-            --primary-hover-color: #0056b3; --text-color: #333; --light-text-color: #777;
-            --border-color: #e0e0e0; --correct-color: #28a745; --incorrect-color: #dc3545;
-            --life-color: #ff4757; --bonus-color: #fca311; --lock-color: #a0a0a0;
+            --bg-color: #e0e5ec; --main-color: #f0f2f5; --primary-color: #007bff;
+            --primary-dark-color: #0056b3; --text-color: #3b3b3b; --light-text-color: #777;
+            --correct-color: #28a745; --incorrect-color: #dc3545; --life-color: #ff4757; 
+            --bonus-color: #fca311; --lock-color: #a0a0a0;
             --font-family: 'Helvetica Neue', 'Arial', 'Hiragino Kaku Gothic ProN', sans-serif;
         }
         body {
@@ -18,66 +18,81 @@
         }
         #app-container {
             width: 100%; max-width: 800px; background-color: var(--main-color);
-            border-radius: 12px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1); overflow: hidden;
+            border-radius: 20px; box-shadow: 10px 10px 20px #bec3c9, -10px -10px 20px #ffffff;
+            overflow: hidden; border: 1px solid white;
         }
-        .header { background-color: var(--primary-color); color: white; padding: 20px; text-align: center; }
+        .header {
+            background-image: linear-gradient(145deg, var(--primary-color), var(--primary-dark-color));
+            color: white; padding: 25px; text-align: center; text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+        }
         .header h1 { margin: 0; font-size: 1.8em; }
         .main-content { padding: 30px; }
         .screen { display: none; animation: fadeIn 0.5s ease-in-out; }
         .screen.active { display: block; }
         
-        /* --- スタート画面 & レベル選択 --- */
-        #start-screen p { text-align: center; margin-bottom: 20px; font-size: 1.1em; }
-        #level-selection-area { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 15px; }
-        .level-btn {
-            background-color: var(--primary-color); color: white; border: none; border-radius: 8px;
-            padding: 15px 10px; font-size: 1.2em; font-weight: bold; cursor: pointer;
-            transition: background-color 0.3s ease, transform 0.2s ease;
+        .btn, .level-btn, .choice-btn {
+            border: none; border-radius: 10px; padding: 12px 24px; font-size: 1.1em;
+            font-weight: bold; cursor: pointer; color: white;
+            background-color: var(--primary-color);
+            transition: all 0.2s ease-out;
+            box-shadow: 4px 4px 8px #bec3c9, -4px -4px 8px #ffffff;
+            border-top: 1px solid rgba(255,255,255,0.5);
+            border-left: 1px solid rgba(255,255,255,0.5);
         }
-        .level-btn:hover:not(:disabled) { background-color: var(--primary-hover-color); transform: translateY(-2px); }
-        .level-btn:disabled { background-color: var(--lock-color); cursor: not-allowed; opacity: 0.7; }
+        .btn:hover:not(:disabled), .level-btn:hover:not(:disabled), .choice-btn:hover:not(:disabled) {
+            transform: translateY(-2px); box-shadow: 6px 6px 12px #b8bcc2, -6px -6px 12px #ffffff;
+        }
+        .btn:active:not(:disabled), .level-btn:active:not(:disabled), .choice-btn:active:not(:disabled) {
+            transform: translateY(1px);
+            box-shadow: 2px 2px 5px #b8bcc2, -2px -2px 5px #ffffff;
+        }
+        .level-btn:disabled {
+            background-color: var(--lock-color); cursor: not-allowed; opacity: 0.8;
+            box-shadow: 2px 2px 5px #b8bcc2, -2px -2px 5px #ffffff;
+        }
 
-        /* --- ゲーム画面 --- */
+        #start-screen p { text-align: center; margin-bottom: 20px; font-size: 1.1em; }
+        #level-selection-area { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 20px; }
+        
         .game-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; font-size: 1.2em; font-weight: bold; }
         #life-display { color: var(--life-color); font-size: 1.5em; letter-spacing: 2px; }
         #palace-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .palace-room {
-            border: 2px solid var(--border-color); border-radius: 8px; padding: 15px;
-            text-align: center; transition: all 0.3s ease; background-color: #fafafa;
+            border-radius: 15px; padding: 15px; text-align: center;
+            transition: all 0.3s ease; background-color: var(--main-color);
+            box-shadow: 5px 5px 10px #bec3c9, -5px -5px 10px #ffffff;
         }
-        .palace-room.highlight { border-color: var(--primary-color); transform: scale(1.05); box-shadow: 0 4px 15px rgba(0, 123, 255, 0.2); }
+        .palace-room.highlight { transform: scale(1.05); box-shadow: 0 0 15px var(--primary-color); }
         .room-number { font-size: 1.5em; font-weight: bold; color: var(--primary-color); }
         .room-item { font-size: 1.1em; margin-top: 10px; font-weight: bold; height: 2em; display: flex; justify-content: center; align-items: center; }
-        .quiz-area { text-align: center; }
-        #question-text { font-size: 1.3em; margin-bottom: 15px; }
-        #answer-input {
-            width: 80%; max-width: 300px; padding: 10px; font-size: 1.1em;
-            border: 2px solid var(--border-color); border-radius: 8px; text-align: center; transition: border-color 0.3s;
-        }
-        #answer-input:focus { outline: none; border-color: var(--primary-color); }
-        #answer-input.correct { border-color: var(--correct-color); }
-        #answer-input.incorrect { border-color: var(--incorrect-color); animation: shake 0.5s; }
+        
+        #quiz-area { text-align: center; }
+        #question-text { font-size: 1.3em; margin-bottom: 25px; }
+        #choices-area { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .choice-btn { width: 100%; }
+        .choice-btn.correct { background-color: var(--correct-color) !important; animation: pop 0.5s; }
+        .choice-btn.incorrect { background-color: var(--incorrect-color) !important; animation: shake 0.5s; }
+
         #message-area { min-height: 2.2em; margin-top: 20px; font-size: 1.2em; font-weight: bold; color: var(--light-text-color); }
         .bonus-text { color: var(--bonus-color); animation: pop 0.5s ease; }
 
-        /* --- 中間画面 (レベルクリア, ボーナス, 結果) --- */
         .interstitial-screen h2 { text-align: center; font-size: 1.8em; color: var(--primary-color); margin-bottom: 20px;}
         .interstitial-screen p { text-align: center; font-size: 1.2em; line-height: 1.5; }
         .interstitial-screen .button-container { display: flex; justify-content: center; gap: 15px; margin-top: 30px; }
-        #mistake-review { margin-top: 20px; background-color: #f8f9fa; border-radius: 8px; padding: 15px; }
-        #mistake-review h4 { margin-top: 0; text-align: center; color: var(--primary-color); }
-        #mistake-list { list-style-type: none; padding: 0; text-align: center; }
         #bonus-inputs { display: flex; flex-direction: column; gap: 10px; align-items: center; }
-        .bonus-input { width: 70%; max-width: 250px; }
+        #bonus-inputs input {
+            border: 2px solid #ccc; border-radius: 8px; padding: 10px; font-size: 1em;
+            box-shadow: inset 2px 2px 5px #bec3c9, inset -2px -2px 5px #ffffff;
+        }
 
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); } 20%, 40%, 60%, 80% { transform: translateX(5px); } }
         @keyframes pop { 0% { transform: scale(0.8); opacity: 0; } 80% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
     </style>
 </head>
 <body>
     <div id="app-container">
-        <header class="header"><h1>記憶の宮殿 - 思考進化版</h1></header>
+        <header class="header"><h1>記憶の宮殿 - 立体進化版</h1></header>
         <main class="main-content">
             <div id="start-screen" class="screen active">
                 <p>クリアしたレベルまで選択できます。<br>記憶力と思考力の限界に挑戦しましょう。</p>
@@ -86,15 +101,14 @@
             <div id="game-screen" class="screen">
                 <div class="game-header"><div id="level-display"></div><div id="score-display"></div><div id="life-display"></div></div>
                 <div id="palace-grid"></div><div id="message-area"></div>
-                <div id="quiz-area" style="display: none;"><p id="question-text"></p><form id="answer-form"><input type="text" id="answer-input" autocomplete="off"></form></div>
+                <div id="quiz-area" style="display: none;"><p id="question-text"></p><div id="choices-area"></div></div>
             </div>
             <div id="level-clear-screen" class="screen interstitial-screen">
                 <h2 id="level-clear-title"></h2><p id="level-clear-details"></p>
-                <div id="mistake-review" style="display: none;"><h4>復習リスト</h4><ul id="mistake-list"></ul></div>
                 <div class="button-container"><button id="bonus-stage-btn" class="btn">ボーナスステージへ</button><button id="next-level-btn-skip" class="btn">次のレベルへ</button></div>
             </div>
             <div id="bonus-stage-screen" class="screen interstitial-screen">
-                <h2>順番記憶ボーナスステージ</h2><p>記憶したアイテムを、出現した順番通りに入力してください。</p>
+                <h2>順番記憶ボーナスステージ</h2><p>記憶したアイテムを、順番通りに入力してください。<br>(このステージはキーボード入力です)</p>
                 <form id="bonus-form"><div id="bonus-inputs"></div><div class="button-container"><button type="submit" class="btn">回答する</button></div></form>
             </div>
             <div id="result-screen" class="screen interstitial-screen">
@@ -112,19 +126,20 @@
         game: {
             level: getEl('level-display'), score: getEl('score-display'), life: getEl('life-display'),
             palaceGrid: getEl('palace-grid'), messageArea: getEl('message-area'), quizArea: getEl('quiz-area'),
-            questionText: getEl('question-text'), answerForm: getEl('answer-form'), answerInput: getEl('answer-input'),
+            questionText: getEl('question-text'), choicesArea: getEl('choices-area'),
         },
-        levelClear: { title: getEl('level-clear-title'), details: getEl('level-clear-details'), mistakeReview: getEl('mistake-review'), mistakeList: getEl('mistake-list'), bonusBtn: getEl('bonus-stage-btn'), skipBtn: getEl('next-level-btn-skip') },
+        levelClear: { title: getEl('level-clear-title'), details: getEl('level-clear-details'), bonusBtn: getEl('bonus-stage-btn'), skipBtn: getEl('next-level-btn-skip') },
         bonus: { form: getEl('bonus-form'), inputs: getEl('bonus-inputs') },
         result: { title: getEl('result-title'), details: getEl('result-details'), retryBtn: getEl('retry-btn') },
     };
 
     const config = {
-        levels: { 1: [3,8], 2: [4,10], 3: [5,12], 4: [6,15], 5: [7,18], 6: [8,20], 7: [9,25], 8: [10,30] },
+        // [部屋の数, 記憶時間(秒)] - 記憶時間を延長
+        levels: { 1: [3,12], 2: [4,15], 3: [5,20], 4: [6,25], 5: [7,30], 6: [8,35], 7: [9,40], 8: [10,45] },
         itemPool: ['りんご','時計','本','鍵','帽子','靴','車','猫','犬','椅子','机','花瓶','窓','扉','鏡','絵画','地球儀','電話','鉛筆','消しゴム','PC','傘','月','太陽','星','雲','川','山','森','海'],
         score: { correct: 100, combo: 50, bonus: 200 },
         initialLifes: 3,
-        storageKey: 'memoryPalaceHighestLevel',
+        storageKey: 'memoryPalaceHighestLevel_v2', // v2 for new structure
     };
 
     let state = {};
@@ -143,7 +158,7 @@
             const unlocked = parseInt(level) <= highestLevel + 1;
             return `<button class="level-btn" data-level="${level}" ${!unlocked ? 'disabled' : ''}>${unlocked ? `Lv.${level}`: '🔒'}</button>`;
         }).join('');
-        dom.levelSelectionArea.querySelectorAll('.level-btn').forEach(btn => btn.addEventListener('click', () => initGame(parseInt(btn.dataset.level))));
+        dom.levelSelectionArea.querySelectorAll('.level-btn:not(:disabled)').forEach(btn => btn.addEventListener('click', () => initGame(parseInt(btn.dataset.level))));
     };
 
     const updateUI = () => {
@@ -157,19 +172,35 @@
         
         const question = state.currentQuizData[state.currentQuestionIndex];
         const { room, item, type } = question;
+        const correctAnswer = type === 'room_from_item' ? String(room) : item;
         
-        if (type === 'room_from_item') {
-            dom.game.questionText.innerHTML = `「<span class="bonus-text">${item}</span>」があったのは何番の部屋？`;
-            dom.game.answerInput.placeholder = "部屋の番号を入力";
-            dom.game.answerInput.type = "number";
-        } else {
-            dom.game.questionText.textContent = `${room}番の部屋のアイテムは？`;
-            dom.game.answerInput.placeholder = "アイテム名を入力";
-            dom.game.answerInput.type = "text";
+        // 問題文設定
+        dom.game.questionText.innerHTML = (type === 'room_from_item')
+            ? `「<span class="bonus-text">${item}</span>」があったのは何番の部屋？`
+            : `${room}番の部屋のアイテムは？`;
+        
+        // 選択肢生成
+        let choices = [correctAnswer];
+        let pool = (type === 'room_from_item')
+            ? state.orderedQuizData.map(d => String(d.room))
+            : config.itemPool;
+        
+        pool = pool.filter(p => p !== correctAnswer);
+        while (choices.length < 4 && pool.length > 0) {
+            const randomIndex = Math.floor(Math.random() * pool.length);
+            choices.push(pool.splice(randomIndex, 1)[0]);
         }
         
-        dom.game.answerInput.value = '';
-        dom.game.answerInput.focus();
+        // 選択肢ボタン描画
+        dom.game.choicesArea.innerHTML = util.shuffle(choices).map(choice =>
+            `<button class="choice-btn" data-answer="${choice}">${choice}</button>`
+        ).join('');
+        
+        // イベントリスナー設定
+        dom.game.choicesArea.querySelectorAll('.choice-btn').forEach(btn => 
+            btn.addEventListener('click', () => handleAnswer(btn.dataset.answer, btn))
+        );
+
         dom.game.palaceGrid.querySelectorAll('.palace-room').forEach(el => el.classList.remove('highlight'));
     };
     
@@ -205,24 +236,16 @@
         util.setHighestLevel(state.level);
         util.showScreen('levelClear');
         dom.levelClear.title.textContent = `レベル ${state.level} クリア！`;
-        
-        const questionsCount = state.orderedQuizData.length;
-        const correctCount = questionsCount - state.mistakes.length;
-        dom.levelClear.details.innerHTML = `正解数: ${correctCount} / ${questionsCount}`;
-        
-        if (state.mistakes.length > 0) {
-            dom.levelClear.mistakeReview.style.display = 'block';
-            dom.levelClear.mistakeList.innerHTML = state.mistakes.map(m => `<li>${m.type === 'item_from_room' ? `${m.room}番` : `「${m.item}」`} &rarr; ${m.correctAnswer}</li>`).join('');
-        } else {
-            dom.levelClear.mistakeReview.style.display = 'none';
-            dom.levelClear.details.innerHTML += '<br>パーフェクト！素晴らしい記憶力です！';
-        }
+        const correctCount = state.orderedQuizData.length - state.mistakes.length;
+        dom.levelClear.details.innerHTML = `正解数: ${correctCount} / ${state.orderedQuizData.length}`;
+        if (correctCount === state.orderedQuizData.length) dom.levelClear.details.innerHTML += '<br>パーフェクト！';
     };
     
     const startBonusStage = () => {
         state.gameStatus = 'bonus';
         util.showScreen('bonus');
         dom.bonus.inputs.innerHTML = state.orderedQuizData.map((_, i) => `<input type="text" class="bonus-input" placeholder="${i + 1}番目のアイテム">`).join('');
+        dom.bonus.inputs.querySelector('input').focus();
     };
 
     const handleBonusAnswer = (e) => {
@@ -230,17 +253,19 @@
         let correctBonusCount = 0;
         const inputs = e.target.querySelectorAll('.bonus-input');
         inputs.forEach((input, i) => {
-            if (input.value.trim() === state.orderedQuizData[i].item) {
+            input.disabled = true;
+            if (input.value.trim().toLowerCase() === state.orderedQuizData[i].item.toLowerCase()) {
                 correctBonusCount++;
-                input.classList.add('correct');
+                input.style.borderColor = 'var(--correct-color)';
             } else {
-                input.classList.add('incorrect');
+                input.style.borderColor = 'var(--incorrect-color)';
+                input.value += ` (正解: ${state.orderedQuizData[i].item})`;
             }
         });
         const bonusScore = correctBonusCount * config.score.bonus;
         state.score += bonusScore;
         dom.game.messageArea.innerHTML = `ボーナス: ${correctBonusCount}問正解！<span class="bonus-text">+${bonusScore}スコア！</span>`;
-        setTimeout(goToNextLevel, 2000);
+        setTimeout(goToNextLevel, 2500);
     };
 
     const goToNextLevel = () => {
@@ -256,16 +281,15 @@
         util.showScreen('result');
     };
 
-    const handleAnswer = async (e) => {
-        e.preventDefault();
+    const handleAnswer = async (chosenAnswer, clickedBtn) => {
         if (state.gameStatus !== 'quizzing') return;
+        state.gameStatus = 'answered'; // 回答後の連打防止
 
-        const userAnswer = dom.game.answerInput.value.trim();
         const question = state.currentQuizData[state.currentQuestionIndex];
         const correctAnswer = question.type === 'room_from_item' ? String(question.room) : question.item;
-        const isCorrect = userAnswer === correctAnswer;
+        const isCorrect = chosenAnswer === correctAnswer;
         
-        dom.game.answerInput.classList.add(isCorrect ? 'correct' : 'incorrect');
+        clickedBtn.classList.add(isCorrect ? 'correct' : 'incorrect');
 
         if (isCorrect) {
             state.combo++;
@@ -276,17 +300,19 @@
         } else {
             state.combo = 0;
             state.lifes--;
-            state.mistakes.push({ ...question, correctAnswer });
-            dom.game.messageArea.textContent = `不正解... 正解は「${correctAnswer}」`;
+            dom.game.messageArea.textContent = `不正解...`;
+            // 正解のボタンをハイライト
+            const correctBtn = dom.game.choicesArea.querySelector(`[data-answer="${correctAnswer}"]`);
+            if(correctBtn) correctBtn.classList.add('correct');
         }
         
         updateUI();
 
-        if (state.lifes <= 0) return setTimeout(() => gameOver(false), 1200);
+        if (state.lifes <= 0) return setTimeout(() => gameOver(false), 2000);
 
-        await util.sleep(1500);
+        await util.sleep(2000);
         
-        dom.game.answerInput.classList.remove('correct', 'incorrect');
+        state.gameStatus = 'quizzing';
         dom.game.messageArea.textContent = '';
         state.currentQuestionIndex++;
         displayQuestion();
@@ -298,14 +324,11 @@
         startLevel();
     };
     
-    // --- イベントリスナー ---
     dom.result.retryBtn.addEventListener('click', () => { createLevelSelection(); util.showScreen('start'); });
     dom.levelClear.bonusBtn.addEventListener('click', startBonusStage);
     dom.levelClear.skipBtn.addEventListener('click', goToNextLevel);
     dom.bonus.form.addEventListener('submit', handleBonusAnswer);
-    dom.game.answerForm.addEventListener('submit', handleAnswer);
 
-    // --- 初期化 ---
     createLevelSelection();
 })();
 </script>
