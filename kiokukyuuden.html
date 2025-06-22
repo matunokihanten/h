@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>新・記憶の宮殿トレーニング</title>
+    <title>記憶の宮殿 - 思考進化版</title>
     <style>
         :root {
             --bg-color: #f0f2f5; --main-color: #ffffff; --primary-color: #007bff;
             --primary-hover-color: #0056b3; --text-color: #333; --light-text-color: #777;
             --border-color: #e0e0e0; --correct-color: #28a745; --incorrect-color: #dc3545;
-            --life-color: #ff4757; --bonus-color: #fca311;
+            --life-color: #ff4757; --bonus-color: #fca311; --lock-color: #a0a0a0;
             --font-family: 'Helvetica Neue', 'Arial', 'Hiragino Kaku Gothic ProN', sans-serif;
         }
         body {
@@ -25,14 +25,19 @@
         .main-content { padding: 30px; }
         .screen { display: none; animation: fadeIn 0.5s ease-in-out; }
         .screen.active { display: block; }
-        #start-screen p { font-size: 1.1em; line-height: 1.6; text-align: center; margin-bottom: 30px; }
-        .button-container { text-align: center; }
-        .btn {
+        
+        /* --- スタート画面 & レベル選択 --- */
+        #start-screen p { text-align: center; margin-bottom: 20px; font-size: 1.1em; }
+        #level-selection-area { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 15px; }
+        .level-btn {
             background-color: var(--primary-color); color: white; border: none; border-radius: 8px;
-            padding: 12px 24px; font-size: 1.1em; font-weight: bold; cursor: pointer;
+            padding: 15px 10px; font-size: 1.2em; font-weight: bold; cursor: pointer;
             transition: background-color 0.3s ease, transform 0.2s ease;
         }
-        .btn:hover { background-color: var(--primary-hover-color); transform: translateY(-2px); }
+        .level-btn:hover:not(:disabled) { background-color: var(--primary-hover-color); transform: translateY(-2px); }
+        .level-btn:disabled { background-color: var(--lock-color); cursor: not-allowed; opacity: 0.7; }
+
+        /* --- ゲーム画面 --- */
         .game-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; font-size: 1.2em; font-weight: bold; }
         #life-display { color: var(--life-color); font-size: 1.5em; letter-spacing: 2px; }
         #palace-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; margin-bottom: 20px; }
@@ -54,58 +59,47 @@
         #answer-input.incorrect { border-color: var(--incorrect-color); animation: shake 0.5s; }
         #message-area { min-height: 2.2em; margin-top: 20px; font-size: 1.2em; font-weight: bold; color: var(--light-text-color); }
         .bonus-text { color: var(--bonus-color); animation: pop 0.5s ease; }
-        #result-screen h2, #level-clear-screen h2 { text-align: center; font-size: 1.8em; color: var(--primary-color); margin-bottom: 20px;}
-        #result-details, #level-clear-details { text-align: center; font-size: 1.2em; margin-bottom: 30px; }
+
+        /* --- 中間画面 (レベルクリア, ボーナス, 結果) --- */
+        .interstitial-screen h2 { text-align: center; font-size: 1.8em; color: var(--primary-color); margin-bottom: 20px;}
+        .interstitial-screen p { text-align: center; font-size: 1.2em; line-height: 1.5; }
+        .interstitial-screen .button-container { display: flex; justify-content: center; gap: 15px; margin-top: 30px; }
         #mistake-review { margin-top: 20px; background-color: #f8f9fa; border-radius: 8px; padding: 15px; }
         #mistake-review h4 { margin-top: 0; text-align: center; color: var(--primary-color); }
         #mistake-list { list-style-type: none; padding: 0; text-align: center; }
-        #mistake-list li { margin-bottom: 8px; }
+        #bonus-inputs { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+        .bonus-input { width: 70%; max-width: 250px; }
+
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); } 20%, 40%, 60%, 80% { transform: translateX(5px); } }
         @keyframes pop { 0% { transform: scale(0.8); opacity: 0; } 80% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
-        @media (max-width: 600px) {
-            body { padding: 10px; } .main-content { padding: 20px; } .header h1 { font-size: 1.5em; }
-            .game-header { font-size: 1em; } #palace-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-        }
     </style>
 </head>
 <body>
     <div id="app-container">
-        <header class="header"><h1>新・記憶の宮殿トレーニング</h1></header>
+        <header class="header"><h1>記憶の宮殿 - 思考進化版</h1></header>
         <main class="main-content">
             <div id="start-screen" class="screen active">
-                <p>時間制限はありません。正確さが鍵となります。<br>間違えられるのは3回まで。集中して挑戦しましょう！</p>
-                <div class="button-container"><button id="start-btn" class="btn">ゲーム開始</button></div>
+                <p>クリアしたレベルまで選択できます。<br>記憶力と思考力の限界に挑戦しましょう。</p>
+                <div id="level-selection-area"></div>
             </div>
             <div id="game-screen" class="screen">
-                <div class="game-header">
-                    <div id="level-display"></div>
-                    <div id="score-display"></div>
-                    <div id="life-display"></div>
-                </div>
-                <div id="palace-grid"></div>
-                <div id="message-area"></div>
-                <div id="quiz-area" style="display: none;">
-                    <p id="question-text"></p>
-                    <form id="answer-form"><input type="text" id="answer-input" autocomplete="off" placeholder="アイテム名を入力"></form>
-                </div>
+                <div class="game-header"><div id="level-display"></div><div id="score-display"></div><div id="life-display"></div></div>
+                <div id="palace-grid"></div><div id="message-area"></div>
+                <div id="quiz-area" style="display: none;"><p id="question-text"></p><form id="answer-form"><input type="text" id="answer-input" autocomplete="off"></form></div>
             </div>
-            <div id="level-clear-screen" class="screen">
-                <h2 id="level-clear-title"></h2>
-                <div id="level-clear-details"></div>
-                <div id="mistake-review" style="display: none;">
-                    <h4>復習しましょう</h4>
-                    <ul id="mistake-list"></ul>
-                </div>
-                <div class="button-container" style="margin-top: 30px;"><button id="next-level-btn" class="btn">次のレベルへ</button></div>
+            <div id="level-clear-screen" class="screen interstitial-screen">
+                <h2 id="level-clear-title"></h2><p id="level-clear-details"></p>
+                <div id="mistake-review" style="display: none;"><h4>復習リスト</h4><ul id="mistake-list"></ul></div>
+                <div class="button-container"><button id="bonus-stage-btn" class="btn">ボーナスステージへ</button><button id="next-level-btn-skip" class="btn">次のレベルへ</button></div>
             </div>
-            <div id="result-screen" class="screen">
-                <h2>ゲームオーバー</h2>
-                <div id="result-details">
-                    <p>最終スコア: <span id="final-score"></span></p>
-                    <p>到達レベル: <span id="final-level"></span></p>
-                </div>
-                <div class="button-container"><button id="retry-btn" class="btn">もう一度挑戦</button></div>
+            <div id="bonus-stage-screen" class="screen interstitial-screen">
+                <h2>順番記憶ボーナスステージ</h2><p>記憶したアイテムを、出現した順番通りに入力してください。</p>
+                <form id="bonus-form"><div id="bonus-inputs"></div><div class="button-container"><button type="submit" class="btn">回答する</button></div></form>
+            </div>
+            <div id="result-screen" class="screen interstitial-screen">
+                <h2 id="result-title">ゲームオーバー</h2><p id="result-details"></p>
+                <div class="button-container"><button id="retry-btn" class="btn">レベル選択へ戻る</button></div>
             </div>
         </main>
     </div>
@@ -113,22 +107,24 @@
 (function() {
     const getEl = (id) => document.getElementById(id);
     const dom = {
-        screens: { start: getEl('start-screen'), game: getEl('game-screen'), result: getEl('result-screen'), levelClear: getEl('level-clear-screen') },
+        screens: { start: getEl('start-screen'), game: getEl('game-screen'), levelClear: getEl('level-clear-screen'), bonus: getEl('bonus-stage-screen'), result: getEl('result-screen') },
+        levelSelectionArea: getEl('level-selection-area'),
         game: {
             level: getEl('level-display'), score: getEl('score-display'), life: getEl('life-display'),
             palaceGrid: getEl('palace-grid'), messageArea: getEl('message-area'), quizArea: getEl('quiz-area'),
             questionText: getEl('question-text'), answerForm: getEl('answer-form'), answerInput: getEl('answer-input'),
         },
-        levelClear: { title: getEl('level-clear-title'), details: getEl('level-clear-details'), mistakeReview: getEl('mistake-review'), mistakeList: getEl('mistake-list'), nextBtn: getEl('next-level-btn')},
-        result: { score: getEl('final-score'), level: getEl('final-level') },
+        levelClear: { title: getEl('level-clear-title'), details: getEl('level-clear-details'), mistakeReview: getEl('mistake-review'), mistakeList: getEl('mistake-list'), bonusBtn: getEl('bonus-stage-btn'), skipBtn: getEl('next-level-btn-skip') },
+        bonus: { form: getEl('bonus-form'), inputs: getEl('bonus-inputs') },
+        result: { title: getEl('result-title'), details: getEl('result-details'), retryBtn: getEl('retry-btn') },
     };
 
     const config = {
-        levels: { 1:[3,10], 2:[4,12], 3:[5,15], 4:[6,18], 5:[7,20], 6:[8,22], 7:[9,25], 8:[10,30] },
-        itemPool: ['りんご','時計','本','鍵','帽子','靴','車','猫','犬','椅子','机','花瓶','窓','扉','鏡','絵画','地球儀','電話','鉛筆','消しゴム'],
-        scorePerCorrect: 100,
-        comboBonus: 50,
+        levels: { 1: [3,8], 2: [4,10], 3: [5,12], 4: [6,15], 5: [7,18], 6: [8,20], 7: [9,25], 8: [10,30] },
+        itemPool: ['りんご','時計','本','鍵','帽子','靴','車','猫','犬','椅子','机','花瓶','窓','扉','鏡','絵画','地球儀','電話','鉛筆','消しゴム','PC','傘','月','太陽','星','雲','川','山','森','海'],
+        score: { correct: 100, combo: 50, bonus: 200 },
         initialLifes: 3,
+        storageKey: 'memoryPalaceHighestLevel',
     };
 
     let state = {};
@@ -136,10 +132,18 @@
     const util = {
         shuffle: (arr) => arr.slice().sort(() => Math.random() - 0.5),
         sleep: (ms) => new Promise(resolve => setTimeout(resolve, ms)),
-        showScreen: (name) => {
-            Object.values(dom.screens).forEach(s => s.classList.remove('active'));
-            dom.screens[name].classList.add('active');
-        }
+        showScreen: (name) => { Object.values(dom.screens).forEach(s => s.classList.remove('active')); dom.screens[name].classList.add('active'); },
+        getHighestLevel: () => parseInt(localStorage.getItem(config.storageKey) || '0'),
+        setHighestLevel: (level) => { if (level > util.getHighestLevel()) localStorage.setItem(config.storageKey, level); },
+    };
+
+    const createLevelSelection = () => {
+        const highestLevel = util.getHighestLevel();
+        dom.levelSelectionArea.innerHTML = Object.keys(config.levels).map(level => {
+            const unlocked = parseInt(level) <= highestLevel + 1;
+            return `<button class="level-btn" data-level="${level}" ${!unlocked ? 'disabled' : ''}>${unlocked ? `Lv.${level}`: '🔒'}</button>`;
+        }).join('');
+        dom.levelSelectionArea.querySelectorAll('.level-btn').forEach(btn => btn.addEventListener('click', () => initGame(parseInt(btn.dataset.level))));
     };
 
     const updateUI = () => {
@@ -151,71 +155,104 @@
     const displayQuestion = () => {
         if (state.currentQuestionIndex >= state.currentQuizData.length) return showLevelClearScreen();
         
-        const { room } = state.currentQuizData[state.currentQuestionIndex];
-        dom.game.questionText.textContent = `${room}番の部屋のアイテムは？`;
+        const question = state.currentQuizData[state.currentQuestionIndex];
+        const { room, item, type } = question;
+        
+        if (type === 'room_from_item') {
+            dom.game.questionText.innerHTML = `「<span class="bonus-text">${item}</span>」があったのは何番の部屋？`;
+            dom.game.answerInput.placeholder = "部屋の番号を入力";
+            dom.game.answerInput.type = "number";
+        } else {
+            dom.game.questionText.textContent = `${room}番の部屋のアイテムは？`;
+            dom.game.answerInput.placeholder = "アイテム名を入力";
+            dom.game.answerInput.type = "text";
+        }
+        
         dom.game.answerInput.value = '';
         dom.game.answerInput.focus();
-
-        dom.game.palaceGrid.querySelectorAll('.palace-room').forEach(el => {
-            el.classList.toggle('highlight', el.querySelector('.room-number').textContent == room);
-        });
+        dom.game.palaceGrid.querySelectorAll('.palace-room').forEach(el => el.classList.remove('highlight'));
     };
     
     const startQuiz = () => {
         state.gameStatus = 'quizzing';
         state.currentQuestionIndex = 0;
         state.mistakes = [];
-        state.currentQuizData = util.shuffle(state.currentQuizData);
+        state.currentQuizData = util.shuffle(state.orderedQuizData).map(q => ({...q, type: Math.random() < 0.4 ? 'room_from_item' : 'item_from_room' }));
 
         dom.game.messageArea.textContent = 'クイズタイム！';
         dom.game.quizArea.style.display = 'block';
         dom.game.palaceGrid.querySelectorAll('.room-item').forEach(el => el.textContent = '?');
-        
         displayQuestion();
     };
 
     const startLevel = async () => {
         state.gameStatus = 'memorizing';
-        const levelConfig = config.levels[state.level];
-        if (!levelConfig) return gameOver(true);
-        
-        const [roomCount, memorizeTime] = levelConfig;
+        const [roomCount, memorizeTime] = config.levels[state.level];
         updateUI();
         dom.game.quizArea.style.display = 'none';
         dom.game.messageArea.textContent = `場所にアイテムを記憶してください...`;
         
-        state.currentQuizData = util.shuffle(config.itemPool).slice(0, roomCount).map((item, i) => ({ room: i + 1, item }));
+        state.orderedQuizData = util.shuffle(config.itemPool).slice(0, roomCount).map((item, i) => ({ room: i + 1, item }));
 
-        dom.game.palaceGrid.innerHTML = state.currentQuizData.map(({ room, item }) =>
-            `<div class="palace-room"><div class="room-number">${room}</div><div class="room-item">${item}</div></div>`
-        ).join('');
+        dom.game.palaceGrid.innerHTML = state.orderedQuizData.map(({ room, item }) => `<div class="palace-room"><div class="room-number">${room}</div><div class="room-item">${item}</div></div>`).join('');
         
         await util.sleep(memorizeTime * 1000);
         startQuiz();
     };
-
+    
     const showLevelClearScreen = () => {
         state.gameStatus = 'level_cleared';
+        util.setHighestLevel(state.level);
         util.showScreen('levelClear');
         dom.levelClear.title.textContent = `レベル ${state.level} クリア！`;
         
-        const questionsCount = state.currentQuizData.length;
+        const questionsCount = state.orderedQuizData.length;
         const correctCount = questionsCount - state.mistakes.length;
         dom.levelClear.details.innerHTML = `正解数: ${correctCount} / ${questionsCount}`;
         
         if (state.mistakes.length > 0) {
             dom.levelClear.mistakeReview.style.display = 'block';
-            dom.levelClear.mistakeList.innerHTML = state.mistakes.map(m => `<li>${m.room}番: ${m.item}</li>`).join('');
+            dom.levelClear.mistakeList.innerHTML = state.mistakes.map(m => `<li>${m.type === 'item_from_room' ? `${m.room}番` : `「${m.item}」`} &rarr; ${m.correctAnswer}</li>`).join('');
         } else {
             dom.levelClear.mistakeReview.style.display = 'none';
             dom.levelClear.details.innerHTML += '<br>パーフェクト！素晴らしい記憶力です！';
         }
     };
     
+    const startBonusStage = () => {
+        state.gameStatus = 'bonus';
+        util.showScreen('bonus');
+        dom.bonus.inputs.innerHTML = state.orderedQuizData.map((_, i) => `<input type="text" class="bonus-input" placeholder="${i + 1}番目のアイテム">`).join('');
+    };
+
+    const handleBonusAnswer = (e) => {
+        e.preventDefault();
+        let correctBonusCount = 0;
+        const inputs = e.target.querySelectorAll('.bonus-input');
+        inputs.forEach((input, i) => {
+            if (input.value.trim() === state.orderedQuizData[i].item) {
+                correctBonusCount++;
+                input.classList.add('correct');
+            } else {
+                input.classList.add('incorrect');
+            }
+        });
+        const bonusScore = correctBonusCount * config.score.bonus;
+        state.score += bonusScore;
+        dom.game.messageArea.innerHTML = `ボーナス: ${correctBonusCount}問正解！<span class="bonus-text">+${bonusScore}スコア！</span>`;
+        setTimeout(goToNextLevel, 2000);
+    };
+
+    const goToNextLevel = () => {
+        if (!config.levels[state.level + 1]) return gameOver(true);
+        state.level++;
+        initGame(state.level);
+    };
+
     const gameOver = (allClear) => {
         state.gameStatus = 'finished';
-        dom.result.score.textContent = state.score;
-        dom.result.level.textContent = allClear ? `全レベルクリア！` : state.level;
+        dom.result.title.textContent = allClear ? "完全制覇！" : "ゲームオーバー";
+        dom.result.details.innerHTML = `最終スコア: ${state.score}<br>到達レベル: ${state.level}`;
         util.showScreen('result');
     };
 
@@ -224,53 +261,52 @@
         if (state.gameStatus !== 'quizzing') return;
 
         const userAnswer = dom.game.answerInput.value.trim();
-        const { room, item: correctAnswer } = state.currentQuizData[state.currentQuestionIndex];
+        const question = state.currentQuizData[state.currentQuestionIndex];
+        const correctAnswer = question.type === 'room_from_item' ? String(question.room) : question.item;
         const isCorrect = userAnswer === correctAnswer;
         
         dom.game.answerInput.classList.add(isCorrect ? 'correct' : 'incorrect');
 
         if (isCorrect) {
             state.combo++;
-            const bonus = (state.combo >= 2) ? config.comboBonus * (state.combo - 1) : 0;
-            const totalScore = config.scorePerCorrect + bonus;
+            const bonus = state.combo >= 2 ? config.score.combo * (state.combo - 1) : 0;
+            const totalScore = config.score.correct + bonus;
             state.score += totalScore;
             dom.game.messageArea.innerHTML = `正解！ +${totalScore} <span class="bonus-text">${state.combo >= 2 ? `(${state.combo}連続正解!)` : ''}</span>`;
         } else {
             state.combo = 0;
             state.lifes--;
-            state.mistakes.push({ room, item: correctAnswer });
+            state.mistakes.push({ ...question, correctAnswer });
             dom.game.messageArea.textContent = `不正解... 正解は「${correctAnswer}」`;
         }
         
         updateUI();
 
-        if (state.lifes <= 0) {
-            await util.sleep(1200);
-            return gameOver(false);
-        }
+        if (state.lifes <= 0) return setTimeout(() => gameOver(false), 1200);
 
         await util.sleep(1500);
         
         dom.game.answerInput.classList.remove('correct', 'incorrect');
-        dom.game.messageArea.textContent = '次の問題...';
+        dom.game.messageArea.textContent = '';
         state.currentQuestionIndex++;
         displayQuestion();
     };
     
-    const initGame = () => {
-        state = { level: 1, score: 0, lifes: config.initialLifes, combo: 0, gameStatus: 'initial' };
+    const initGame = (level) => {
+        state = { level, score: 0, lifes: config.initialLifes, combo: 0, gameStatus: 'initial' };
         util.showScreen('game');
         startLevel();
     };
-
-    getEl('start-btn').addEventListener('click', initGame);
-    getEl('retry-btn').addEventListener('click', initGame);
-    dom.levelClear.nextBtn.addEventListener('click', () => {
-        state.level++;
-        util.showScreen('game');
-        startLevel();
-    });
+    
+    // --- イベントリスナー ---
+    dom.result.retryBtn.addEventListener('click', () => { createLevelSelection(); util.showScreen('start'); });
+    dom.levelClear.bonusBtn.addEventListener('click', startBonusStage);
+    dom.levelClear.skipBtn.addEventListener('click', goToNextLevel);
+    dom.bonus.form.addEventListener('submit', handleBonusAnswer);
     dom.game.answerForm.addEventListener('submit', handleAnswer);
+
+    // --- 初期化 ---
+    createLevelSelection();
 })();
 </script>
 </body>
