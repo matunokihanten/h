@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=0.5, minimum-scale=0.1, maximum-scale=5.0, user-scalable=yes">
     <title>記憶の宮殿 - 数字記憶アプリ</title>
     <style>
         body {
@@ -949,9 +949,8 @@
                     },
                     (s) => { // 偶数は何番目から何番目までですか？ (例: 2番目から4番目)
                         const evenIndices = s.map((num, i) => num % 2 === 0 ? i + 1 : -1).filter(idx => idx !== -1);
-                        if (evenIndices.length === 0) return { question: `偶数は何番目から何番目までありますか？`, answer: [] }; // 偶数がない場合は空配列
+                        if (evenIndices.length === 0) return { question: `偶数は何番目から何番目までありますか？`, answer: [] }; 
                         
-                        // 連続する偶数のブロックを探す
                         let startEndPairs = [];
                         if (evenIndices.length > 0) {
                             let currentStart = evenIndices[0];
@@ -968,7 +967,6 @@
                             startEndPairs.push([currentStart, currentEnd]);
                         }
 
-                        // 最も長いブロックを選択、または最初のブロック
                         let longestPair = [0, 0];
                         if (startEndPairs.length > 0) {
                             longestPair = startEndPairs.reduce((prev, current) => {
@@ -981,9 +979,6 @@
                     (s) => { // 5より大きい数字はいくつありますか？
                         const count = s.filter(num => num > 5).length;
                         return { question: `5より大きい数字はいくつありますか？`, answer: count };
-                    },
-                    (s) => { // 各数字を一桁ずつ足した合計 (例: 123 -> 1+2+3=6) は、ユニークな一桁数字なので、この質問は削除します
-                        return null; 
                     },
                     (s) => { // この数字列に隣り合う数字のペアで、積が最も大きいものはどれですか？ (例: 24)
                         if (sequenceLength < 2) return null;
@@ -1011,7 +1006,6 @@
                 }
 
                 let questionObj = null;
-                // 有効な質問が生成されるまでループ
                 while (!questionObj || (Array.isArray(questionObj.answer) && questionObj.answer.length === 0)) { 
                     const selectedFunc = questionPool[Math.floor(Math.random() * questionPool.length)];
                     if (selectedFunc) { 
@@ -1089,7 +1083,7 @@
                 let selectedQuestion = null;
                 while (!selectedQuestion) {
                     const func = rearrangeFunctions[Math.floor(Math.random() * rearrangeFunctions.length)];
-                    if (func) { // 関数が存在するかチェック
+                    if (func) { 
                         selectedQuestion = func(seq);
                     }
                 }
