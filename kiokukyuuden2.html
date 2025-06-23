@@ -52,27 +52,9 @@
             font-size: 22px; /* 少し小さく */
         }
 
-        #mode-level-selects {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 6px; /* 隙間を縮小 */
-            margin-bottom: 6px; /* マージンを調整 */
-        }
-        #mode-level-selects div {
-            flex-grow: 1;
-            min-width: 100px; /* 最小幅を縮小 */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        #mode-level-selects label {
-            margin-right: 4px; /* マージンを縮小 */
-            font-size: 13px; 
-            white-space: nowrap;
-        }
-
-        #memoryPalaceModeOptions, #displayTimeOptions { 
+        #gameModeOptions,
+        #memoryPalaceModeOptions, 
+        #displayTimeOptions { 
             display: flex; 
             flex-direction: column;
             gap: 4px; /* 隙間を縮小 */
@@ -81,44 +63,54 @@
             padding: 6px; /* パディングを縮小 */
             border-radius: 8px;
         }
-        #memoryPalaceModeOptions .radio-group, 
-        #displayTimeOptions .radio-group {
+
+        /* ラベルとラジオボタンのグループ全体 */
+        .radio-group {
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
-            gap: 8px; /* 隙間を縮小 */
+            gap: 8px; /* 選択肢間の隙間を縮小 */
         }
-        #memoryPalaceModeOptions label, 
-        #displayTimeOptions label {
-            margin-right: 0;
+        
+        /* 各ラジオボタンとラベルのペア */
+        .radio-group div {
+            display: flex; /* div内をflexboxに */
+            align-items: center; /* 垂直方向の中央揃え */
+        }
+
+        .radio-group label {
+            margin-right: 0; /* ラベル自身の右マージンをリセット */
             display: flex;
-            align-items: center;
-            font-size: 12px; /* ラジオボタンテキストを小さく */
+            align-items: center; /* ラベル内のテキストとラジオボタンを中央揃え */
+            font-size: 12px;
             cursor: pointer;
-            padding: 4px 8px; /* ラベルのクリック領域を調整 */
+            padding: 4px 8px;
             border-radius: 6px;
-            border: 1px solid transparent; /* デフォルトのボーダー */
+            border: 1px solid transparent;
             transition: background-color 0.2s, border-color 0.2s;
         }
+        
+        /* ラジオボタンとラベルの間隔 */
+        .radio-group input[type="radio"] {
+            margin-right: 5px; /* ラジオボタンの右側にマージン */
+            width: 14px;
+            height: 14px;
+            accent-color: #4a69bd;
+            cursor: pointer;
+        }
+
         /* 選択されたラジオボタンの親要素であるラベルのスタイル */
+        #gameModeOptions input[type="radio"]:checked + label,
         #memoryPalaceModeOptions input[type="radio"]:checked + label, 
         #displayTimeOptions input[type="radio"]:checked + label {
             background-color: rgba(74, 105, 189, 0.5); /* 選択時の背景色 */
             border-color: #4a69bd; /* 選択時のボーダー色 */
         }
         /* ホバー時のスタイル */
+        #gameModeOptions label:hover,
         #memoryPalaceModeOptions label:hover,
         #displayTimeOptions label:hover {
             background-color: rgba(255, 255, 255, 0.15);
-        }
-
-        #memoryPalaceModeOptions input[type="radio"], 
-        #displayTimeOptions input[type="radio"] {
-            margin-right: 5px;
-            width: 14px; /* ラジオボタン自体のサイズを微調整 */
-            height: 14px; /* ラジオボタン自体のサイズを微調整 */
-            accent-color: #4a69bd;
-            cursor: pointer;
         }
         
         #info {
@@ -174,8 +166,9 @@
         button.primary { background: linear-gradient(145deg, #2196F3, #1976D2); }
         button.danger { background: linear-gradient(145deg, #f44336, #d32f2f); }
         button.warning { background: linear-gradient(145deg, #ffc107, #ff8f00); }
+        button.info-btn { background: linear-gradient(145deg, #6c757d, #495057); } /* ヒントボタンの色 */
         
-        select, input[type="radio"] {
+        select {
             background: rgba(255, 255, 255, 0.1);
             color: white;
             border: 1px solid rgba(255, 255, 255, 0.3);
@@ -326,15 +319,14 @@
             h2 {
                 font-size: 20px; /* さらに小さく */
             }
-            #memoryPalaceModeOptions, #displayTimeOptions {
+            #gameModeOptions, #memoryPalaceModeOptions, #displayTimeOptions {
                 padding: 4px; /* さらに小さく */
             }
-            #memoryPalaceModeOptions label, #displayTimeOptions label {
+            .radio-group label {
                 font-size: 11px; /* さらに小さく */
                 padding: 3px 6px;
             }
-            #memoryPalaceModeOptions input[type="radio"], 
-            #displayTimeOptions input[type="radio"] {
+            .radio-group input[type="radio"] {
                 width: 12px;
                 height: 12px;
             }
@@ -357,7 +349,7 @@
                 font-size: 12px; /* さらに小さく */
                 min-width: 60px;
             }
-            select, input[type="radio"] {
+            select {
                 padding: 2px 4px;
                 font-size: 11px;
             }
@@ -399,26 +391,35 @@
             <div id="displayTimeOptions">
                 <label>表示時間:</label>
                 <div class="radio-group">
-                    <input type="radio" id="time5s" name="display_time" value="5000" checked><label for="time5s">5秒</label>
-                    <input type="radio" id="time10s" name="display_time" value="10000"><label for="time10s">10秒</label>
-                    <input type="radio" id="time15s" name="display_time" value="15000"><label for="time15s">15秒</label>
-                    <input type="radio" id="time20s" name="display_time" value="20000"><label for="time20s">20秒</label>
+                    <div><input type="radio" id="time5s" name="display_time" value="5000" checked><label for="time5s">5秒</label></div>
+                    <div><input type="radio" id="time10s" name="display_time" value="10000"><label for="time10s">10秒</label></div>
+                    <div><input type="radio" id="time15s" name="display_time" value="15000"><label for="time15s">15秒</label></div>
+                    <div><input type="radio" id="time20s" name="display_time" value="20000"><label for="time20s">20秒</label></div>
+                </div>
+            </div>
+
+            <div id="gameModeOptions">
+                <label>ゲームモード:</label>
+                <div class="radio-group">
+                    <div><input type="radio" id="modeMemoryPalace" name="game_mode" value="memoryPalace" checked><label for="modeMemoryPalace">記憶の宮殿</label></div>
+                    <div><input type="radio" id="modeFillInBlank" name="game_mode" value="fillInBlank"><label for="modeFillInBlank">穴埋め</label></div>
+                    <div><input type="radio" id="modeRearrange" name="game_mode" value="rearrange"><label for="modeRearrange">並べ替え</label></div>
                 </div>
             </div>
 
             <div id="memoryPalaceModeOptions"> <label>桁数選択:</label>
                 <div class="radio-group">
-                    <input type="radio" id="digits4" name="q_digits" value="4"><label for="digits4">4桁</label>
-                    <input type="radio" id="digits5" name="q_digits" value="5"><label for="digits5">5桁</label>
-                    <input type="radio" id="digits6" name="q_digits" value="6" checked><label for="digits6">6桁</label>
-                    <input type="radio" id="digits7" name="q_digits" value="7"><label for="digits7">7桁</label>
-                    <input type="radio" id="digits8" name="q_digits" value="8"><label for="digits8">8桁</label>
+                    <div><input type="radio" id="digits4" name="q_digits" value="4"><label for="digits4">4桁</label></div>
+                    <div><input type="radio" id="digits5" name="q_digits" value="5"><label for="digits5">5桁</label></div>
+                    <div><input type="radio" id="digits6" name="q_digits" value="6" checked><label for="digits6">6桁</label></div>
+                    <div><input type="radio" id="digits7" name="q_digits" value="7"><label for="digits7">7桁</label></div>
+                    <div><input type="radio" id="digits8" name="q_digits" value="8"><label for="digits8">8桁</label></div>
                 </div>
                 <label>難易度:</label>
                 <div class="radio-group">
-                    <input type="radio" id="difficultyEasy" name="q_difficulty" value="easy"><label for="difficultyEasy">簡単</label>
-                    <input type="radio" id="difficultyNormal" name="q_difficulty" value="normal" checked><label for="difficultyNormal">普通</label>
-                    <input type="radio" id="difficultyHard" name="q_difficulty" value="hard"><label for="difficultyHard">複雑</label>
+                    <div><input type="radio" id="difficultyEasy" name="q_difficulty" value="easy"><label for="difficultyEasy">簡単</label></div>
+                    <div><input type="radio" id="difficultyNormal" name="q_difficulty" value="normal" checked><label for="difficultyNormal">普通</label></div>
+                    <div><input type="radio" id="difficultyHard" name="q_difficulty" value="hard"><label for="difficultyHard">複雑</label></div>
                 </div>
             </div>
             
@@ -441,6 +442,7 @@
             <div id="gameState">準備完了</div>
             <div class="control-buttons">
                 <button id="startBtn" class="primary">ゲーム開始</button>
+                <button id="hintBtn" class="info-btn" disabled>ヒント</button>
                 <button id="resetBtn" class="danger">リセット</button>
                 <button id="statsBtn">統計</button>
             </div>
@@ -478,6 +480,10 @@
                 this.gameState = 'ready';  
                 this.timer = 0;            
                 this.timerInterval = null; 
+                this.hintTimeout = null; 
+
+                // Game Modes
+                this.gameMode = 'memoryPalace'; // 'memoryPalace', 'fillInBlank', 'rearrange'
 
                 // Stats
                 this.stats = {
@@ -485,13 +491,17 @@
                     bestScore: 0, totalTime: 0
                 };
                 
-                // Memory Palace Mode (formerly Question Mode)
+                // Memory Palace Mode specific
                 this.originalSequence = []; 
                 this.currentQuestion = null;
                 this.questionAnswer = null;
                 this.questionDigits = 6; 
                 this.questionDifficulty = 'normal'; 
-                this.displayTime = 5000; // 初期表示時間 5秒 (ミリ秒)
+                this.displayTime = 5000; 
+
+                // Fill-in-the-Blank / Rearrange Mode specific
+                this.hiddenIndices = []; // for fillInBlank
+                this.rearrangeTarget = []; // for rearrange mode
 
                 // DOM要素のキャッシュ
                 this.dom = {
@@ -503,6 +513,9 @@
                     startBtn: document.getElementById('startBtn'),
                     resetBtn: document.getElementById('resetBtn'),
                     statsBtn: document.getElementById('statsBtn'),
+                    hintBtn: document.getElementById('hintBtn'), 
+                    gameModeOptions: document.getElementById('gameModeOptions'),
+                    gameModeRadios: document.querySelectorAll('input[name="game_mode"]'),
                     memoryPalaceModeOptions: document.getElementById('memoryPalaceModeOptions'), 
                     questionDigitsRadios: document.querySelectorAll('input[name="q_digits"]'),
                     questionDifficultyRadios: document.querySelectorAll('input[name="q_difficulty"]'),
@@ -529,12 +542,14 @@
                 document.querySelector(`input[name="display_time"][value="${this.displayTime}"]`).checked = true;
                 document.querySelector(`input[name="q_difficulty"][value="${this.questionDifficulty}"]`).checked = true;
                 document.querySelector(`input[name="q_digits"][value="${this.questionDigits}"]`).checked = true;
+                document.querySelector(`input[name="game_mode"][value="${this.gameMode}"]`).checked = true;
             }
             
             setupEventListeners() {
                 this.dom.startBtn.addEventListener('click', () => this.startGame());
                 this.dom.resetBtn.addEventListener('click', () => this.resetGame());
                 this.dom.statsBtn.addEventListener('click', () => this.showStats());
+                this.dom.hintBtn.addEventListener('click', () => this.showHint()); 
                 this.dom.closeStatsBtn.addEventListener('click', () => { this.dom.statsModal.style.display = 'none'; });
 
                 this.dom.questionDigitsRadios.forEach(radio => {
@@ -564,6 +579,14 @@
                     });
                 });
 
+                this.dom.gameModeRadios.forEach(radio => {
+                    radio.addEventListener('change', (e) => {
+                        this.gameMode = e.target.value;
+                        this.updateModeUI(); // モード選択時にUIを更新
+                        this.resetGame(false); // モード切り替え時は確認なしでリセット
+                    });
+                });
+
                 this.dom.numberPad.querySelectorAll('.number-btn').forEach(btn => {
                     btn.addEventListener('click', (e) => this.handleNumberInput(e.currentTarget.dataset.number));
                 });
@@ -583,13 +606,9 @@
                 this.score = 0;
                 this.stats.gamesPlayed++;
                 
-                // 記憶の宮殿モードのシーケンス生成と保持
-                if (this.originalSequence.length === 0) { 
-                    this.generateSequence(this.questionDigits);
-                    this.originalSequence = [...this.currentSequence]; 
-                } else {
-                    this.currentSequence = [...this.originalSequence]; 
-                }
+                // シーケンス生成
+                this.generateSequence(this.questionDigits);
+                this.originalSequence = [...this.currentSequence]; 
                 
                 this.displaySequence();
                 this.startTimer();
@@ -597,29 +616,35 @@
                 this.updateModeUI(); // ゲーム開始時に選択肢を無効化
 
                 this.dom.startBtn.disabled = true;
+                this.dom.hintBtn.disabled = false; // ヒントボタンを有効化
             }
 
-            resetGame() {
-                if (confirm("本当にリセットしますか？")) {
-                    this.stopTimer();
-                    this.gameState = 'ready';
-                    this.score = 0;
-                    this.timer = 0;
-                    this.userInput = [];
-                    this.currentSequence = [];
-                    this.originalSequence = []; 
-                    this.updateGameState("準備完了", "white");
-                    this.updateUI();
-                    this.updateModeUI(); // リセット時に選択肢を有効化
-                    
-                    this.dom.problemDisplay.textContent = '';
-                    this.dom.problemDisplay.style.display = 'none';
-                    this.dom.questionText.textContent = '';
-                    this.dom.userInputDisplay.textContent = '';
-                    this.dom.questionDisplay.style.display = 'none';
-
-                    this.dom.startBtn.disabled = false;
+            resetGame(confirmNeeded = true) {
+                if (confirmNeeded && !confirm("本当にリセットしますか？")) {
+                    return;
                 }
+                this.stopTimer();
+                clearTimeout(this.hintTimeout); 
+                this.gameState = 'ready';
+                this.score = 0;
+                this.timer = 0;
+                this.userInput = [];
+                this.currentSequence = [];
+                this.originalSequence = []; 
+                this.hiddenIndices = [];
+                this.rearrangeTarget = [];
+                this.updateGameState("準備完了", "white");
+                this.updateUI();
+                this.updateModeUI(); 
+                
+                this.dom.problemDisplay.textContent = '';
+                this.dom.problemDisplay.style.display = 'none';
+                this.dom.questionText.textContent = '';
+                this.dom.userInputDisplay.textContent = '';
+                this.dom.questionDisplay.style.display = 'none';
+
+                this.dom.startBtn.disabled = false;
+                this.dom.hintBtn.disabled = true; 
             }
 
             // 数字列を生成 (重複なし)
@@ -643,6 +668,7 @@
                 
                 setTimeout(() => {
                     this.dom.problemDisplay.style.display = 'none';
+                    // 記憶フェーズが終了したら、オリジナルの数列を現在のシーケンスにコピー
                     this.currentSequence = [...this.originalSequence]; 
                     this.startQuestionPhase();
                 }, this.displayTime + 500); 
@@ -650,20 +676,54 @@
 
             startQuestionPhase() {
                 this.gameState = 'input'; 
-                this.generateQuestion();
+                switch (this.gameMode) {
+                    case 'memoryPalace':
+                        this.generateQuestion();
+                        break;
+                    case 'fillInBlank':
+                        this.generateFillInBlankQuestion();
+                        break;
+                    case 'rearrange':
+                        this.generateRearrangeQuestion();
+                        break;
+                }
                 this.dom.questionDisplay.style.display = 'flex';
                 this.userInput = [];
                 this.updateInputDisplay();
             }
 
+            showHint() {
+                if (this.gameState === 'input') {
+                    clearTimeout(this.hintTimeout); 
+                    this.dom.problemDisplay.textContent = this.originalSequence.join('');
+                    this.dom.problemDisplay.style.display = 'flex';
+                    this.dom.questionDisplay.style.display = 'none';
+                    this.updateGameState("ヒント表示中", "yellow");
+
+                    this.hintTimeout = setTimeout(() => {
+                        this.dom.problemDisplay.style.display = 'none';
+                        this.dom.questionDisplay.style.display = 'flex';
+                        this.updateGameState("質問に答えてください", "white");
+                        this.updateInputDisplay(); // 質問表示に戻った際、入力内容も更新
+                    }, 5000); 
+                }
+            }
+
             handleNumberInput(value) {
                 if (this.gameState !== 'input') return; 
                 
+                if (this.dom.problemDisplay.style.display === 'flex') {
+                    clearTimeout(this.hintTimeout);
+                    this.dom.problemDisplay.style.display = 'none';
+                    this.dom.questionDisplay.style.display = 'flex';
+                    this.updateGameState("質問に答えてください", "white");
+                }
+
                 if (value === 'clear') {
                     this.userInput.pop();
                 } else if (value === 'submit') {
                     if (this.userInput.length === 0) return;
-                    this.checkQuestionAnswer();
+                    this.checkAnswer();
                     return;
                 } else if (value >= '0' && value <= '9') {
                     this.userInput.push(parseInt(value));
@@ -672,27 +732,65 @@
             }
 
             updateInputDisplay() {
-                this.dom.questionText.textContent = this.currentQuestion;
-                this.dom.userInputDisplay.textContent = this.userInput.join('');
-            }
-
-            checkQuestionAnswer() {
-                let userAnswer;
-                if (Array.isArray(this.questionAnswer)) {
-                    userAnswer = this.userInput;
-                    const isCorrect = userAnswer.length === this.questionAnswer.length &&
-                                      userAnswer.every((num, i) => num === this.questionAnswer[i]);
-                    this.processAnswer(isCorrect);
-                } else {
-                    userAnswer = parseInt(this.userInput.join(''));
-                    const isCorrect = (userAnswer === this.questionAnswer);
-                    this.processAnswer(isCorrect);
+                switch (this.gameMode) {
+                    case 'memoryPalace':
+                        this.dom.questionText.textContent = this.currentQuestion;
+                        this.dom.userInputDisplay.textContent = this.userInput.join('');
+                        break;
+                    case 'fillInBlank':
+                        let displayArr = [...this.originalSequence];
+                        this.hiddenIndices.forEach(idx => {
+                            displayArr[idx] = '_';
+                        });
+                        // ユーザー入力が_の位置に入るように調整
+                        let inputIdx = 0;
+                        for(let i = 0; i < displayArr.length; i++) {
+                            if (displayArr[i] === '_') {
+                                displayArr[i] = this.userInput[inputIdx] !== undefined ? this.userInput[inputIdx] : '_';
+                                inputIdx++;
+                            }
+                        }
+                        this.dom.questionText.textContent = `隠された数字を入力してください: ${displayArr.join('')}`;
+                        this.dom.userInputDisplay.textContent = ''; // 穴埋めモードではユーザー入力は問題文に直接表示
+                        break;
+                    case 'rearrange':
+                        this.dom.questionText.textContent = this.currentQuestion;
+                        this.dom.userInputDisplay.textContent = this.userInput.join('');
+                        break;
                 }
             }
 
-            processAnswer(isCorrect) {
+            checkAnswer() {
                 this.gameState = 'complete';
                 this.stats.totalAnswers++;
+                clearTimeout(this.hintTimeout); 
+
+                let isCorrect = false;
+                let correctAnswerDisplay;
+
+                switch (this.gameMode) {
+                    case 'memoryPalace':
+                        if (Array.isArray(this.questionAnswer)) {
+                            isCorrect = this.userInput.length === this.questionAnswer.length &&
+                                        this.userInput.every((num, i) => num === this.questionAnswer[i]);
+                            correctAnswerDisplay = this.questionAnswer.join('');
+                        } else {
+                            isCorrect = (parseInt(this.userInput.join('')) === this.questionAnswer);
+                            correctAnswerDisplay = this.questionAnswer;
+                        }
+                        break;
+                    case 'fillInBlank':
+                        const actualHiddenValues = this.hiddenIndices.map(idx => this.originalSequence[idx]);
+                        isCorrect = this.userInput.length === actualHiddenValues.length &&
+                                    this.userInput.every((num, i) => num === actualHiddenValues[i]);
+                        correctAnswerDisplay = actualHiddenValues.join('');
+                        break;
+                    case 'rearrange':
+                        isCorrect = this.userInput.length === this.rearrangeTarget.length &&
+                                    this.userInput.every((num, i) => num === this.rearrangeTarget[i]);
+                        correctAnswerDisplay = this.rearrangeTarget.join('');
+                        break;
+                }
 
                 if (isCorrect) {
                     this.score += 50; 
@@ -700,7 +798,6 @@
                     this.updateGameState("正解！", "#4CAF50");
                     setTimeout(() => this.startNextRound(), 2000);
                 } else {
-                    let correctAnswerDisplay = Array.isArray(this.questionAnswer) ? this.questionAnswer.join('') : this.questionAnswer;
                     this.updateGameState(`不正解... 正解は ${correctAnswerDisplay}`, "#f44336");
                     setTimeout(() => this.startNextRound(), 3000);
                 }
@@ -715,17 +812,19 @@
                 this.updateUI();
             }
 
-            // --- Memory Palace Mode Logic (Question Logic) ---
+            // --- Game Mode Specific Question Generations ---
+
+            // Memory Palace Mode Questions
             generateQuestion() {
                 const seq = this.currentSequence;
                 const sequenceLength = seq.length;
 
                 const easyQuestions = [
-                    (s) => { // N番目の数字
+                    (s) => { 
                         const index = Math.floor(Math.random() * sequenceLength);
                         return { question: `${index + 1}番目の数字は？`, answer: s[index] };
                     },
-                    (s) => { // 末尾からN番目の数字
+                    (s) => { 
                         const index = Math.floor(Math.random() * sequenceLength);
                         return { question: `末尾から${index + 1}番目の数字は？`, answer: s[sequenceLength - 1 - index] };
                     }
@@ -733,62 +832,51 @@
 
                 const normalQuestions = [
                     ...easyQuestions, 
-                    (s) => { // N番目とM番目の数字を足すと？
+                    (s) => { 
                         let index1 = Math.floor(Math.random() * sequenceLength);
                         let index2 = Math.floor(Math.random() * sequenceLength);
-                        while (index1 === index2) {
-                            index2 = Math.floor(Math.random() * sequenceLength);
-                        }
+                        while (index1 === index2) { index2 = Math.floor(Math.random() * sequenceLength); }
                         return { question: `${index1 + 1}番目と${index2 + 1}番目の数字を足すと？`, answer: s[index1] + s[index2] };
                     },
-                    (s) => { // 特定の数字は最初から何番目？
-                        const targetNum = Math.floor(Math.random() * 10);
+                    (s) => { 
+                        const targetNum = s[Math.floor(Math.random() * sequenceLength)]; 
                         const firstIndex = s.indexOf(targetNum);
-                        if (firstIndex !== -1) {
-                            return { question: `数字の${targetNum}は最初から何番目？`, answer: firstIndex + 1 };
-                        }
+                        if (firstIndex !== -1) { return { question: `数字の${targetNum}は最初から何番目？`, answer: firstIndex + 1 }; }
                         return null; 
                     },
-                    (s) => { // 特定の数字は末尾から何番目？
-                        const targetNum = Math.floor(Math.random() * 10);
+                    (s) => { 
+                        const targetNum = s[Math.floor(Math.random() * sequenceLength)]; 
                         const lastIndex = s.lastIndexOf(targetNum);
-                        if (lastIndex !== -1) {
-                            return { question: `数字の${targetNum}は末尾から何番目？`, answer: sequenceLength - lastIndex };
-                        }
+                        if (lastIndex !== -1) { return { question: `数字の${targetNum}は末尾から何番目？`, answer: sequenceLength - lastIndex }; }
                         return null;
                     },
-                    (s) => { // 奇数の数字はいくつある？
+                    (s) => { 
                         const oddCount = s.filter(num => num % 2 !== 0).length;
                         return { question: `奇数の数字はいくつある？`, answer: oddCount };
                     },
-                    (s) => { // 偶数の数字はいくつある？
+                    (s) => { 
                         const evenCount = s.filter(num => num % 2 === 0).length;
                         return { question: `偶数の数字はいくつある？`, answer: evenCount };
                     },
-                    (s) => { // 数字の合計は？
+                    (s) => { 
                         const sum = s.reduce((acc, num) => acc + num, 0);
                         return { question: `表示された数字の合計はいくつ？`, answer: sum };
                     },
-                    (s) => { // 最も大きい数字は？
+                    (s) => { 
                         const max = Math.max(...s);
                         return { question: `最も大きい数字は？`, answer: max };
                     },
-                    (s) => { // 最も小さい数字は？
+                    (s) => { 
                         const min = Math.min(...s);
                         return { question: `最も小さい数字は？`, answer: min };
                     },
-                    (s) => { // 数字Xは何回出てくる？ (ユニークな数字になったので、これはあまり意味がない質問になりますが、互換性のため残します)
-                        const targetNum = Math.floor(Math.random() * 10);
-                        const count = s.filter(num => num === targetNum).length;
-                        return { question: `数字の${targetNum}は何回出てきますか？`, answer: count };
-                    },
-                    (s) => { // 最初のN個の数字の合計
+                    (s) => { 
                         if (sequenceLength < 2) return null;
                         const numToSum = Math.floor(Math.random() * (Math.min(sequenceLength, 4) - 1)) + 2; 
                         const sum = s.slice(0, numToSum).reduce((acc, num) => acc + num, 0);
                         return { question: `最初の${numToSum}個の数字を足すと？`, answer: sum };
                     },
-                    (s) => { // 最初と最後の数字を足すと？
+                    (s) => { 
                         if (sequenceLength < 2) return null;
                         return { question: `最初と最後の数字を足すと？`, answer: s[0] + s[sequenceLength - 1] };
                     }
@@ -796,49 +884,120 @@
 
                 const hardQuestions = [
                     ...normalQuestions, 
-                    (s) => { // 数字を逆から全て入力
-                        return { question: `数字を逆から全て入力してください。`, answer: [...s].reverse() };
-                    },
-                    (s) => { // 奇数番目の数字を全て入力
+                    (s) => { 
                         const oddIndexedNumbers = s.filter((_, i) => (i + 1) % 2 !== 0);
                         if (oddIndexedNumbers.length === 0) return null;
                         return { question: `奇数番目の数字を全て入力してください。`, answer: oddIndexedNumbers };
                     },
-                    (s) => { // 偶数番目の数字を全て入力
+                    (s) => { 
                         const evenIndexedNumbers = s.filter((_, i) => (i + 1) % 2 === 0);
                         if (evenIndexedNumbers.length === 0) return null;
                         return { question: `偶数番目の数字を全て入力してください。`, answer: evenIndexedNumbers };
                     },
-                    (s) => { // 昇順に並べ替えたとき、N番目の数字は？
+                    (s) => { 
                         if (sequenceLength < 2) return null;
                         const sortedSeq = [...s].sort((a, b) => a - b);
                         const index = Math.floor(Math.random() * sequenceLength);
                         return { question: `数字を昇順に並べ替えたとき、${index + 1}番目の数字は？`, answer: sortedSeq[index] };
                     },
-                    (s) => { // 降順に並べ替えたとき、N番目の数字は？
+                    (s) => { 
                         if (sequenceLength < 2) return null;
                         const sortedSeq = [...s].sort((a, b) => b - a);
                         const index = Math.floor(Math.random() * sequenceLength);
                         return { question: `数字を降順に並べ替えたとき、${index + 1}番目の数字は？`, answer: sortedSeq[index] };
                     },
-                    (s) => { // 連続する同じ数字は何回出てくる？ (ユニークな数字になったため、これは常に0になりますが、互換性のため残します)
-                        let count = 0;
-                        for (let i = 0; i < s.length - 1; i++) {
-                            if (s[i] === s[i+1]) {
-                                count++;
-                            }
-                        }
-                        return { question: `連続する同じ数字は何回出てきますか？`, answer: count };
-                    },
-                     (s) => { // N番目とM番目の数字を引くと？ (大きい方から小さい方を引く)
+                    (s) => { 
                         let index1 = Math.floor(Math.random() * sequenceLength);
                         let index2 = Math.floor(Math.random() * sequenceLength);
-                        while (index1 === index2) {
-                            index2 = Math.floor(Math.random() * sequenceLength);
-                        }
+                        while (index1 === index2) { index2 = Math.floor(Math.random() * sequenceLength); }
                         const val1 = s[index1];
                         const val2 = s[index2];
                         return { question: `${index1 + 1}番目の数字と${index2 + 1}番目の数字を引くと？ (大きい方から小さい方を)`, answer: Math.abs(val1 - val2) };
+                    },
+                    (s) => { 
+                        if (sequenceLength < 2) return null;
+                        let index1 = Math.floor(Math.random() * sequenceLength);
+                        let index2 = Math.floor(Math.random() * sequenceLength);
+                        while (index1 === index2) { index2 = Math.floor(Math.random() * sequenceLength); }
+                        return { question: `${index1 + 1}番目の数字と${index2 + 1}番目の数字を掛けると？`, answer: s[index1] * s[index2] };
+                    },
+                     (s) => { 
+                        const sum = s.reduce((acc, num) => acc + num, 0);
+                        return { question: `全ての数字の平均値は？ (小数点以下切り捨て)`, answer: Math.floor(sum / sequenceLength) };
+                    },
+                    (s) => { 
+                        if (sequenceLength < 2) return null;
+                        const sortedSeq = [...s].sort((a, b) => a - b);
+                        let maxDiff = 0;
+                        for (let i = 0; i < sortedSeq.length - 1; i++) {
+                            const diff = Math.abs(sortedSeq[i+1] - sortedSeq[i]);
+                            if (diff > maxDiff) maxDiff = diff;
+                        }
+                        return { question: `昇順にした隣り合う数字の差の最大値は？`, answer: maxDiff };
+                    },
+                    (s) => { 
+                        if (sequenceLength < 2) return null;
+                        let result = s[0];
+                        for (let i = 1; i < sequenceLength; i++) {
+                            if (i % 2 !== 0) { 
+                                result -= s[i];
+                            } else { 
+                                result += s[i];
+                            }
+                        }
+                        return { question: `最初の数字から順番に足し引きを繰り返した最終値は？`, answer: result };
+                    },
+                    (s) => { // 偶数は何番目から何番目までですか？ (例: 2番目から4番目)
+                        const evenIndices = s.map((num, i) => num % 2 === 0 ? i + 1 : -1).filter(idx => idx !== -1);
+                        if (evenIndices.length === 0) return { question: `偶数は何番目から何番目までありますか？`, answer: [] }; // 偶数がない場合は空配列
+                        
+                        // 連続する偶数のブロックを探す
+                        let startEndPairs = [];
+                        if (evenIndices.length > 0) {
+                            let currentStart = evenIndices[0];
+                            let currentEnd = evenIndices[0];
+                            for (let i = 1; i < evenIndices.length; i++) {
+                                if (evenIndices[i] === currentEnd + 1) {
+                                    currentEnd = evenIndices[i];
+                                } else {
+                                    startEndPairs.push([currentStart, currentEnd]);
+                                    currentStart = evenIndices[i];
+                                    currentEnd = evenIndices[i];
+                                }
+                            }
+                            startEndPairs.push([currentStart, currentEnd]);
+                        }
+
+                        // 最も長いブロックを選択、または最初のブロック
+                        let longestPair = [0, 0];
+                        if (startEndPairs.length > 0) {
+                            longestPair = startEndPairs.reduce((prev, current) => {
+                                return (current[1] - current[0]) > (prev[1] - prev[0]) ? current : prev;
+                            });
+                        }
+                        
+                        return { question: `偶数は何番目から何番目までありますか？ (例: 24)`, answer: longestPair };
+                    },
+                    (s) => { // 5より大きい数字はいくつありますか？
+                        const count = s.filter(num => num > 5).length;
+                        return { question: `5より大きい数字はいくつありますか？`, answer: count };
+                    },
+                    (s) => { // 各数字を一桁ずつ足した合計 (例: 123 -> 1+2+3=6) は、ユニークな一桁数字なので、この質問は削除します
+                        return null; 
+                    },
+                    (s) => { // この数字列に隣り合う数字のペアで、積が最も大きいものはどれですか？ (例: 24)
+                        if (sequenceLength < 2) return null;
+                        let maxProduct = -1;
+                        let maxPair = [];
+                        for (let i = 0; i < sequenceLength - 1; i++) {
+                            const product = s[i] * s[i+1];
+                            if (product > maxProduct) {
+                                maxProduct = product;
+                                maxPair = [s[i], s[i+1]];
+                            }
+                        }
+                        if (maxProduct === -1) return null; 
+                        return { question: `隣り合う数字のペアで、積が最も大きいペアの数字を入力してください。 (例: 24)`, answer: maxPair };
                     }
                 ];
 
@@ -853,9 +1012,11 @@
 
                 let questionObj = null;
                 // 有効な質問が生成されるまでループ
-                while (!questionObj) {
+                while (!questionObj || (Array.isArray(questionObj.answer) && questionObj.answer.length === 0)) { 
                     const selectedFunc = questionPool[Math.floor(Math.random() * questionPool.length)];
-                    questionObj = selectedFunc(seq);
+                    if (selectedFunc) { 
+                        questionObj = selectedFunc(seq);
+                    }
                 }
                 
                 this.currentQuestion = questionObj.question;
@@ -863,6 +1024,81 @@
 
                 this.dom.questionText.textContent = this.currentQuestion;
                 this.updateGameState("質問に答えてください", "white");
+            }
+
+            // Fill-in-the-Blank Mode Question
+            generateFillInBlankQuestion() {
+                const seq = this.originalSequence;
+                const sequenceLength = seq.length;
+                
+                this.hiddenIndices = [];
+                let numToHide = 1; 
+                if (sequenceLength >= 6) { 
+                    numToHide = Math.random() < 0.5 ? 1 : 2;
+                }
+                
+                while (this.hiddenIndices.length < numToHide) {
+                    const randomIndex = Math.floor(Math.random() * sequenceLength);
+                    if (!this.hiddenIndices.includes(randomIndex)) {
+                        this.hiddenIndices.push(randomIndex);
+                    }
+                }
+                this.hiddenIndices.sort((a,b) => a-b); 
+
+                let displayArr = [...seq];
+                this.hiddenIndices.forEach(idx => {
+                    displayArr[idx] = '_';
+                });
+
+                this.currentQuestion = `隠された数字を入力してください: ${displayArr.join('')}`;
+                this.dom.questionText.textContent = this.currentQuestion;
+                this.dom.userInputDisplay.textContent = ''; 
+                this.updateGameState("隠された数字を当ててください", "lightgreen");
+            }
+
+            // Rearrange Mode Question
+            generateRearrangeQuestion() {
+                const seq = this.originalSequence;
+                const sequenceLength = seq.length;
+
+                const rearrangeFunctions = [
+                    (s) => { 
+                        return { question: `数字を昇順に並べ替えて入力してください。`, answer: [...s].sort((a, b) => a - b) };
+                    },
+                    (s) => { 
+                        return { question: `数字を降順に並べ替えて入力してください。`, answer: [...s].sort((a, b) => b - a) };
+                    },
+                    (s) => { 
+                        const evens = s.filter(num => num % 2 === 0).sort((a,b) => a-b);
+                        if (evens.length === 0) return null; 
+                        return { question: `偶数だけを抽出し、昇順に並べ替えて入力してください。`, answer: evens };
+                    },
+                    (s) => { 
+                        const odds = s.filter(num => num % 2 !== 0).sort((a,b) => b-a);
+                        if (odds.length === 0) return null; 
+                        return { question: `奇数だけを抽出し、降順に並べ替えて入力してください。`, answer: odds };
+                    },
+                    (s) => { 
+                        const mid = Math.ceil(sequenceLength / 2);
+                        const firstHalf = s.slice(0, mid).reverse();
+                        const secondHalf = s.slice(mid);
+                        return { question: `前半を逆順、後半をそのまま入力してください。`, answer: [...firstHalf, ...secondHalf] };
+                    }
+                ];
+
+                let selectedQuestion = null;
+                while (!selectedQuestion) {
+                    const func = rearrangeFunctions[Math.floor(Math.random() * rearrangeFunctions.length)];
+                    if (func) { // 関数が存在するかチェック
+                        selectedQuestion = func(seq);
+                    }
+                }
+                
+                this.currentQuestion = selectedQuestion.question;
+                this.rearrangeTarget = selectedQuestion.answer;
+                this.dom.questionText.textContent = this.currentQuestion;
+                this.dom.userInputDisplay.textContent = '';
+                this.updateGameState("並べ替えて入力してください", "lightcoral");
             }
 
 
@@ -884,28 +1120,42 @@
             }
 
             updateModeUI() {
-                this.dom.memoryPalaceModeOptions.style.display = 'flex';
-                this.dom.displayTimeOptions.style.display = 'flex';
+                const disableAllInputs = (this.gameState !== 'ready' && this.gameState !== 'gameover');
 
-                const disableInputs = (this.gameState !== 'ready' && this.gameState !== 'gameover');
-                
-                // inputとlabelの両方を対象にdisabled属性を設定
-                this.dom.memoryPalaceModeOptions.querySelectorAll('input, label').forEach(element => {
-                    element.disabled = disableInputs;
+                // ゲームモード選択肢の有効/無効と、その中のラジオボタンのスタイル調整
+                this.dom.gameModeOptions.querySelectorAll('input, label').forEach(element => {
+                    element.disabled = disableAllInputs;
                     if (element.tagName === 'LABEL') {
-                        element.style.pointerEvents = disableInputs ? 'none' : 'auto';
-                        element.style.opacity = disableInputs ? '0.7' : '1';
+                        element.style.pointerEvents = disableAllInputs ? 'none' : 'auto';
+                        element.style.opacity = disableAllInputs ? '0.7' : '1';
                     }
                 });
+
+                // 記憶の宮殿モードの設定表示/非表示と有効/無効
+                if (this.gameMode === 'memoryPalace') {
+                    this.dom.memoryPalaceModeOptions.style.display = 'flex';
+                    this.dom.memoryPalaceModeOptions.querySelectorAll('input, label').forEach(element => {
+                        element.disabled = disableAllInputs;
+                        if (element.tagName === 'LABEL') {
+                            element.style.pointerEvents = disableAllInputs ? 'none' : 'auto';
+                            element.style.opacity = disableAllInputs ? '0.7' : '1';
+                        }
+                    });
+                } else {
+                    this.dom.memoryPalaceModeOptions.style.display = 'none';
+                }
+
+                // 表示時間オプションは全てのモードで共通
+                this.dom.displayTimeOptions.style.display = 'flex';
                 this.dom.displayTimeOptions.querySelectorAll('input, label').forEach(element => {
-                    element.disabled = disableInputs;
-                     if (element.tagName === 'LABEL') {
-                        element.style.pointerEvents = disableInputs ? 'none' : 'auto';
-                        element.style.opacity = disableInputs ? '0.7' : '1';
+                    element.disabled = disableAllInputs;
+                    if (element.tagName === 'LABEL') {
+                        element.style.pointerEvents = disableAllInputs ? 'none' : 'auto';
+                        element.style.opacity = disableAllInputs ? '0.7' : '1';
                     }
                 });
                 
-                this.dom.currentLevel.parentNode.style.display = 'none';
+                this.dom.currentLevel.parentNode.style.display = 'none'; 
             }
             
             startTimer() {
