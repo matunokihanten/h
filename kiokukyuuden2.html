@@ -530,3 +530,614 @@
                     displayTimeOptions: document.getElementById('displayTimeOptions'),
                     displayTimeRadios: document.querySelectorAll('input[name="display_time"]'),
                     soundToggle: document.getElementById('soundToggle'),
+                    statsModal: document.getElementById('statsModal'),
+                    closeStatsBtn: document.getElementById('closeStatsBtn'),
+                    problemDisplay: document.getElementById('problemDisplay'),
+                    questionDisplay: document.getElementById('questionDisplay'),
+                    questionText: document.querySelector('#questionDisplay .question-text'),
+                    userInputDisplay: document.querySelector('#questionDisplay .user-input-display'),
+                    numberPad: document.getElementById('numberPad')
+                };
+            }
+            
+            initializeGame() {
+                this.setupEventListeners();
+                this.loadStats();
+                this.updateUI();
+                this.updateGameState("準備完了", "white");
+                this.updateModeUI();
+                // 初期表示時間のラジオボタンを設定
+                document.querySelector(`input[name="display_time"][value="${this.displayTime}"]`).checked = true;
+                // 初期難易度のラジオボタンを設定
+                document.querySelector(`input[name="q_difficulty"][value="${this.questionDifficulty}"]`).checked = true;
+            }
+            
+            setupEventListeners() {
+                this.dom.startBtn.addEventListener('click', () => this.startGame());
+                this.dom.resetBtn.addEventListener('click', () => this.resetGame());
+                this.dom.hintBtn.addEventListener('click', () => this.showHint());
+                this.dom.statsBtn.addEventListener('click', () => this.showStats());
+                this.dom.closeStatsBtn.addEventListener('click', () => { this.dom.statsModal.style.display = 'none'; });
+
+                this.dom.modeSelect.addEventListener('change', e => { 
+                    this.mode = e.target.value; 
+                    if (this.gameState === 'ready') this.updateModeUI();
+                    this.updateUI();
+                });
+
+                this.dom.questionDigitsRadios.forEach(radio => {
+                    radio.addEventListener('change', (e) => {
+                        this.questionDigits = parseInt(e.target.value);
+                        if (this.gameState === 'ready') {
+                            this.updateUI();
+                        }
+                    });
+                });
+
+                this.dom.questionDifficultyRadios.forEach(radio => { // 追加
+                    radio.addEventListener('change', (e) => {
+                        this.questionDifficulty = e.target.value;
+                        if (this.gameState === 'ready') {
+                            this.updateUI();
+                        }
+                    });
+                });
+
+                this.dom.displayTimeRadios.forEach(radio => {
+                    radio.addEventListener('change', (e) => {
+                        this.displayTime = parseInt(e.target.value);
+                        if (this.gameState === 'ready') {
+                            this.updateUI();
+                        }
+                    });
+                });
+
+                this.dom.numberPad.querySelectorAll('.number-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => this.handleNumberInput(e.currentTarget.dataset.number));
+                });
+                
+                document.addEventListener('keydown', e => {
+                    if (this.gameState === 'input' || this.gameState === 'question_input') {
+                        if (e.key >= '0' && e.key <= '9') this.handleNumberInput(e.key);
+                        else if (e.key === 'Enter') this.handleNumberInput('submit');
+                        else if (e.key === 'Backspace') this.handleNumberInput('clear');
+                    }
+                });
+            }
+            
+            // --- Audio ---
+            initAudio() {
+                if (!this.audioContext && this.dom.soundToggle.checked) {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+
+            playSound(freq, duration = 0.1, type = 'sine') {
+                if (!this.audioContext || !this.dom.soundToggle.checked) return;
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+                oscillator.type = type;
+                oscillator.frequency.value = freq;
+                gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.5, this.audioContext.currentTime + 0.01);
+                oscillator.start(this.audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.00001, this.audioContext.currentTime + duration);
+                oscillator.stop(this.audioContext.currentTime + duration);
+            }
+            
+            // --- Game Flow ---
+            startGame() {
+                this.initAudio();
+                this.gameState = 'memorize';
+                this.score = 0;
+                this.lives = 3;
+                this.stats.gamesPlayed++;
+                this.correctStreak = 0; 
+                
+                if (this.mode === 'question') {
+                    // 質問モードは新しいゲーム開始時のみシーケンスを生成・保持
+                    if (this.originalSequence.length === 0) { 
+                        this.generateSequence(this.questionDigits);
+                        this.originalSequence = [...this.currentSequence]; // 記憶用として保持
+                    } else {
+                        this.currentSequence = [...this.originalSequence]; // 既にシーケンスがある場合は再利用
+                    }
+                } else {
+                    this.level = 1;
+                    this.generateSequence(7 + (this.level - 1));
+                }
+                
+                this.displaySequence();
+                this.startTimer();
+                this.updateUI();
+                this.updateModeUI();
+
+                this.dom.startBtn.disabled = true;
+                this.dom.hintBtn.disabled = false;
+            }
+
+            resetGame() {
+                if (confirm("本当にリセットしますか？")) {
+                    this.stopTimer();
+                    this.gameState = 'ready';
+                    this.score = 0;
+                    this.timer = 0;
+                    this.userInput = [];
+                    this.currentSequence = [];
+                    this.originalSequence = []; // 質問モードの保持シーケンスもリセット
+                    this.correctStreak = 0;
+                    this.level = 1; 
+                    this.updateGameState("準備完了", "white");
+                    this.updateUI();
+                    this.updateModeUI();
+                    
+                    this.dom.problemDisplay.textContent = '';
+                    this.dom.problemDisplay.style.display = 'none';
+                    this.dom.questionText.textContent = '';
+                    this.dom.userInputDisplay.textContent = '';
+                    this.dom.questionDisplay.style.display = 'none';
+
+                    this.dom.startBtn.disabled = false;
+                    this.dom.hintBtn.disabled = true;
+                }
+            }
+
+            generateSequence(length) {
+                this.currentSequence = Array.from({ length }, () => Math.floor(Math.random() * 10));
+                this.userInput = [];
+            }
+            
+            displaySequence() {
+                this.updateGameState("覚えてください...", "cyan");
+                this.dom.questionDisplay.style.display = 'none';
+                
+                this.dom.problemDisplay.textContent = this.currentSequence.join('');
+                this.dom.problemDisplay.style.display = 'flex';
+                
+                setTimeout(() => {
+                    this.dom.problemDisplay.style.display = 'none';
+                    if (this.mode === 'question') {
+                        this.currentSequence = [...this.originalSequence]; 
+                        this.startQuestionPhase();
+                    } else {
+                        this.startInputPhase();
+                    }
+                }, this.displayTime + 500); // 選択された表示時間を使用
+            }
+
+            startInputPhase() {
+                this.gameState = 'input';
+                this.updateGameState("順番に入力してください", "white");
+                this.userInput = [];
+                this.dom.problemDisplay.style.display = 'flex';
+                this.dom.problemDisplay.textContent = '';
+            }
+
+            startQuestionPhase() {
+                this.gameState = 'question_input';
+                this.generateQuestion();
+                this.dom.questionDisplay.style.display = 'flex';
+                this.userInput = [];
+                this.updateInputDisplay();
+            }
+
+            handleNumberInput(value) {
+                if (this.gameState !== 'input' && this.gameState !== 'question_input') return;
+                
+                if (value === 'clear') {
+                    this.userInput.pop();
+                    this.playSound(300, 0.05, 'square');
+                } else if (value === 'submit') {
+                    if (this.userInput.length === 0) return;
+                    if (this.mode === 'question') {
+                        this.checkQuestionAnswer();
+                    } else {
+                        this.checkAnswer();
+                    }
+                    return;
+                } else if (value >= '0' && value <= '9') {
+                    this.userInput.push(parseInt(value));
+                    this.playSound(500 + parseInt(value) * 20, 0.1);
+                }
+                this.updateInputDisplay();
+                if (this.userInput.length === this.currentSequence.length && this.mode !== 'question') {
+                    this.checkAnswer();
+                }
+            }
+
+            updateInputDisplay() {
+                if (this.gameState === 'input') {
+                    this.dom.problemDisplay.textContent = this.userInput.join('');
+                } else if (this.gameState === 'question_input') {
+                    this.dom.questionText.textContent = this.currentQuestion;
+                    this.dom.userInputDisplay.textContent = this.userInput.join('');
+                }
+            }
+
+
+            checkAnswer() {
+                const isCorrect = this.userInput.length === this.currentSequence.length &&
+                                this.userInput.every((num, i) => num === this.currentSequence[i]);
+                
+                this.gameState = 'complete';
+                this.stats.totalAnswers++;
+                if (isCorrect) {
+                    this.score += this.level * 100;
+                    this.stats.correctAnswers++;
+                    this.updateGameState("正解！", "#4CAF50");
+                    this.playSound(800, 0.2); this.playSound(1200, 0.2);
+                    this.correctStreak++; 
+                    this.checkLevelUp(); 
+
+                    setTimeout(() => this.startNextRound(), 2000);
+                } else {
+                    this.updateGameState(`不正解... 正解は ${this.currentSequence.join('')}`, "#f44336");
+                    this.playSound(200, 0.4, 'sawtooth');
+                    this.correctStreak = 0; 
+                    if (this.mode === 'challenge') {
+                        this.lives--;
+                        if (this.lives <= 0) {
+                            this.gameOver();
+                            return;
+                        }
+                    }
+                    setTimeout(() => this.startNextRound(), 3000);
+                }
+                this.updateUI();
+            }
+
+            checkQuestionAnswer() {
+                let userAnswer;
+                if (Array.isArray(this.questionAnswer)) {
+                    userAnswer = this.userInput;
+                    const isCorrect = userAnswer.length === this.questionAnswer.length &&
+                                      userAnswer.every((num, i) => num === this.questionAnswer[i]);
+                    this.processAnswer(isCorrect);
+                } else {
+                    userAnswer = parseInt(this.userInput.join(''));
+                    const isCorrect = (userAnswer === this.questionAnswer);
+                    this.processAnswer(isCorrect);
+                }
+            }
+
+            processAnswer(isCorrect) {
+                this.gameState = 'complete';
+                this.stats.totalAnswers++;
+
+                if (isCorrect) {
+                    this.score += 50 * this.level;
+                    this.stats.correctAnswers++;
+                    this.updateGameState("正解！", "#4CAF50");
+                    this.playSound(800, 0.2); this.playSound(1200, 0.2);
+                    this.correctStreak++;
+                    this.checkLevelUp();
+                    setTimeout(() => this.startNextRound(), 2000);
+                } else {
+                    let correctAnswerDisplay = Array.isArray(this.questionAnswer) ? this.questionAnswer.join('') : this.questionAnswer;
+                    this.updateGameState(`不正解... 正解は ${correctAnswerDisplay}`, "#f44336");
+                    this.playSound(200, 0.4, 'sawtooth');
+                    this.correctStreak = 0;
+                    if (this.mode === 'challenge') {
+                        this.lives--;
+                        if (this.lives <= 0) {
+                            this.gameOver();
+                            return;
+                        }
+                    }
+                    setTimeout(() => this.startNextRound(), 3000);
+                }
+                this.updateUI();
+            }
+
+
+            checkLevelUp() {
+                if (this.mode !== 'question' && this.correctStreak >= 3) { 
+                    this.level++;
+                    this.updateGameState(`レベルアップ！レベル ${this.level} へ`, 'gold');
+                    this.playSound(1500, 0.3); 
+                    this.correctStreak = 0;
+                }
+            }
+
+            gameOver() {
+                this.stopTimer();
+                this.gameState = 'gameover';
+                this.updateGameState("ゲームオーバー", "#f44336");
+                this.updateStats();
+                this.updateUI();
+                this.dom.startBtn.disabled = false;
+                this.dom.hintBtn.disabled = true;
+                this.updateModeUI();
+            }
+            
+            startNextRound() {
+                if(this.gameState === 'gameover') return;
+
+                if (this.mode === 'question') {
+                    this.currentSequence = [...this.originalSequence]; 
+                    this.startQuestionPhase(); 
+                } else {
+                    this.gameState = 'memorize';
+                    this.generateSequence(7 + (this.level - 1));
+                    this.displaySequence();
+                }
+                this.updateUI();
+            }
+
+            // --- Question Mode Logic ---
+            generateQuestion() {
+                const seq = this.currentSequence;
+                const sequenceLength = seq.length;
+
+                const easyQuestions = [
+                    (s) => { // N番目の数字
+                        const index = Math.floor(Math.random() * sequenceLength);
+                        return { question: `${index + 1}番目の数字は？`, answer: s[index] };
+                    },
+                    (s) => { // 末尾からN番目の数字
+                        const index = Math.floor(Math.random() * sequenceLength);
+                        return { question: `末尾から${index + 1}番目の数字は？`, answer: s[sequenceLength - 1 - index] };
+                    }
+                ];
+
+                const normalQuestions = [
+                    ...easyQuestions, // 簡単モードの質問を含む
+                    (s) => { // N番目とM番目の数字を足すと？
+                        let index1 = Math.floor(Math.random() * sequenceLength);
+                        let index2 = Math.floor(Math.random() * sequenceLength);
+                        while (index1 === index2) {
+                            index2 = Math.floor(Math.random() * sequenceLength);
+                        }
+                        return { question: `${index1 + 1}番目と${index2 + 1}番目の数字を足すと？`, answer: s[index1] + s[index2] };
+                    },
+                    (s) => { // 特定の数字は最初から何番目？
+                        const targetNum = Math.floor(Math.random() * 10);
+                        const firstIndex = s.indexOf(targetNum);
+                        if (firstIndex !== -1) {
+                            return { question: `数字の${targetNum}は最初から何番目？`, answer: firstIndex + 1 };
+                        }
+                        return null; // この質問タイプが生成できない場合
+                    },
+                    (s) => { // 特定の数字は末尾から何番目？
+                        const targetNum = Math.floor(Math.random() * 10);
+                        const lastIndex = s.lastIndexOf(targetNum);
+                        if (lastIndex !== -1) {
+                            return { question: `数字の${targetNum}は末尾から何番目？`, answer: sequenceLength - lastIndex };
+                        }
+                        return null;
+                    },
+                    (s) => { // 奇数の数字はいくつある？
+                        const oddCount = s.filter(num => num % 2 !== 0).length;
+                        return { question: `奇数の数字はいくつある？`, answer: oddCount };
+                    },
+                    (s) => { // 偶数の数字はいくつある？
+                        const evenCount = s.filter(num => num % 2 === 0).length;
+                        return { question: `偶数の数字はいくつある？`, answer: evenCount };
+                    },
+                    (s) => { // 数字の合計は？
+                        const sum = s.reduce((acc, num) => acc + num, 0);
+                        return { question: `表示された数字の合計はいくつ？`, answer: sum };
+                    },
+                    (s) => { // 最も大きい数字は？
+                        const max = Math.max(...s);
+                        return { question: `最も大きい数字は？`, answer: max };
+                    },
+                    (s) => { // 最も小さい数字は？
+                        const min = Math.min(...s);
+                        return { question: `最も小さい数字は？`, answer: min };
+                    },
+                    (s) => { // 数字Xは何回出てくる？
+                        const targetNum = Math.floor(Math.random() * 10);
+                        const count = s.filter(num => num === targetNum).length;
+                        return { question: `数字の${targetNum}は何回出てきますか？`, answer: count };
+                    },
+                    (s) => { // 最初のN個の数字の合計
+                        if (sequenceLength < 2) return null;
+                        const numToSum = Math.floor(Math.random() * (Math.min(sequenceLength, 4) - 1)) + 2; // 2～4個の数字を足す
+                        const sum = s.slice(0, numToSum).reduce((acc, num) => acc + num, 0);
+                        return { question: `最初の${numToSum}個の数字を足すと？`, answer: sum };
+                    },
+                    (s) => { // 最初と最後の数字を足すと？
+                        if (sequenceLength < 2) return null;
+                        return { question: `最初と最後の数字を足すと？`, answer: s[0] + s[sequenceLength - 1] };
+                    }
+                ];
+
+                const hardQuestions = [
+                    ...normalQuestions, // 普通モードの質問を含む
+                    (s) => { // 数字を逆から全て入力
+                        return { question: `数字を逆から全て入力してください。`, answer: [...s].reverse() };
+                    },
+                    (s) => { // 奇数番目の数字を全て入力
+                        const oddIndexedNumbers = s.filter((_, i) => (i + 1) % 2 !== 0);
+                        if (oddIndexedNumbers.length === 0) return null;
+                        return { question: `奇数番目の数字を全て入力してください。`, answer: oddIndexedNumbers };
+                    },
+                    (s) => { // 偶数番目の数字を全て入力
+                        const evenIndexedNumbers = s.filter((_, i) => (i + 1) % 2 === 0);
+                        if (evenIndexedNumbers.length === 0) return null;
+                        return { question: `偶数番目の数字を全て入力してください。`, answer: evenIndexedNumbers };
+                    },
+                    (s) => { // 昇順に並べ替えたとき、N番目の数字は？
+                        if (sequenceLength < 2) return null;
+                        const sortedSeq = [...s].sort((a, b) => a - b);
+                        const index = Math.floor(Math.random() * sequenceLength);
+                        return { question: `数字を昇順に並べ替えたとき、${index + 1}番目の数字は？`, answer: sortedSeq[index] };
+                    },
+                    (s) => { // 降順に並べ替えたとき、N番目の数字は？
+                        if (sequenceLength < 2) return null;
+                        const sortedSeq = [...s].sort((a, b) => b - a);
+                        const index = Math.floor(Math.random() * sequenceLength);
+                        return { question: `数字を降順に並べ替えたとき、${index + 1}番目の数字は？`, answer: sortedSeq[index] };
+                    },
+                    (s) => { // 連続する同じ数字は何回出てくる？
+                        let count = 0;
+                        for (let i = 0; i < s.length - 1; i++) {
+                            if (s[i] === s[i+1]) {
+                                count++;
+                            }
+                        }
+                        return { question: `連続する同じ数字は何回出てきますか？`, answer: count };
+                    },
+                     (s) => { // N番目とM番目の数字を引くと？ (大きい方から小さい方を引く)
+                        let index1 = Math.floor(Math.random() * sequenceLength);
+                        let index2 = Math.floor(Math.random() * sequenceLength);
+                        while (index1 === index2) {
+                            index2 = Math.floor(Math.random() * sequenceLength);
+                        }
+                        const val1 = s[index1];
+                        const val2 = s[index2];
+                        return { question: `${index1 + 1}番目の数字と${index2 + 1}番目の数字を引くと？ (大きい方から小さい方を)`, answer: Math.abs(val1 - val2) };
+                    }
+                ];
+
+                let questionPool;
+                if (this.questionDifficulty === 'easy') {
+                    questionPool = easyQuestions;
+                } else if (this.questionDifficulty === 'normal') {
+                    questionPool = normalQuestions;
+                } else { // 'hard'
+                    questionPool = hardQuestions;
+                }
+
+                let questionObj = null;
+                // 有効な質問が生成されるまでループ
+                while (!questionObj) {
+                    const selectedFunc = questionPool[Math.floor(Math.random() * questionPool.length)];
+                    questionObj = selectedFunc(seq);
+                }
+                
+                this.currentQuestion = questionObj.question;
+                this.questionAnswer = questionObj.answer;
+
+                this.dom.questionText.textContent = this.currentQuestion;
+                this.updateGameState("質問に答えてください", "white");
+            }
+
+
+            // --- UI & Stats ---
+            updateUI() {
+                this.dom.score.textContent = this.score;
+                this.dom.currentLevel.textContent = this.level;
+                
+                if (this.mode !== 'question' && this.gameState === 'input') {
+                    const progress = this.userInput.length / (this.currentSequence.length || 1);
+                    this.dom.progressBar.style.width = `${progress * 100}%`;
+                } else {
+                    this.dom.progressBar.style.width = '0%';
+                }
+
+                this.dom.livesContainer.style.display = this.mode === 'challenge' ? 'block' : 'none';
+                this.dom.lives.textContent = '❤️'.repeat(this.lives);
+
+                const minutes = Math.floor(this.timer / 60).toString().padStart(2, '0');
+                const seconds = Math.floor(this.timer % 60).toString().padStart(2, '0');
+                this.dom.timer.textContent = `${minutes}:${seconds}`;
+                this.dom.timer.style.color = '#FF9800';
+            }
+
+            updateGameState(message, color) {
+                this.dom.gameState.textContent = message;
+                this.dom.gameState.style.color = color;
+            }
+
+            updateModeUI() {
+                // 質問モードのオプション表示/非表示
+                if (this.mode === 'question' && this.gameState === 'ready') {
+                    this.dom.questionModeOptions.style.display = 'flex';
+                } else {
+                    this.dom.questionModeOptions.style.display = 'none';
+                }
+
+                // 表示時間選択オプションの表示/非表示 (質問モード以外で表示)
+                if (this.mode !== 'question' && this.gameState === 'ready') {
+                    this.dom.displayTimeOptions.style.display = 'flex';
+                } else {
+                    this.dom.displayTimeOptions.style.display = 'none';
+                }
+
+                // ゲーム中はモード選択を変更できないようにする
+                this.dom.modeSelect.disabled = (this.gameState !== 'ready' && this.gameState !== 'gameover');
+                // 質問モード選択中はレベル表示を非表示にする
+                this.dom.currentLevel.parentNode.style.display = this.mode === 'question' ? 'none' : 'block';
+            }
+            
+            startTimer() {
+                this.stopTimer();
+                this.timer = 0;
+                this.timerInterval = setInterval(() => {
+                    this.timer += 0.1;
+                    this.stats.totalTime += 0.1;
+                    this.updateUI();
+                }, 100);
+            }
+
+            stopTimer() {
+                clearInterval(this.timerInterval);
+            }
+            
+            showHint() {
+                if ((this.gameState !== 'input' && this.gameState !== 'question_input') || this.score < 50) return;
+                
+                let hintMessage = "";
+                let hintCost = 50;
+
+                if (this.mode === 'question') {
+                    hintMessage = `正解は ${Array.isArray(this.questionAnswer) ? this.questionAnswer.join('') : this.questionAnswer} です`;
+                } else {
+                    const nextNumber = this.currentSequence[this.userInput.length];
+                    if (nextNumber === undefined) { 
+                        this.updateGameState("ヒントは出せません（入力完了済み）", "grey");
+                        return;
+                    }
+                    hintMessage = `ヒント: 次は ${nextNumber} です`;
+                }
+
+                this.updateGameState(hintMessage, 'yellow');
+                this.score -= hintCost;
+                this.updateUI();
+                this.playSound(1000, 0.1, 'triangle');
+            }
+
+            showStats() {
+                document.getElementById('statsGamesPlayed').textContent = this.stats.gamesPlayed;
+                document.getElementById('statsCorrectAnswers').textContent = this.stats.correctAnswers;
+                const accuracy = this.stats.totalAnswers > 0 ? (this.stats.correctAnswers / this.stats.totalAnswers * 100).toFixed(1) : 0;
+                document.getElementById('statsAccuracy').textContent = `${accuracy}%`;
+                document.getElementById('statsBestScore').textContent = this.stats.bestScore;
+                
+                const totalTime = new Date(this.stats.totalTime * 1000).toISOString().substr(11, 8);
+                document.getElementById('statsTotalTime').textContent = totalTime;
+
+                this.dom.statsModal.style.display = 'flex';
+            }
+            
+            updateStats() {
+                if (this.score > this.stats.bestScore) {
+                    this.stats.bestScore = this.score;
+                }
+                this.saveStats();
+            }
+
+            saveStats() {
+                localStorage.setItem('memoryGameStats', JSON.stringify(this.stats)); 
+            }
+            
+            loadStats() {
+                const savedStats = localStorage.getItem('memoryGameStats'); 
+                if (savedStats) {
+                    this.stats = JSON.parse(savedStats);
+                }
+            }
+        }
+
+        // DOMContentLoaded イベントでゲームを初期化
+        document.addEventListener('DOMContentLoaded', () => {
+            const game = new MemoryGame();
+            game.initializeGame();
+        });
+    </script>
+</body>
+</html>
