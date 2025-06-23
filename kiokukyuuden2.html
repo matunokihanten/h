@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>記憶の宮殿 - 数字記憶アプリ</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #2c3e50, #4a69bd);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        
+        #gameContainer {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-width: 600px;
+            width: 95%;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            box-sizing: border-box;
+            max-height: 98vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        #ui-top, #ui-bottom {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            flex-shrink: 0;
+        }
+        
+        h2 {
+            color: #764ba2;
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+
+        #mode-level-selects {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        #mode-level-selects div {
+            flex-grow: 1;
+            min-width: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #mode-level-selects label {
+            margin-right: 6px;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        #questionModeOptions, #displayTimeOptions, #questionDifficultyOptions {
+            display: none; /* 初期状態では非表示 */
+            flex-direction: column;
+            gap: 5px;
+            margin-top: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px;
+            border-radius: 8px;
+        }
+        #questionModeOptions .radio-group, 
+        #displayTimeOptions .radio-group,
+        #questionDifficultyOptions .radio-group {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+        }
+        #questionModeOptions label, 
+        #displayTimeOptions label,
+        #questionDifficultyOptions label {
+            margin-right: 0;
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        #questionModeOptions input[type="radio"], 
+        #displayTimeOptions input[type="radio"],
+        #questionDifficultyOptions input[type="radio"] {
+            margin-right: 5px;
+            width: 16px;
+            height: 16px;
+            accent-color: #4a69bd;
+            cursor: pointer;
+        }
+        
+        #info {
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            font-size: 12px;
+            display: flex;
+            flex-wrap: wrap; 
+            justify-content: space-around;
+            gap: 6px;
+        }
+        .info-item {
+            flex: 1; 
+            min-width: 90px;
+            text-align: center;
+            padding: 2px 0;
+        }
+        .score { font-size: 20px; font-weight: bold; color: #4CAF50; }
+        .timer { font-size: 16px; color: #FF9800; font-weight: bold; }
+        
+        .progress-bar { width: 100%; height: 6px; background: rgba(255, 255, 255, 0.2); border-radius: 3px; overflow: hidden; margin-top: 6px; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #4CAF50, #8BC34A); transition: width 0.3s ease; }
+        
+        #gameState { text-align: center; margin: 6px 0; font-size: 16px; font-weight: bold; min-height: 20px; }
+        
+        .control-buttons {
+            display: flex;
+            flex-wrap: wrap; 
+            justify-content: center;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        button {
+            flex-grow: 1;
+            min-width: 80px;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3); }
+        button:disabled { background: #555; cursor: not-allowed; }
+        
+        button.primary { background: linear-gradient(145deg, #2196F3, #1976D2); }
+        button.danger { background: linear-gradient(145deg, #f44336, #d32f2f); }
+        button.warning { background: linear-gradient(145deg, #ffc107, #ff8f00); }
+        
+        select, input[type="checkbox"] {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 5px 7px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin: 3px;
+            appearance: none; 
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13%205.1L146.2%20205.9%2018.3%2074.5a17.6%2017.6%200%200%200-25.3%2023.6l130.4%20130.4c6.6%206.6%2017.3%206.6%2023.9%200l130.4-130.4a17.6%2017.6%200%200%200-13-30.2z%22%2F%3E%3C%2Fsvg%3E'); 
+            background-repeat: no-repeat;
+            background-position: right 6px center;
+            background-size: 9px auto;
+        }
+        select option { background: #333; color: white; }
+        
+        #numberPad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-top: 12px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            width: calc(100% - 20px);
+            max-width: 270px;
+            align-self: center;
+            flex-shrink: 0;
+        }
+        
+        .number-btn {
+            width: auto;
+            height: 50px;
+            font-size: 22px;
+            border-radius: 8px;
+            background: linear-gradient(145deg, #667eea, #764ba2);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .number-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        .number-btn:active { transform: translateY(0); }
+
+        .number-btn[data-number="clear"] { grid-column: 1 / 2; }
+        .number-btn[data-number="submit"] { grid-column: 3 / 4; }
+        
+        .modal {
+            display: none; 
+            position: fixed; 
+            z-index: 1000; 
+            left: 0; 
+            top: 0;
+            width: 100%; 
+            height: 100%; 
+            overflow: auto; 
+            background-color: rgba(0,0,0,0.7);
+            align-items: center; 
+            justify-content: center;
+        }
+        .modal-content {
+            background: rgba(10, 25, 47, 0.95); 
+            backdrop-filter: blur(10px); 
+            color: white;
+            padding: 20px;
+            border-radius: 15px; 
+            width: 90%; 
+            max-width: 400px;
+            text-align: center; 
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 50px rgba(0,0,0,0.5);
+            box-sizing: border-box;
+        }
+        .modal-content h2 { color: #4CAF50; font-size: 26px; margin-bottom: 12px; }
+        .modal-content p { font-size: 15px; margin-bottom: 7px; }
+        .modal-content button { margin-top: 15px; }
+        
+        #problemDisplay {
+            margin-top: 12px;
+            padding: 20px 30px;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 18px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: #E0E0E0;
+            font-size: 60px;
+            font-weight: bold;
+            letter-spacing: 5px;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.7);
+            display: none; 
+            text-align: center;
+            min-width: 220px;
+            max-width: 100%;
+            user-select: none; 
+            pointer-events: none; 
+            box-sizing: border-box;
+            word-break: break-all;
+            flex-grow: 1;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #questionDisplay {
+            display: none;
+            margin-top: 12px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 18px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: #E0E0E0;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            min-height: 80px;
+            display: flex;
+            flex-direction: column; /* 質問と入力値を縦に並べる */
+            justify-content: center;
+            align-items: center;
+            box-sizing: border-box;
+            word-break: break-all;
+        }
+        #questionDisplay .question-text {
+            margin-bottom: 5px; /* 質問文と入力値の間隔 */
+        }
+        #questionDisplay .user-input-display {
+            color: yellow;
+        }
+        
+        /* 非常に小さい画面（例: iPhone SEなど）での調整 */
+        @media (max-width: 375px) {
+            #gameContainer {
+                padding: 8px;
+                gap: 8px;
+            }
+            h2 {
+                font-size: 22px;
+            }
+            #mode-level-selects {
+                flex-direction: column;
+                gap: 4px;
+            }
+            #mode-level-selects div {
+                min-width: unset;
+                width: 100%;
+            }
+            #questionModeOptions, #displayTimeOptions, #questionDifficultyOptions {
+                padding: 6px;
+            }
+            #questionModeOptions label, #displayTimeOptions label, #questionDifficultyOptions label {
+                font-size: 13px;
+            }
+            #info {
+                padding: 6px;
+                gap: 4px;
+            }
+            .info-item {
+                min-width: 70px;
+                font-size: 11px;
+            }
+            .score { font-size: 18px; }
+            .timer { font-size: 14px; }
+            #gameState { font-size: 14px; }
+            .control-buttons {
+                gap: 4px;
+            }
+            button {
+                padding: 5px 8px;
+                font-size: 13px;
+                min-width: 70px;
+            }
+            select, input[type="checkbox"] {
+                padding: 3px 5px;
+                font-size: 12px;
+            }
+            #numberPad {
+                padding: 6px;
+                gap: 5px;
+                max-width: 250px;
+            }
+            .number-btn {
+                height: 45px;
+                font-size: 18px;
+            }
+            #problemDisplay {
+                font-size: 45px;
+                padding: 15px 20px;
+                letter-spacing: 3px;
+            }
+            #questionDisplay {
+                font-size: 20px;
+                padding: 15px;
+                min-height: 70px;
+            }
+            .modal-content {
+                padding: 18px;
+            }
+            .modal-content h2 {
+                font-size: 22px;
+            }
+            .modal-content p {
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="ui-top">
+            <h2>記憶の宮殿</h2>
+            <div id="mode-level-selects">
+                <div>
+                    <label for="modeSelect">モード:</label>
+                    <select id="modeSelect">
+                        <option value="practice">練習モード</option>
+                        <option value="challenge">チャレンジモード</option>
+                        <option value="question">質問モード</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="displayTimeOptions">
+                <label>表示時間:</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="display_time" value="5000" checked> 5秒</label>
+                    <label><input type="radio" name="display_time" value="10000"> 10秒</label>
+                    <label><input type="radio" name="display_time" value="15000"> 15秒</label>
+                    <label><input type="radio" name="display_time" value="20000"> 20秒</label>
+                </div>
+            </div>
+
+            <div id="questionModeOptions">
+                <label>桁数選択:</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="q_digits" value="4"> 4桁</label>
+                    <label><input type="radio" name="q_digits" value="5"> 5桁</label>
+                    <label><input type="radio" name="q_digits" value="6" checked> 6桁</label>
+                    <label><input type="radio" name="q_digits" value="7"> 7桁</label>
+                    <label><input type="radio" name="q_digits" value="8"> 8桁</label>
+                </div>
+                <label>難易度:</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="q_difficulty" value="easy"> 簡単</label>
+                    <label><input type="radio" name="q_difficulty" value="normal" checked> 普通</label>
+                    <label><input type="radio" name="q_difficulty" value="hard"> 複雑</label>
+                </div>
+            </div>
+            
+            <div id="info">
+                <div class="info-item">スコア: <span id="score">0</span></div>
+                <div class="info-item">時間: <span id="timer">00:00</span></div>
+                <div class="info-item" id="livesContainer" style="display: none;">ライフ: <span id="lives">3</span></div>
+                <div class="info-item">レベル: <span id="currentLevel">1</span></div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressBar" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="problemDisplay"></div>
+        <div id="questionDisplay">
+            <div class="question-text"></div>
+            <div class="user-input-display"></div>
+        </div>
+
+        <div id="ui-bottom">
+            <div id="gameState">準備完了</div>
+            <div class="control-buttons">
+                <button id="startBtn" class="primary">ゲーム開始</button>
+                <button id="resetBtn" class="danger">リセット</button>
+                <button id="hintBtn" class="warning" disabled>ヒント</button>
+                <button id="statsBtn">統計</button>
+            </div>
+            <div class="control-buttons">
+                <label for="soundToggle">効果音:</label>
+                <input type="checkbox" id="soundToggle" checked>
+            </div>
+        </div>
+        
+        <div id="numberPad">
+            <button class="number-btn" data-number="1">1</button><button class="number-btn" data-number="2">2</button><button class="number-btn" data-number="3">3</button>
+            <button class="number-btn" data-number="4">4</button><button class="number-btn" data-number="5">5</button><button class="number-btn" data-number="6">6</button>
+            <button class="number-btn" data-number="7">7</button><button class="number-btn" data-number="8">8</button><button class="number-btn" data-number="9">9</button>
+            <button class="number-btn" data-number="clear">C</button>
+            <button class="number-btn" data-number="0">0</button>
+            <button class="number-btn" data-number="submit">✓</button>
+        </div>
+        
+        <div id="statsModal" class="modal">
+            <div class="modal-content">
+                <h2>統計情報</h2>
+                <p>プレイ回数: <span id="statsGamesPlayed">0</span></p>
+                <p>正解数: <span id="statsCorrectAnswers">0</span></p>
+                <p>正解率: <span id="statsAccuracy">0%</span></p>
+                <p>ハイスコア: <span id="statsBestScore">0</span></p>
+                <p>合計プレイ時間: <span id="statsTotalTime">00:00:00</span></p>
+                <button id="closeStatsBtn" class="primary">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class MemoryGame {
+            constructor() {
+                // Game State
+                this.currentSequence = []; 
+                this.userInput = [];       
+                this.level = 1;            
+                this.mode = 'practice';    
+                this.score = 0;            
+                this.lives = 3;            
+                this.gameState = 'ready';  
+                this.timer = 0;            
+                this.timerInterval = null; 
+
+                // Audio
+                this.audioContext = null; 
+
+                // Stats
+                this.stats = {
+                    gamesPlayed: 0, correctAnswers: 0, totalAnswers: 0,
+                    bestScore: 0, totalTime: 0
+                };
+                
+                // Leveling
+                this.correctStreak = 0; 
+                this.displayTime = 5000; // 初期表示時間 5秒 (ミリ秒)
+
+                // Question Mode
+                this.originalSequence = []; // 質問モードで保持する元のシーケンス
+                this.currentQuestion = null;
+                this.questionAnswer = null;
+                this.questionDigits = 6; // 質問モードの初期桁数
+                this.questionDifficulty = 'normal'; // 質問モードの初期難易度
+
+                // DOM要素のキャッシュ
+                this.dom = {
+                    score: document.getElementById('score'),
+                    timer: document.getElementById('timer'),
+                    lives: document.getElementById('lives'),
+                    currentLevel: document.getElementById('currentLevel'),
+                    progressBar: document.getElementById('progressBar'),
+                    livesContainer: document.getElementById('livesContainer'),
+                    gameState: document.getElementById('gameState'),
+                    startBtn: document.getElementById('startBtn'),
+                    resetBtn: document.getElementById('resetBtn'),
+                    hintBtn: document.getElementById('hintBtn'),
+                    statsBtn: document.getElementById('statsBtn'),
+                    modeSelect: document.getElementById('modeSelect'),
+                    questionModeOptions: document.getElementById('questionModeOptions'),
+                    questionDigitsRadios: document.querySelectorAll('input[name="q_digits"]'),
+                    questionDifficultyRadios: document.querySelectorAll('input[name="q_difficulty"]'), // 追加
+                    displayTimeOptions: document.getElementById('displayTimeOptions'),
+                    displayTimeRadios: document.querySelectorAll('input[name="display_time"]'),
+                    soundToggle: document.getElementById('soundToggle'),
