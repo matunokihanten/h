@@ -545,4 +545,545 @@
                     document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
                     const tabId = event.target.dataset.tab;
                     document.getElementById(tabId + '-tab').classList.add('active');
- 
+                });
+            });
+
+            // UI Controls
+            document.getElementById('toggleAutoRotate').addEventListener('click', toggleAutoRotate);
+            document.getElementById('toggleLighting').addEventListener('click', toggleLighting);
+            document.getElementById('resetCamera').addEventListener('click', resetCamera);
+            document.getElementById('rotationSpeed').addEventListener('input', updateRotationSpeed);
+
+            // Object management buttons
+            document.getElementById('addChair').addEventListener('click', () => addObject('chair'));
+            document.getElementById('addTable').addEventListener('click', () => addObject('table'));
+            document.getElementById('addLamp').addEventListener('click', () => addObject('lamp'));
+            document.getElementById('addSofa').addEventListener('click', () => addObject('sofa'));
+            document.getElementById('addBookshelf').addEventListener('click', () => addObject('bookshelf'));
+            document.getElementById('addPlant').addEventListener('click', () => addObject('plant'));
+            document.getElementById('deleteSelected').addEventListener('click', deleteSelected);
+
+            // Transform controls for selected object
+            document.getElementById('posX').addEventListener('input', updateSelectedPosition);
+            document.getElementById('posY').addEventListener('input', updateSelectedPosition);
+            document.getElementById('posZ').addEventListener('input', updateSelectedPosition);
+            document.getElementById('rotY').addEventListener('input', updateSelectedRotation);
+
+            // Save/Load controls
+            document.getElementById('saveRoom').addEventListener('click', saveRoom);
+            document.getElementById('loadRoom').addEventListener('click', loadRoom);
+            document.getElementById('clearRoom').addEventListener('click', clearRoom);
+
+            // UI visibility toggle
+            document.getElementById('toggleUIVisibility').addEventListener('click', toggleUIVisibility);
+
+            // Handle window resizing
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function onCanvasClick(event) {
+            // Calculate mouse position in normalized device coordinates (-1 to +1)
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            // Update the raycaster with the camera and mouse position
+            raycaster.setFromCamera(mouse, camera);
+            // Find intersected objects in the room (recursive true to check children of groups)
+            const intersects = raycaster.intersectObjects(room.children, true);
+
+            if (intersects.length > 0) {
+                // Get the top-level parent object that is NOT the room itself
+                let clickedObject = intersects[0].object;
+                while (clickedObject.parent && clickedObject.parent !== room) {
+                    clickedObject = clickedObject.parent;
+                }
+                
+                if (clickedObject !== room && clickedObject.name !== 'room') {
+                    selectObject(clickedObject);
+                    // Automatically switch to transform tab when an object is selected
+                    document.querySelector('.tab-button[data-tab="transform"]').click();
+                }
+            } else {
+                deselectObject();
+            }
+        }
+
+        function selectObject(object) {
+            // Deselect previous object if one was selected
+            if (selectedObject) {
+                selectedObject.traverse((child) => {
+                    if (child.isMesh) {
+                        child.material.emissive.setHex(0x000000); // Remove highlight
+                    }
+                });
+            }
+
+            selectedObject = object;
+            
+            // Highlight the newly selected object
+            object.traverse((child) => {
+                if (child.isMesh) {
+                    child.material.emissive.setHex(0x444444); // Apply highlight color
+                }
+            });
+
+            updateSelectedInfo(); // Update information panel
+            updateObjectList();   // Update object list UI
+        }
+
+        function deselectObject() {
+            if (selectedObject) {
+                selectedObject.traverse((child) => {
+                    if (child.isMesh) {
+                        child.material.emissive.setHex(0x000000); // Remove highlight
+                    }
+                });
+                selectedObject = null;
+            }
+            updateSelectedInfo();
+            updateObjectList();
+        }
+
+        function updateSelectedInfo() {
+            const infoDiv = document.getElementById('selectedInfo');
+            const transformDiv = document.getElementById('transformControls');
+
+            if (selectedObject) {
+                infoDiv.textContent = `選択中: ${selectedObject.name}`;
+                transformDiv.style.display = 'block';
+                
+                // Update sliders with current values of the selected object
+                document.getElementById('posX').value = selectedObject.position.x;
+                document.getElementById('posY').value = selectedObject.position.y;
+                document.getElementById('posZ').value = selectedObject.position.z;
+                document.getElementById('rotY').value = selectedObject.rotation.y;
+            } else {
+                infoDiv.textContent = 'オブジェクトを選択してください';
+                transformDiv.style.display = 'none';
+            }
+        }
+
+        function updateObjectList() {
+            const listDiv = document.getElementById('objectList');
+            listDiv.innerHTML = ''; // Clear current list
+
+            roomObjects.forEach(obj => {
+                const item = document.createElement('div');
+                item.className = 'object-item';
+                if (obj === selectedObject) {
+                    item.classList.add('selected'); // Add 'selected' class if it's the current selection
+                }
+                item.textContent = obj.name;
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent canvas click from deselecting if clicking list item
+                    selectObject(obj);
+                    document.querySelector('.tab-button[data-tab="transform"]').click(); // Switch to transform tab
+                }); 
+                listDiv.appendChild(item);
+            });
+        }
+
+        function addObject(type) {
+            let object; // This will hold the THREE.Group for our custom object
+            objectCount++;
+            const objectName = `${type}_${objectCount}`; // Unique name for each object
+
+            switch(type) {
+                case 'chair':
+                    object = new THREE.Group();
+                    // Seat
+                    const seat = new THREE.Mesh(
+                        new THREE.BoxGeometry(0.8, 0.1, 0.8),
+                        new THREE.MeshLambertMaterial({ color: 0x8b4513 }) // Brown color
+                    );
+                    seat.position.y = 0.5; // Seat height
+                    seat.castShadow = true;
+                    object.add(seat);
+                    // Legs
+                    for (let i = 0; i < 4; i++) {
+                        const leg = new THREE.Mesh(
+                            new THREE.BoxGeometry(0.1, 0.5, 0.1),
+                            new THREE.MeshLambertMaterial({ color: 0x654321 }) // Darker brown
+                        );
+                        leg.position.x = (i % 2) * 0.7 - 0.35;
+                        leg.position.z = Math.floor(i / 2) * 0.7 - 0.35;
+                        leg.position.y = 0.25; // Half of leg height
+                        leg.castShadow = true;
+                        object.add(leg);
+                    }
+                    // Backrest
+                    const back = new THREE.Mesh(
+                        new THREE.BoxGeometry(0.8, 0.8, 0.1),
+                        new THREE.MeshLambertMaterial({ color: 0x8b4513 })
+                    );
+                    back.position.y = 0.9; // Backrest height
+                    back.position.z = -0.35; // Position behind seat
+                    back.castShadow = true;
+                    object.add(back);
+                    break;
+
+                case 'table':
+                    object = new THREE.Group();
+                    // Top
+                    const top = new THREE.Mesh(
+                        new THREE.BoxGeometry(1.5, 0.1, 1.0),
+                        new THREE.MeshLambertMaterial({ color: 0x8b4513 })
+                    );
+                    top.position.y = 0.75; // Table top height
+                    top.castShadow = true;
+                    object.add(top);
+                    // Legs
+                    for (let i = 0; i < 4; i++) {
+                        const leg = new THREE.Mesh(
+                            new THREE.BoxGeometry(0.1, 0.75, 0.1),
+                            new THREE.MeshLambertMaterial({ color: 0x654321 })
+                        );
+                        leg.position.x = (i % 2) * 1.4 - 0.7;
+                        leg.position.z = Math.floor(i / 2) * 0.9 - 0.45;
+                        leg.position.y = 0.375; // Half of leg height
+                        leg.castShadow = true;
+                        object.add(leg);
+                    }
+                    break;
+
+                case 'lamp':
+                    object = new THREE.Group();
+                    // Base
+                    const base = new THREE.Mesh(
+                        new THREE.CylinderGeometry(0.2, 0.2, 0.1, 8),
+                        new THREE.MeshLambertMaterial({ color: 0x333333 }) // Dark grey
+                    );
+                    base.position.y = 0.05;
+                    base.castShadow = true;
+                    object.add(base);
+                    // Pole
+                    const pole = new THREE.Mesh(
+                        new THREE.CylinderGeometry(0.05, 0.05, 1.5, 8),
+                        new THREE.MeshLambertMaterial({ color: 0x666666 }) // Mid grey
+                    );
+                    pole.position.y = 0.75; // Half of pole height + base height
+                    pole.castShadow = true;
+                    object.add(pole);
+                    // Shade
+                    const shade = new THREE.Mesh(
+                        new THREE.ConeGeometry(0.3, 0.4, 8),
+                        new THREE.MeshLambertMaterial({ color: 0xffffff }) // White
+                    );
+                    shade.position.y = 1.7; // Position above pole
+                    shade.castShadow = true;
+                    object.add(shade);
+                    break;
+                
+                case 'sofa':
+                    object = new THREE.Group();
+                    const sofaColor = 0x5a2d1f; // Dark red-brown
+
+                    // Main Seat
+                    const mainSeat = new THREE.Mesh(
+                        new THREE.BoxGeometry(2.0, 0.2, 0.9),
+                        new THREE.MeshLambertMaterial({ color: sofaColor })
+                    );
+                    mainSeat.position.y = 0.4;
+                    mainSeat.castShadow = true;
+                    object.add(mainSeat);
+
+                    // Backrest
+                    const sofaBack = new THREE.Mesh(
+                        new THREE.BoxGeometry(2.0, 0.8, 0.2),
+                        new THREE.MeshLambertMaterial({ color: sofaColor })
+                    );
+                    sofaBack.position.set(0, 0.9, -0.45);
+                    sofaBack.castShadow = true;
+                    object.add(sofaBack);
+
+                    // Armrests
+                    const armrestGeometry = new THREE.BoxGeometry(0.2, 0.6, 0.9);
+                    const armrestMaterial = new THREE.MeshLambertMaterial({ color: sofaColor });
+
+                    const armrestLeft = new THREE.Mesh(armrestGeometry, armrestMaterial);
+                    armrestLeft.position.set(-0.9, 0.6, 0);
+                    armrestLeft.castShadow = true;
+                    object.add(armrestLeft);
+
+                    const armrestRight = new THREE.Mesh(armrestGeometry, armrestMaterial);
+                    armrestRight.position.set(0.9, 0.6, 0);
+                    armrestRight.castShadow = true;
+                    object.add(armrestRight);
+                    break;
+
+                case 'bookshelf':
+                    object = new THREE.Group();
+                    const woodColor = 0x5a432b; // Medium brown
+
+                    // Side panels
+                    const sidePanelGeometry = new THREE.BoxGeometry(0.1, 1.5, 0.8);
+                    const sidePanelMaterial = new THREE.MeshLambertMaterial({ color: woodColor });
+
+                    const leftPanel = new THREE.Mesh(sidePanelGeometry, sidePanelMaterial);
+                    leftPanel.position.set(-0.6, 0.75, 0);
+                    leftPanel.castShadow = true;
+                    object.add(leftPanel);
+
+                    const rightPanel = new THREE.Mesh(sidePanelGeometry, sidePanelMaterial);
+                    rightPanel.position.set(0.6, 0.75, 0);
+                    rightPanel.castShadow = true;
+                    object.add(rightPanel);
+
+                    // Shelves
+                    const shelfGeometry = new THREE.BoxGeometry(1.3, 0.1, 0.7);
+                    const shelfMaterial = new THREE.MeshLambertMaterial({ color: woodColor });
+
+                    for (let i = 0; i < 4; i++) {
+                        const shelf = new THREE.Mesh(shelfGeometry, shelfMaterial);
+                        shelf.position.y = 0.1 + (i * 0.45); // Stack shelves
+                        shelf.castShadow = true;
+                        object.add(shelf);
+                    }
+                    break;
+                
+                case 'plant':
+                    object = new THREE.Group();
+
+                    // Pot
+                    const pot = new THREE.Mesh(
+                        new THREE.CylinderGeometry(0.3, 0.2, 0.4, 8),
+                        new THREE.MeshLambertMaterial({ color: 0x8b4513 }) // Terracotta color
+                    );
+                    pot.position.y = 0.2;
+                    pot.castShadow = true;
+                    object.add(pot);
+
+                    // Soil
+                    const soil = new THREE.Mesh(
+                        new THREE.CylinderGeometry(0.28, 0.28, 0.05, 8),
+                        new THREE.MeshLambertMaterial({ color: 0x4a2c0f }) // Dark brown
+                    );
+                    soil.position.y = 0.425;
+                    soil.castShadow = true;
+                    object.add(soil);
+
+                    // Leaves (simple spheres for abstraction)
+                    const leafMaterial = new THREE.MeshLambertMaterial({ color: 0x228b22 }); // Forest green
+                    
+                    const stem = new THREE.Mesh(
+                        new THREE.CylinderGeometry(0.03, 0.03, 0.5, 8),
+                        new THREE.MeshLambertMaterial({ color: 0x556b2f }) // Olive green
+                    );
+                    stem.position.y = 0.7;
+                    stem.castShadow = true;
+                    object.add(stem);
+
+                    // Main clump of leaves
+                    const leaves1 = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 16), leafMaterial);
+                    leaves1.position.y = 1.0;
+                    leaves1.castShadow = true;
+                    object.add(leaves1);
+
+                    const leaves2 = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), leafMaterial);
+                    leaves2.position.set(0.3, 1.1, 0.2);
+                    leaves2.castShadow = true;
+                    object.add(leaves2);
+
+                    const leaves3 = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), leafMaterial);
+                    leaves3.position.set(-0.2, 0.9, -0.3);
+                    leaves3.castShadow = true;
+                    object.add(leaves3);
+                    break;
+            }
+
+            object.name = objectName;
+            object.position.set(
+                (Math.random() - 0.5) * 4, // Random X within room bounds
+                0, // Objects start on the floor (Y is adjusted within the object group for height)
+                (Math.random() - 0.5) * 4  // Random Z within room bounds
+            );
+
+            room.add(object);
+            roomObjects.push(object); // Add to our tracking array
+            updateObjectList();
+        }
+
+        function deleteSelected() {
+            if (selectedObject) {
+                room.remove(selectedObject); // Remove from scene
+                roomObjects = roomObjects.filter(obj => obj !== selectedObject); // Remove from array
+                
+                // Dispose of geometry and materials to free up memory
+                selectedObject.traverse((child) => {
+                    if (child.isMesh) {
+                        child.geometry.dispose();
+                        if (Array.isArray(child.material)) {
+                            child.material.forEach(material => material.dispose());
+                        } else {
+                            child.material.dispose();
+                        }
+                    }
+                });
+
+                selectedObject = null; // Clear selection
+                updateSelectedInfo();
+                updateObjectList();
+            }
+        }
+
+        function updateSelectedPosition() {
+            if (selectedObject) {
+                // Update position based on slider values
+                selectedObject.position.x = parseFloat(document.getElementById('posX').value);
+                selectedObject.position.y = parseFloat(document.getElementById('posY').value);
+                selectedObject.position.z = parseFloat(document.getElementById('posZ').value);
+            }
+        }
+
+        function updateSelectedRotation() {
+            if (selectedObject) {
+                // Update rotation (Y-axis only for simplicity)
+                selectedObject.rotation.y = parseFloat(document.getElementById('rotY').value);
+            }
+        }
+
+        function toggleAutoRotate() {
+            autoRotate = !autoRotate;
+            document.getElementById('toggleAutoRotate').textContent = autoRotate ? '自動回転 ON' : '自動回転 OFF';
+        }
+        
+        // 【バグ修正】回転速度スライダーの値を反映させる関数
+        function updateRotationSpeed(event) {
+            rotationSpeed = parseFloat(event.target.value);
+        }
+
+        function toggleLighting() {
+            lightingEnabled = !lightingEnabled;
+            // Adjust light intensity
+            ambientLight.intensity = lightingEnabled ? 0.6 : 0.2;
+            directionalLight.intensity = lightingEnabled ? 0.8 : 0.2;
+            document.getElementById('toggleLighting').textContent = lightingEnabled ? '照明 ON' : '照明 OFF';
+        }
+
+        function resetCamera() {
+            room.rotation.set(0, 0, 0); // Reset room rotation
+            camera.position.set(0, 2, 5); // Reset camera position
+            camera.lookAt(0, 0, 0); // Make camera look at the center
+        }
+
+        function toggleUIVisibility() {
+            const mainPanel = document.getElementById('mainPanel');
+            mainPanel.classList.toggle('hidden'); // Toggle the 'hidden' class
+
+            const toggleButton = document.getElementById('toggleUIVisibility');
+            if (mainPanel.classList.contains('hidden')) {
+                toggleButton.textContent = 'UIを表示';
+                toggleButton.style.width = 'auto'; /* Allow button to shrink */
+            } else {
+                toggleButton.textContent = 'UIを隠す';
+                toggleButton.style.width = '100%'; /* Button takes full width when panel is visible */
+            }
+        }
+
+        function saveRoom() {
+            const saveData = {
+                objects: roomObjects.map(obj => ({
+                    name: obj.name,
+                    position: { x: obj.position.x, y: obj.position.y, z: obj.position.z },
+                    rotation: { x: obj.rotation.x, y: obj.rotation.y, z: obj.rotation.z },
+                    scale: { x: obj.scale.x, y: obj.scale.y, z: obj.scale.z }
+                })),
+                roomRotation: { x: room.rotation.x, y: room.rotation.y, z: room.rotation.z },
+                timestamp: new Date().toISOString()
+            };
+
+            // Save to localStorage for persistence across sessions
+            localStorage.setItem("myRoomData", JSON.stringify(saveData));
+            
+            alert('部屋のデータが保存されました！');
+            console.log('Room saved:', saveData);
+        }
+
+        function loadRoom() {
+            const savedDataString = localStorage.getItem("myRoomData");
+            if (savedDataString) {
+                clearRoom(); // Clear current room before loading
+                
+                const data = JSON.parse(savedDataString);
+                
+                // Restore room rotation
+                room.rotation.set(data.roomRotation.x, data.roomRotation.y, data.roomRotation.z);
+                
+                // Restore objects
+                data.objects.forEach(objData => {
+                    const type = objData.name.split('_')[0]; // Extract original type (e.g., 'chair')
+                    addObject(type); // Create a new object of that type
+                    
+                    const lastObject = roomObjects[roomObjects.length - 1]; // Get the newly added object
+                    lastObject.name = objData.name; // Restore its original name
+                    lastObject.position.set(objData.position.x, objData.position.y, objData.position.z);
+                    lastObject.rotation.set(objData.rotation.x, objData.rotation.y, objData.rotation.z);
+                    lastObject.scale.set(objData.scale.x, objData.scale.y, objData.scale.z);
+                });
+                
+                // 【バグ修正】読み込んだオブジェクトの最大の番号に合わせて、オブジェクトカウンターを更新します。
+                // これにより、読み込み後に新しいオブジェクトを追加した際に、番号が重複・逆行するのを防ぎます。
+                let maxId = 0;
+                roomObjects.forEach(obj => {
+                    const parts = obj.name.split('_');
+                    if (parts.length > 1) {
+                        const id = parseInt(parts[parts.length - 1], 10);
+                        if (!isNaN(id) && id > maxId) {
+                            maxId = id;
+                        }
+                    }
+                });
+                objectCount = maxId;
+
+                updateObjectList();
+                alert('部屋のデータが読み込まれました！');
+            } else {
+                alert('保存されたデータがありません。');
+            }
+        }
+
+        function clearRoom() {
+            // Remove all custom objects from the room and dispose resources
+            roomObjects.forEach(obj => {
+                room.remove(obj);
+                obj.traverse((child) => {
+                    if (child.isMesh) {
+                        child.geometry.dispose();
+                        if (Array.isArray(child.material)) {
+                            child.material.forEach(material => material.dispose());
+                        } else {
+                            child.material.dispose();
+                        }
+                    }
+                });
+            });
+            
+            roomObjects = []; // Clear the tracking array
+            selectedObject = null; // Clear any selection
+            objectCount = 0; // Reset object counter
+            updateSelectedInfo();
+            updateObjectList();
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate); // Loop animation
+            
+            if (autoRotate && !isManualControl) { // Auto-rotate if enabled and not manually controlled
+                room.rotation.y += rotationSpeed;
+            }
+            
+            renderer.render(scene, camera); // Render the scene
+        }
+
+        // Initialize the 3D scene when the window loads
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
