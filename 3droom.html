@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern 3D Room Editor (Compact) - Fixed</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+            color: white;
+        }
+
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Main Panel Styling */
+        .main-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            border-radius: 12px;
+            padding: 10px; /* Reduced padding */
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            width: 220px; /* Compact width */
+            max-height: calc(100vh - 40px); /* Limit height to viewport */
+            overflow-y: auto; /* Enable scrolling if content overflows */
+            z-index: 10;
+            display: block; /* Default to visible */
+            transition: all 0.3s ease;
+        }
+
+        .main-panel.hidden {
+            transform: translateX(calc(-100% - 20px)); /* Move off-screen */
+        }
+
+        .panel-title {
+            font-size: 13px; /* Slightly smaller title */
+            font-weight: bold;
+            margin-bottom: 8px; /* Reduced margin */
+            color: #64b5f6;
+            text-align: center;
+        }
+
+        /* Tab Navigation */
+        .tab-nav {
+            display: flex;
+            margin-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 5px;
+        }
+
+        .tab-button {
+            flex-grow: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            padding: 6px 0; /* Smaller padding */
+            font-size: 11px; /* Smaller font */
+            cursor: pointer;
+            border-radius: 4px;
+            margin: 0 2px;
+            transition: background 0.3s ease;
+        }
+
+        .tab-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .tab-button.active {
+            background: #42a5f5;
+            box-shadow: 0 2px 8px rgba(66, 165, 245, 0.3);
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+            padding-top: 5px; /* Small padding */
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #42a5f5, #1e88e5);
+            border: none;
+            color: white;
+            padding: 6px 10px; /* Reduced padding */
+            margin: 2px 0; /* Reduced margin */
+            border-radius: 5px; /* Slightly smaller radius */
+            cursor: pointer;
+            font-size: 11px; /* Smaller font */
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px); /* Less dramatic hover */
+            box-shadow: 0 3px 9px rgba(66, 165, 245, 0.4);
+        }
+
+        .btn.danger {
+            background: linear-gradient(45deg, #e57373, #f44336);
+        }
+
+        .btn.success {
+            background: linear-gradient(45deg, #81c784, #4caf50);
+        }
+
+        .slider-container {
+            margin: 6px 0; /* Reduced margin */
+        }
+
+        .slider-label {
+            font-size: 10px; /* Smaller font */
+            margin-bottom: 2px; /* Reduced margin */
+            color: #bbb;
+        }
+
+        .slider {
+            width: 100%;
+            height: 3px; /* Thinner slider */
+            border-radius: 2px;
+            background: #333;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 10px; /* Smaller thumb */
+            height: 10px;
+            border-radius: 50%;
+            background: #42a5f5;
+            cursor: pointer;
+        }
+
+        .status {
+            font-size: 10px; /* Smaller font */
+            color: #81c784;
+            margin: 4px 0; /* Reduced margin */
+            text-align: center;
+        }
+
+        .object-list {
+            max-height: 120px; /* Compact list height */
+            overflow-y: auto;
+            margin: 8px 0; /* Reduced margin */
+            padding-right: 3px; /* For scrollbar spacing */
+        }
+
+        .object-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px; /* Reduced padding */
+            margin: 2px 0; /* Reduced margin */
+            border-radius: 3px;
+            font-size: 10px; /* Smaller font */
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .object-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .object-item.selected {
+            background: rgba(66, 165, 245, 0.3);
+            border: 1px solid #42a5f5;
+        }
+
+        #selectedInfo {
+            font-size: 11px;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        /* Loading Spinner - unchanged */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 1000;
+            color: white;
+            font-size: 14px;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid #42a5f5;
+            border-radius: 50%;
+            width: 30px; /* Smaller spinner */
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive adjustments for very small screens */
+        @media (max-width: 600px) {
+            .main-panel {
+                width: 180px; /* Even smaller width for mobile */
+                left: 10px;
+                padding: 8px;
+            }
+
+            .btn, .tab-button {
+                font-size: 10px;
+                padding: 5px 8px;
+            }
+
+            .panel-title {
+                font-size: 12px;
+            }
+
+            .slider-label, .status, .object-item, #selectedInfo {
+                font-size: 9px;
+            }
+
+            .object-list {
+                max-height: 100px; /* Further reduced height for smaller screens */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="canvas-container"></div>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <div>3D部屋を読み込み中...</div>
+        </div>
+
+        <div class="main-panel" id="mainPanel">
+            <button class="btn" id="toggleUIVisibility">UIを隠す</button>
+            <div class="tab-nav">
+                <button class="tab-button active" data-tab="control">操作</button>
+                <button class="tab-button" data-tab="object">追加</button>
+                <button class="tab-button" data-tab="transform">調整</button>
+                <button class="tab-button" data-tab="data">データ</button>
+            </div>
+
+            <div id="control-tab" class="tab-content active">
+                <div class="panel-title">🎛 コントロール</div>
+                <button class="btn" id="toggleAutoRotate">自動回転 OFF</button>
+                <button class="btn" id="toggleLighting">照明 ON</button>
+                <button class="btn" id="resetCamera">カメラリセット</button>
+                
+                <div class="slider-container">
+                    <div class="slider-label">回転速度</div>
+                    <input type="range" class="slider" id="rotationSpeed" min="0.001" max="0.02" step="0.001" value="0.005">
+                </div>
+                <div class="status" id="cameraStatus">カメラ準備完了</div>
+            </div>
+
+            <div id="object-tab" class="tab-content">
+                <div class="panel-title">🪑 オブジェクト追加</div>
+                <button class="btn" id="addChair">椅子を追加</button>
+                <button class="btn" id="addTable">テーブルを追加</button>
+                <button class="btn" id="addLamp">ランプを追加</button>
+                <button class="btn" id="addSofa">ソファを追加</button>
+                <button class="btn" id="addBookshelf">本棚を追加</button>
+                <button class="btn" id="addPlant">観葉植物を追加</button>
+                <button class="btn danger" id="deleteSelected">選択を削除</button>
+                
+                <div class="object-list" id="objectList"></div>
+            </div>
+
+            <div id="transform-tab" class="tab-content">
+                <div class="panel-title">📍 選択オブジェクト</div>
+                <div id="selectedInfo">オブジェクトを選択してください</div>
+                
+                <div id="transformControls" style="display: none;">
+                    <div class="slider-container">
+                        <div class="slider-label">X位置</div>
+                        <input type="range" class="slider" id="posX" min="-5" max="5" step="0.1" value="0">
+                    </div>
+                    <div class="slider-container">
+                        <div class="slider-label">Y位置</div>
+                        <input type="range" class="slider" id="posY" min="0" max="3" step="0.1" value="0">
+                    </div>
+                    <div class="slider-container">
+                        <div class="slider-label">Z位置</div>
+                        <input type="range" class="slider" id="posZ" min="-5" max="5" step="0.1" value="0">
+                    </div>
+                    <div class="slider-container">
+                        <div class="slider-label">回転</div>
+                        <input type="range" class="slider" id="rotY" min="0" max="6.28" step="0.1" value="0">
+                    </div>
+                </div>
+            </div>
+
+            <div id="data-tab" class="tab-content">
+                <div class="panel-title">💾 データ</div>
+                <button class="btn success" id="saveRoom">部屋を保存</button>
+                <button class="btn" id="loadRoom">部屋を読み込み</button>
+                <button class="btn danger" id="clearRoom">全てクリア</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Global variables
+        let scene, camera, renderer, room;
+        let autoRotate = false;
+        let rotationSpeed = 0.005;
+        let selectedObject = null;
+        let objectCount = 0;
+        let roomObjects = []; // Manages objects in the room
+        let ambientLight, directionalLight;
+        let lightingEnabled = true;
+
+        // Mouse/touch variables for manual control
+        let mouse = new THREE.Vector2();
+        let raycaster = new THREE.Raycaster();
+        let isManualControl = false; // Flag to indicate if user is manually controlling the room
+
+        // Initialize the 3D scene
+        function init() {
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a1a2e); // Dark background
+
+            // Camera setup
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 2, 5); // Initial camera position
+
+            // Renderer setup
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true; // Enable shadows
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Soft shadows
+            renderer.outputEncoding = THREE.sRGBEncoding; // For better color reproduction
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            // Create room
+            createRoom();
+            
+            // Setup lighting
+            setupLighting();
+            
+            // Setup controls (manual rotation for the room)
+            setupControls();
+            
+            // Setup event listeners for UI interactions
+            setupEventListeners();
+            
+            // Start auto rotation after 5 seconds
+            setTimeout(() => {
+                if (!isManualControl) { // Don't start if user is already interacting
+                    autoRotate = true;
+                    document.getElementById('toggleAutoRotate').textContent = '自動回転 ON';
+                }
+            }, 5000);
+
+            // Hide loading screen once initialized
+            document.getElementById('loading').style.display = 'none';
+
+            // Start animation loop
+            animate();
+        }
+
+        function createRoom() {
+            room = new THREE.Group();
+            room.name = 'room';
+
+            // Room dimensions
+            const roomSize = 8;
+            const roomHeight = 4;
+
+            // Floor
+            const floorGeometry = new THREE.PlaneGeometry(roomSize, roomSize);
+            const floorMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0x2c3e50, // Dark blue-grey
+                transparent: true,
+                opacity: 0.9
+            });
+            const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+            floor.rotation.x = -Math.PI / 2; // Rotate to lay flat
+            floor.receiveShadow = true; // Floor receives shadows
+            room.add(floor);
+
+            // Walls
+            const wallMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0x34495e, // Slightly lighter blue-grey
+                side: THREE.DoubleSide, // Render both sides
+                transparent: true,
+                opacity: 0.8
+            });
+
+            // Back wall
+            const backWall = new THREE.Mesh(
+                new THREE.PlaneGeometry(roomSize, roomHeight),
+                wallMaterial
+            );
+            backWall.position.set(0, roomHeight / 2, -roomSize / 2);
+            room.add(backWall);
+
+            // Left wall
+            const leftWall = new THREE.Mesh(
+                new THREE.PlaneGeometry(roomSize, roomHeight),
+                wallMaterial
+            );
+            leftWall.position.set(-roomSize / 2, roomHeight / 2, 0);
+            leftWall.rotation.y = Math.PI / 2;
+            room.add(leftWall);
+
+            // Right wall
+            const rightWall = new THREE.Mesh(
+                new THREE.PlaneGeometry(roomSize, roomHeight),
+                wallMaterial
+            );
+            rightWall.position.set(roomSize / 2, roomHeight / 2, 0);
+            rightWall.rotation.y = -Math.PI / 2;
+            room.add(rightWall);
+
+            scene.add(room); // Add the room group to the scene
+        }
+
+        function setupLighting() {
+            // Ambient light (soft general illumination)
+            ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+            scene.add(ambientLight);
+
+            // Directional light (simulates sun, casts shadows)
+            directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 10, 5); // Light source position
+            directionalLight.castShadow = true; // Enable shadow casting for this light
+            // Shadow map settings for better quality
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            directionalLight.shadow.camera.near = 0.5;
+            directionalLight.shadow.camera.far = 50;
+            directionalLight.shadow.camera.left = -10;
+            directionalLight.shadow.camera.right = 10;
+            directionalLight.shadow.camera.top = 10;
+            directionalLight.shadow.camera.bottom = -10;
+            scene.add(directionalLight);
+        }
+
+        function setupControls() {
+            // Simple manual controls for rotating the room (no external library)
+            let isMouseDown = false;
+            let mouseX = 0;
+            let mouseY = 0;
+
+            renderer.domElement.addEventListener('mousedown', (event) => {
+                if (event.button === 0) { // Left mouse button
+                    isMouseDown = true;
+                    isManualControl = true; // User is manually controlling
+                    mouseX = event.clientX;
+                    mouseY = event.clientY;
+                }
+            });
+
+            renderer.domElement.addEventListener('mousemove', (event) => {
+                if (isMouseDown) {
+                    const deltaX = event.clientX - mouseX;
+                    const deltaY = event.clientY - mouseY;
+                    
+                    room.rotation.y += deltaX * 0.01; // Rotate room around Y axis
+                    room.rotation.x += deltaY * 0.01; // Rotate room around X axis
+                    
+                    // Limit vertical rotation to prevent flipping
+                    room.rotation.x = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, room.rotation.x));
+                    
+                    mouseX = event.clientX;
+                    mouseY = event.clientY;
+                }
+            });
+
+            renderer.domElement.addEventListener('mouseup', () => {
+                isMouseDown = false;
+                // Add a small delay before resetting isManualControl to allow for quick clicks vs drags
+                setTimeout(() => { isManualControl = false; }, 1000);
+            });
+
+            // Touch controls for mobile
+            renderer.domElement.addEventListener('touchstart', (event) => {
+                if (event.touches.length === 1) { // Single touch for rotation
+                    isMouseDown = true;
+                    isManualControl = true;
+                    mouseX = event.touches[0].clientX;
+                    mouseY = event.touches[0].clientY;
+                }
+            });
+
+            renderer.domElement.addEventListener('touchmove', (event) => {
+                if (isMouseDown && event.touches.length === 1) {
+                    const deltaX = event.touches[0].clientX - mouseX;
+                    const deltaY = event.touches[0].clientY - mouseY;
+                    
+                    room.rotation.y += deltaX * 0.01;
+                    room.rotation.x += deltaY * 0.01;
+                    
+                    room.rotation.x = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, room.rotation.x));
+                    
+                    mouseX = event.touches[0].clientX;
+                    mouseY = event.touches[0].clientY;
+                }
+                event.preventDefault(); // Prevent scrolling
+            });
+
+            renderer.domElement.addEventListener('touchend', () => {
+                isMouseDown = false;
+                setTimeout(() => { isManualControl = false; }, 1000);
+            });
+        }
+
+        function setupEventListeners() {
+            // Object selection via canvas click
+            renderer.domElement.addEventListener('click', onCanvasClick);
+
+            // Tab navigation
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                    event.target.classList.add('active');
+
+                    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                    const tabId = event.target.dataset.tab;
+                    document.getElementById(tabId + '-tab').classList.add('active');
+ 
