@@ -3,24 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modern 3D Room Editor - Photo Wall</title>
+    <title>Modern 3D Room Editor - Simple Objects</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; overflow: hidden; }
         #container { position: relative; width: 100vw; height: 100vh; }
-        #canvas-container { width: 100%; height: 100%; cursor: pointer; }
-        .main-panel { position: absolute; top: 20px; left: 20px; background: rgba(0, 0, 0, 0.85); border-radius: 12px; padding: 10px; width: 220px; max-height: calc(100vh - 40px); overflow-y: auto; z-index: 10; }
+        #canvas-container { width: 100%; height: 100%; cursor: grab; }
+        #canvas-container.grabbing { cursor: grabbing; }
+        
+        #ui-toggle-btn {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 20;
+            width: 100px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white; /* 追加: ボタンの文字色を白に */
+            padding: 8px 12px; /* 追加: パディングを調整 */
+            border-radius: 6px; /* 追加: 角を丸くする */
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background 0.3s ease; /* 追加: ホバーアニメーション */
+        }
+        #ui-toggle-btn:hover {
+            background: rgba(0, 0, 0, 0.9);
+        }
+
+        .main-panel { position: absolute; top: 20px; left: 20px; background: rgba(0, 0, 0, 0.85); border-radius: 12px; padding: 10px; width: 240px; max-height: calc(100vh - 40px); overflow-y: auto; z-index: 10; }
         .main-panel.hidden { display: none; }
         .tab-nav { display: flex; margin-bottom: 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
-        .tab-button { flex-grow: 1; background: rgba(255, 255, 255, 0.1); border: none; color: white; cursor: pointer; padding: 8px; }
+        .tab-button { flex-grow: 1; background: rgba(255, 255, 255, 0.1); border: none; color: white; cursor: pointer; padding: 8px; font-size: 0.9em; }
         .tab-button.active { background: #42a5f5; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
         .btn { background: linear-gradient(45deg, #42a5f5, #1e88e5); border: none; color: white; padding: 6px 10px; cursor: pointer; width: 100%; margin-bottom: 5px; border-radius: 4px; }
         .btn.danger { background: linear-gradient(45deg, #f44336, #d32f2f); }
         .btn.success { background: linear-gradient(45deg, #4caf50, #388e3c); }
+        #object-btn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+        #object-btn-grid .btn { width: 100%; height: 60px; padding: 4px; font-size: 0.8em; margin-bottom: 0; white-space: normal; line-height: 1.2; }
         .object-list { max-height: 120px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.1); padding: 5px; border-radius: 4px; }
-        .object-item { background: rgba(255, 255, 255, 0.1); padding: 4px; cursor: pointer; margin-bottom: 2px; border-radius: 2px; }
+        .object-item { background: rgba(255, 255, 255, 0.1); padding: 4px; cursor: pointer; margin-bottom: 2px; border-radius: 2px; font-size: 0.9em; }
         .object-item.selected { background: rgba(66, 165, 245, 0.3); }
         .loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; text-align: center; }
         .spinner { border: 3px solid rgba(255, 255, 255, 0.3); border-top: 3px solid #42a5f5; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto 10px; }
@@ -29,14 +52,20 @@
         .slider-label { font-size: 0.9em; color: #eee; margin-bottom: 3px; display: block; }
         .slider { width: 100%; }
         .panel-title { font-size: 1.1em; margin-bottom: 10px; color: #eee; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 5px; }
+        .color-btn-group { display: flex; justify-content: space-between; margin-top: 5px; }
+        .color-btn-group .btn { width: 48%; }
+        .checkbox-container { display: flex; align-items: center; margin-top: 10px; }
+        .checkbox-container label { margin-left: 8px; font-size: 0.9em; }
     </style>
 </head>
 <body>
     <div id="container">
         <div id="canvas-container"></div>
         <div class="loading" id="loading"><div class="spinner"></div><div>読み込み中...</div></div>
+        
+        <button class="btn" id="ui-toggle-btn">UIを隠す</button>
+        
         <div class="main-panel" id="mainPanel">
-            <button class="btn" id="toggleUIVisibility">UIを隠す</button>
             <div class="tab-nav">
                 <button class="tab-button active" data-tab="control">操作</button>
                 <button class="tab-button" data-tab="object">追加</button>
@@ -45,24 +74,43 @@
             </div>
             <div id="control-tab" class="tab-content active">
                 <div class="panel-title">🎛️ コントロール</div>
+                <button class="btn" id="toggleDayNight">☀️ 昼モード</button>
                 <button class="btn" id="toggleAutoRotate">自動回転 OFF</button>
-                <button class="btn" id="toggleLighting">照明 ON</button>
-                <button class="btn" id="resetCamera">カメラリセット</button>
                 <div class="slider-container">
                     <div class="slider-label">回転速度</div>
-                    <input type="range" class="slider" id="rotationSpeed" min="0.001" max="0.02" step="0.001" value="0.005">
+                    <input type="range" class="slider" id="rotationSpeed" min="0.1" max="2.0" step="0.1" value="0.5">
                 </div>
+                 <div class="checkbox-container">
+                    <input type="checkbox" id="snapToggle"> <label for="snapToggle">スナップ移動</label>
+                </div>
+                 <hr style="border-color: rgba(255,255,255,0.1); margin: 15px 0;">
+                <button class="btn success" id="autoArrangeBtn">家具を自動整列</button>
+                <hr style="border-color: rgba(255,255,255,0.1); margin: 15px 0;">
+                <div class="panel-title">🎨 カラー変更</div>
+                 <div class="color-btn-group">
+                    <button class="btn" id="changeWallColor">壁の色</button>
+                    <button class="btn" id="changeFloorColor">床の色</button>
+                </div>
+                 <hr style="border-color: rgba(255,255,255,0.1); margin: 15px 0;">
+                <button class="btn" id="resetCamera">カメラリセット</button>
             </div>
             <div id="object-tab" class="tab-content">
                 <div class="panel-title">🪑 オブジェクト追加</div>
                 <button class="btn success" id="addPhotoBtn">写真を壁に追加</button>
                 <input type="file" id="photoInput" accept="image/*" style="display: none;">
-                <button class="btn" id="addChair">椅子を追加</button>
-                <button class="btn" id="addTable">テーブルを追加</button>
-                <button class="btn" id="addLamp">ランプを追加</button>
-                <button class="btn" id="addSofa">ソファを追加</button>
-                <button class="btn" id="addBookshelf">本棚を追加</button>
-                <button class="btn" id="addPlant">観葉植物を追加</button>
+                <hr style="border-color: rgba(255,255,255,0.1); margin: 10px 0;">
+                <div id="object-btn-grid">
+                    <button class="btn" id="addChair">椅子</button>
+                    <button class="btn" id="addTable">テーブル</button>
+                    <button class="btn" id="addLamp">ランプ</button>
+                    <button class="btn" id="addSofa">ソファ</button>
+                    <button class="btn" id="addBookshelf">本棚</button>
+                    <button class="btn" id="addPlant">観葉植物</button>
+                    <button class="btn" id="addTV">テレビ</button>
+                    <button class="btn" id="addRug">ラグ</button>
+                    <button class="btn" id="addFloorLamp">フロアランプ</button>
+                </div>
+                 <hr style="border-color: rgba(255,255,255,0.1); margin: 10px 0;">
                 <button class="btn danger" id="deleteSelected">選択を削除</button>
                 <div class="object-list" id="objectList"></div>
             </div>
@@ -70,10 +118,9 @@
                 <div class="panel-title">📍 選択オブジェクト</div>
                 <div id="selectedInfo">オブジェクトを選択してください</div>
                 <div id="transformControls" style="display: none;">
-                    <div class="slider-container"><div class="slider-label">X位置</div><input type="range" class="slider" id="posX" min="-5" max="5" step="0.1" value="0"></div>
-                    <div class="slider-container"><div class="slider-label">Y位置</div><input type="range" class="slider" id="posY" min="0" max="3" step="0.1" value="0"></div>
-                    <div class="slider-container"><div class="slider-label">Z位置</div><input type="range" class="slider" id="posZ" min="-5" max="5" step="0.1" value="0"></div>
-                    <div class="slider-container"><div class="slider-label">回転</div><input type="range" class="slider" id="rotY" min="0" max="6.28" step="0.1" value="0"></div>
+                    <p style="font-size: 0.8em; color: #ccc; margin-bottom: 10px;">X/Zの位置はドラッグで調整します。</p>
+                    <div class="slider-container"><div class="slider-label">Y位置 (高さ)</div><input type="range" class="slider" id="posY" min="0" max="3" step="0.05" value="0"></div>
+                    <div class="slider-container"><div class="slider-label">Y回転 (向き)</div><input type="range" class="slider" id="rotY" min="0" max="6.28" step="0.1" value="0"></div>
                 </div>
             </div>
             <div id="data-tab" class="tab-content">
@@ -87,161 +134,121 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
+        // --- Core Scene Variables ---
         let scene, camera, renderer, room;
-        let autoRotate = false, rotationSpeed = 0.005, selectedObject = null, objectCount = 0, roomObjects = [];
-        let ambientLight, directionalLight, isManualControl = false, mouse = new THREE.Vector2(), raycaster = new THREE.Raycaster();
-        let lightingEnabled = true;
+        let ambientLight, directionalLight;
+        let mouse = new THREE.Vector2(), raycaster = new THREE.Raycaster();
 
-        let lastIntersectPoint = null;
-        let clickedWall = null;
-        let wallMaterial; // 壁マテリアルをグローバルで参照可能に
+        // --- Object & State Management ---
+        let selectedObject = null, objectCount = 0, roomObjects = [];
+        let wallMaterial, floorMaterial;
+        const WALL_NAMES = ['backWall', 'leftWall', 'rightWall'];
+        
+        // --- Interaction & UI State ---
+        let autoRotate = false, rotationSpeed = 0.5, isDayMode = true, snapToGrid = false;
+        let lastIntersectPoint = null, clickedWall = null;
+        let draggablePlane, draggedObject = null;
+        let isDragging = false, isRotating = false;
+        let lastValidPosition = new THREE.Vector3();
+        const cameraRadius = 8;
+        let cameraAngleY = 0, cameraAngleX = 0.3;
+        let previousMousePosition = { x: 0, y: 0 }; // カメラ回転用
 
+        // --- Color Palettes ---
+        const wallColors = [0x34495e, 0x737a80, 0xad8f78, 0x6a8d82, 0x9c8a91];
+        const floorColors = [0x2c3e50, 0x5a4d41, 0x9e9e9e, 0x4d4d4d];
+        let wallColorIndex = 0, floorColorIndex = 0;
+        
+        // --- Materials (moved to a higher scope) ---
+        const MATERIALS = {
+            wood: new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.7 }),
+            fabric: new THREE.MeshStandardMaterial({ color: 0x787878, roughness: 0.9 }),
+            metal: new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.8, roughness: 0.2 }),
+            plant: new THREE.MeshStandardMaterial({ color: 0x228b22, roughness: 0.8 }),
+            pot: new THREE.MeshStandardMaterial({ color: 0x966F33, roughness: 0.6 }),
+            screen: new THREE.MeshStandardMaterial({ color: 0x050505 }),
+            lampShade: new THREE.MeshStandardMaterial({ color: 0xfffde3, emissive: 0x000000, roughness: 0.8 }) // Emissive will be updated based on day/night
+        };
+
+        // --- Initialization ---
         function init() {
+            setupScene();
+            setupLighting();
+            createRoom();
+            setupEventListeners();
+            document.getElementById('loading').style.display = 'none';
+            // UIを初期状態で表示
+            document.getElementById('mainPanel').classList.remove('hidden'); 
+            document.getElementById('ui-toggle-btn').textContent = 'UIを隠す';
+            animate();
+        }
+
+        function setupScene() {
+            const canvasContainer = document.getElementById('canvas-container');
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x1a1a2e);
+            scene.background = new THREE.Color(0x87ceeb);
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 2, 6); // 少し引いて見やすく
+            updateCameraPosition();
+            
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.shadowMap.enabled = true;
-            document.getElementById('canvas-container').appendChild(renderer.domElement);
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            canvasContainer.appendChild(renderer.domElement);
             
-            createRoom();
-            setupLighting();
-            setupControls();
-            setupEventListeners();
-            
-            setTimeout(() => { 
-                if (!isManualControl) { 
-                    autoRotate = true; 
-                    document.getElementById('toggleAutoRotate').textContent = '自動回転 ON'; 
-                }
-            }, 5000);
-            document.getElementById('loading').style.display = 'none';
-            animate();
+            draggablePlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        }
+
+        function setupLighting() {
+            ambientLight = new THREE.AmbientLight(0xffffff, 0.7); 
+            scene.add(ambientLight);
+            directionalLight = new THREE.DirectionalLight(0xffffff, 0.8); 
+            directionalLight.position.set(5, 10, 7.5); 
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 1024;
+            directionalLight.shadow.mapSize.height = 1024;
+            directionalLight.shadow.camera.near = 0.5;
+            directionalLight.shadow.camera.far = 50;
+            directionalLight.shadow.camera.left = -10;
+            directionalLight.shadow.camera.right = 10;
+            directionalLight.shadow.camera.top = 10;
+            directionalLight.shadow.camera.bottom = -10;
+            scene.add(directionalLight);
         }
 
         function createRoom() {
             room = new THREE.Group();
             const roomSize = 10, roomHeight = 4;
-            const floor = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, roomSize), new THREE.MeshLambertMaterial({ color: 0x2c3e50 }));
+            floorMaterial = new THREE.MeshStandardMaterial({ color: floorColors[floorColorIndex], roughness: 0.8 });
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, roomSize), floorMaterial);
             floor.rotation.x = -Math.PI / 2; 
             floor.receiveShadow = true; 
             floor.name = 'floor';
             room.add(floor);
             
-            wallMaterial = new THREE.MeshLambertMaterial({ color: 0x34495e, side: THREE.DoubleSide });
-            
-            const backWall = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, roomHeight), wallMaterial);
-            backWall.position.set(0, roomHeight / 2, -roomSize / 2);
-            backWall.name = 'backWall';
-            room.add(backWall);
-
-            const leftWall = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, roomHeight), wallMaterial);
-            leftWall.position.set(-roomSize / 2, roomHeight / 2, 0);
-            leftWall.rotation.y = Math.PI / 2;
-            leftWall.name = 'leftWall';
-            room.add(leftWall);
-
-            const rightWall = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, roomHeight), wallMaterial);
-            rightWall.position.set(roomSize / 2, roomHeight / 2, 0);
-            rightWall.rotation.y = -Math.PI / 2;
-            rightWall.name = 'rightWall';
-            room.add(rightWall);
-            
+            wallMaterial = new THREE.MeshStandardMaterial({ color: wallColors[wallColorIndex], roughness: 0.9, side: THREE.DoubleSide });
+            WALL_NAMES.forEach(name => {
+                const wall = new THREE.Mesh(new THREE.PlaneGeometry(roomSize, roomHeight), wallMaterial);
+                wall.name = name;
+                wall.receiveShadow = true;
+                if (name === 'backWall') wall.position.set(0, roomHeight / 2, -roomSize / 2);
+                if (name === 'leftWall') { wall.position.set(-roomSize / 2, roomHeight / 2, 0); wall.rotation.y = Math.PI / 2; }
+                if (name === 'rightWall') { wall.position.set(roomSize / 2, roomHeight / 2, 0); wall.rotation.y = -Math.PI / 2; }
+                room.add(wall);
+            });
             scene.add(room);
         }
         
-        function addPhotoToWall(dataUrl) {
-            if (!clickedWall) {
-                alert("先に写真を貼りたい壁をクリックしてください。");
-                return;
-            }
-
-            const textureLoader = new THREE.TextureLoader();
-            textureLoader.load(dataUrl, (texture) => {
-                const aspectRatio = texture.image.width / texture.image.height;
-                const photoWidth = 1.5; // 写真の基本幅
-                const photoHeight = photoWidth / aspectRatio;
-
-                const photoGeometry = new THREE.PlaneGeometry(photoWidth, photoHeight);
-                const photoMaterial = new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide });
-                const photoMesh = new THREE.Mesh(photoGeometry, photoMaterial);
-
-                // ワールド座標から壁のローカル座標に変換
-                const localPoint = clickedWall.worldToLocal(lastIntersectPoint.clone());
-                photoMesh.position.copy(localPoint);
-
-                // Z-fighting（面のちらつき）を防ぐために少し手前に出す
-                photoMesh.position.z += 0.01;
-
-                clickedWall.add(photoMesh);
-                
-                // リセット
-                clickedWall = null;
-                lastIntersectPoint = null;
-            });
-        }
-
-        function onCanvasClick(event) {
-            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-            raycaster.setFromCamera(mouse, camera);
-
-            // 壁と家具の両方と交差判定
-            const intersects = raycaster.intersectObjects(room.children, true);
-
-            if (intersects.length > 0) {
-                const firstHit = intersects[0];
-                
-                // 壁がクリックされたか判定
-                if (firstHit.object.material === wallMaterial) {
-                    clickedWall = firstHit.object;
-                    lastIntersectPoint = firstHit.point;
-                    alert(`壁 (${clickedWall.name}) が選択されました。「写真を壁に追加」ボタンから画像を選んでください。`);
-                    deselectObject(); // 家具の選択は解除
-                } else {
-                    // 家具がクリックされた場合の処理
-                    let clickedObject = firstHit.object;
-                    while (clickedObject.parent && !roomObjects.includes(clickedObject)) {
-                        clickedObject = clickedObject.parent;
-                    }
-                    if (roomObjects.includes(clickedObject)) {
-                        selectObject(clickedObject);
-                    }
-                    clickedWall = null; // 壁以外の選択をリセット
-                }
-            } else {
-                deselectObject();
-                clickedWall = null;
-            }
-        }
-        
         function setupEventListeners() {
-            renderer.domElement.addEventListener('click', onCanvasClick);
+            const canvasContainer = document.getElementById('canvas-container');
+            canvasContainer.addEventListener('mousedown', onMouseDown);
+            canvasContainer.addEventListener('mousemove', onMouseMove);
+            canvasContainer.addEventListener('mouseup', onMouseUp);
+            canvasContainer.addEventListener('mouseout', onMouseUp);
+            canvasContainer.addEventListener('touchstart', (e) => onMouseDown(e.touches[0]), { passive: false });
+            canvasContainer.addEventListener('touchmove', (e) => { e.preventDefault(); onMouseMove(e.touches[0]); }, { passive: false });
+            canvasContainer.addEventListener('touchend', onMouseUp);
             
-            // Photo Upload Logic
-            document.getElementById('addPhotoBtn').addEventListener('click', () => {
-                if (!clickedWall) {
-                    alert("写真を貼り付けたい壁面を先にクリックしてください。");
-                    return;
-                }
-                document.getElementById('photoInput').click();
-            });
-
-            document.getElementById('photoInput').addEventListener('change', (event) => {
-                const file = event.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        addPhotoToWall(e.target.result);
-                    };
-                    reader.readAsDataURL(file);
-                }
-                // 同じファイルを連続でアップロードできるように値をリセット
-                event.target.value = null; 
-            });
-
             document.querySelectorAll('.tab-button').forEach(button => {
                 button.addEventListener('click', (event) => {
                     document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
@@ -250,194 +257,337 @@
                     document.getElementById(event.target.dataset.tab + '-tab').classList.add('active');
                 });
             });
+            
+            document.getElementById('addPhotoBtn').addEventListener('click', onAddPhotoClick);
+            document.getElementById('photoInput').addEventListener('change', onPhotoFileChange);
+            document.getElementById('toggleDayNight').addEventListener('click', toggleDayNight);
             document.getElementById('toggleAutoRotate').addEventListener('click', toggleAutoRotate);
-            document.getElementById('toggleLighting').addEventListener('click', toggleLighting);
             document.getElementById('resetCamera').addEventListener('click', resetCamera);
-            document.getElementById('rotationSpeed').addEventListener('input', event => rotationSpeed = parseFloat(event.target.value));
+            document.getElementById('autoArrangeBtn').addEventListener('click', autoArrange);
+            document.getElementById('changeWallColor').addEventListener('click', changeWallColor);
+            document.getElementById('changeFloorColor').addEventListener('click', changeFloorColor);
+            document.getElementById('snapToggle').addEventListener('change', (e) => snapToGrid = e.target.checked);
+            document.getElementById('rotationSpeed').addEventListener('input', e => rotationSpeed = parseFloat(e.target.value));
             document.getElementById('addChair').addEventListener('click', () => addObject('chair'));
             document.getElementById('addTable').addEventListener('click', () => addObject('table'));
             document.getElementById('addLamp').addEventListener('click', () => addObject('lamp'));
             document.getElementById('addSofa').addEventListener('click', () => addObject('sofa'));
             document.getElementById('addBookshelf').addEventListener('click', () => addObject('bookshelf'));
             document.getElementById('addPlant').addEventListener('click', () => addObject('plant'));
-            document.getElementById('deleteSelected').addEventListener('click', deleteSelected);
-            document.getElementById('posX').addEventListener('input', updateSelectedPosition);
+            document.getElementById('addTV').addEventListener('click', () => addObject('tv'));
+            document.getElementById('addRug').addEventListener('click', () => addObject('rug'));
+            document.getElementById('addFloorLamp').addEventListener('click', () => addObject('floorLamp'));
+            document.getElementById('deleteSelected').addEventListener('click', () => deleteSelected());
             document.getElementById('posY').addEventListener('input', updateSelectedPosition);
-            document.getElementById('posZ').addEventListener('input', updateSelectedPosition);
             document.getElementById('rotY').addEventListener('input', updateSelectedRotation);
             document.getElementById('saveRoom').addEventListener('click', saveRoom);
             document.getElementById('loadRoom').addEventListener('click', loadRoom);
-            document.getElementById('clearRoom').addEventListener('click', clearRoom);
-            document.getElementById('toggleUIVisibility').addEventListener('click', toggleUIVisibility);
+            document.getElementById('clearRoom').addEventListener('click', () => clearRoom(true));
+            document.getElementById('ui-toggle-btn').addEventListener('click', toggleUIVisibility);
             window.addEventListener('resize', onWindowResize);
         }
-
-        // --- 以下、既存の関数群（一部修正なし） ---
         
-        function setupLighting() {
-            ambientLight = new THREE.AmbientLight(0x404040, lightingEnabled ? 0.8 : 0.2); scene.add(ambientLight);
-            directionalLight = new THREE.DirectionalLight(0xffffff, lightingEnabled ? 0.9 : 0.2); directionalLight.position.set(5, 10, 7.5); directionalLight.castShadow = true;
-            scene.add(directionalLight);
-        }
+        // --- Event Handlers ---
+        function onMouseDown(event) {
+            updateMouseCoords(event);
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(scene.children, true);
 
-        function setupControls() {
-            let isMouseDown = false, mouseX = 0, mouseY = 0;
-            const domElement = renderer.domElement;
-            domElement.addEventListener('mousedown', (event) => { if (event.button === 0) { isMouseDown = true; isManualControl = true; mouseX = event.clientX; mouseY = event.clientY; } });
-            domElement.addEventListener('mousemove', (event) => { if (isMouseDown) { const deltaX = event.clientX - mouseX, deltaY = event.clientY - mouseY; room.rotation.y += deltaX * 0.01; room.rotation.x += deltaY * 0.01; room.rotation.x = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, room.rotation.x)); mouseX = event.clientX; mouseY = event.clientY; } });
-            domElement.addEventListener('mouseup', () => { isMouseDown = false; setTimeout(() => { isManualControl = false; }, 1000); });
-            domElement.addEventListener('touchstart', (event) => { if (event.touches.length === 1) { isMouseDown = true; isManualControl = true; mouseX = event.touches[0].clientX; mouseY = event.touches[0].clientY; } });
-            domElement.addEventListener('touchmove', (event) => { if (isMouseDown && event.touches.length === 1) { const deltaX = event.touches[0].clientX - mouseX, deltaY = event.touches[0].clientY - mouseY; room.rotation.y += deltaX * 0.01; room.rotation.x += deltaY * 0.01; room.rotation.x = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, room.rotation.x)); mouseX = event.touches[0].clientX; mouseY = event.touches[0].clientY; } event.preventDefault(); });
-            domElement.addEventListener('touchend', () => { isMouseDown = false; setTimeout(() => { isManualControl = false; }, 1000); });
-        }
-        
-        function selectObject(object) {
-            if (selectedObject) selectedObject.traverse(child => { if (child.isMesh) child.material.emissive.setHex(0x000000); });
-            selectedObject = object;
-            object.traverse(child => { if (child.isMesh) child.material.emissive.setHex(0x444444); });
-            updateSelectedInfo(); updateObjectList();
-        }
+            if (intersects.length === 0) {
+                startRotation(event); return;
+            }
 
-        function deselectObject() {
-            if (selectedObject) selectedObject.traverse(child => { if (child.isMesh) child.material.emissive.setHex(0x000000); });
-            selectedObject = null;
-            updateSelectedInfo(); updateObjectList();
-        }
+            let clickedObject = intersects[0].object;
+            let topLevelObject = getTopLevelObject(clickedObject);
 
-        function updateSelectedInfo() {
-            const infoDiv = document.getElementById('selectedInfo');
-            const transformDiv = document.getElementById('transformControls');
-            if (selectedObject) {
-                infoDiv.textContent = `選択中: ${selectedObject.name}`;
-                transformDiv.style.display = 'block';
-                document.getElementById('posX').value = selectedObject.position.x;
-                document.getElementById('posY').value = selectedObject.position.y;
-                document.getElementById('posZ').value = selectedObject.position.z;
-                document.getElementById('rotY').value = selectedObject.rotation.y;
+            if (topLevelObject && roomObjects.includes(topLevelObject) && topLevelObject.name !== 'photo') {
+                isDragging = true;
+                draggedObject = topLevelObject;
+                lastValidPosition.copy(draggedObject.position);
+                selectObject(draggedObject);
+                renderer.domElement.classList.add('grabbing');
+            } else if (topLevelObject && topLevelObject.name === 'photo') {
+                selectObject(topLevelObject);
+            } else if (WALL_NAMES.includes(clickedObject.name)) {
+                clickedWall = clickedObject;
+                lastIntersectPoint = intersects[0].point;
+                alert(`壁 (${clickedWall.name}) を選択しました。「写真を壁に追加」ボタンで画像を選んでください。`);
+                deselectObject();
             } else {
-                infoDiv.textContent = 'オブジェクトか壁を選択してください。';
-                transformDiv.style.display = 'none';
+                startRotation(event);
+            }
+        }
+        
+        function onMouseMove(event) {
+            updateMouseCoords(event);
+            if (isDragging && draggedObject) {
+                raycaster.setFromCamera(mouse, camera);
+                const intersection = new THREE.Vector3();
+                if (raycaster.ray.intersectPlane(draggablePlane, intersection)) {
+                    let newX = intersection.x;
+                    let newZ = intersection.z;
+                    if (snapToGrid) {
+                        newX = Math.round(newX * 4) / 4;
+                        newZ = Math.round(newZ * 4) / 4;
+                    }
+                    
+                    const originalPosition = draggedObject.position.clone();
+                    draggedObject.position.x = newX;
+                    draggedObject.position.z = newZ;
+
+                    if (checkCollision(draggedObject)) {
+                        draggedObject.position.copy(originalPosition); 
+                    } else {
+                        lastValidPosition.copy(draggedObject.position);
+                    }
+                    updateSelectedInfo();
+                }
+            } else if (isRotating) {
+                const deltaX = event.clientX - previousMousePosition.x;
+                const deltaY = event.clientY - previousMousePosition.y;
+                cameraAngleY -= deltaX * 0.005;
+                cameraAngleX -= deltaY * 0.005;
+                cameraAngleX = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, cameraAngleX));
+                updateCameraPosition();
+                previousMousePosition = { x: event.clientX, y: event.clientY };
             }
         }
 
-        function updateObjectList() {
-            const listDiv = document.getElementById('objectList');
-            listDiv.innerHTML = '';
-            roomObjects.forEach(obj => {
-                const item = document.createElement('div');
-                item.className = 'object-item';
-                if (obj === selectedObject) item.classList.add('selected');
-                item.textContent = obj.name;
-                item.addEventListener('click', e => { e.stopPropagation(); selectObject(obj); });
-                listDiv.appendChild(item);
-            });
+        function onMouseUp() {
+            isDragging = false;
+            isRotating = false;
+            draggedObject = null;
+            renderer.domElement.classList.remove('grabbing');
         }
-        
+
+        // --- Object Creation Functions ---
+        function createChair() {
+            const object = new THREE.Group();
+            const seat = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.1, 0.7), MATERIALS.wood);
+            seat.position.y = 0.5;
+            object.add(seat);
+            for (let i = 0; i < 4; i++) {
+                const leg = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.5, 0.1), MATERIALS.wood);
+                leg.position.set((i % 2) * 0.5 - 0.25, 0.25, Math.floor(i / 2) * 0.5 - 0.25);
+                object.add(leg);
+            }
+            const back = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.6, 0.1), MATERIALS.wood);
+            back.position.set(0, 0.85, -0.3);
+            object.add(back);
+            return object;
+        }
+
+        function createTable() {
+            const object = new THREE.Group();
+            const top = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.1, 0.9), MATERIALS.wood);
+            top.position.y = 0.7;
+            object.add(top);
+            for (let i = 0; i < 4; i++) {
+                const leg = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.7, 0.1), MATERIALS.wood);
+                leg.position.set((i % 2) * 1.2 - 0.6, 0.35, Math.floor(i / 2) * 0.7 - 0.35);
+                object.add(leg);
+            }
+            return object;
+        }
+
+        function createLamp(isFloorLamp) {
+            const object = new THREE.Group();
+            object.userData.isLight = true;
+            const lampHeight = isFloorLamp ? 1.5 : 0.6;
+            const lampBase = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.05, 16), MATERIALS.metal);
+            lampBase.position.y = 0.025;
+            object.add(lampBase);
+            const lampPole = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, lampHeight, 8), MATERIALS.metal);
+            lampPole.position.y = lampHeight / 2 + 0.05;
+            object.add(lampPole);
+            const lampShade = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.25, 0.2, 16), MATERIALS.lampShade);
+            lampShade.position.y = lampHeight + 0.05;
+            object.add(lampShade);
+            return object;
+        }
+
+        function createSofa() {
+            const object = new THREE.Group();
+            const base = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.4, 0.8), MATERIALS.fabric);
+            base.position.y = 0.2;
+            object.add(base);
+            const sofaBack = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.5, 0.2), MATERIALS.fabric);
+            sofaBack.position.set(0, 0.65, -0.3);
+            object.add(sofaBack);
+            return object;
+        }
+
+        function createBookshelf() {
+            const object = new THREE.Group();
+            const sidePanelGeometry = new THREE.BoxGeometry(0.05, 1.8, 0.4);
+            const leftPanel = new THREE.Mesh(sidePanelGeometry, MATERIALS.wood);
+            leftPanel.position.set(-0.6, 0.9, 0);
+            object.add(leftPanel);
+            const rightPanel = new THREE.Mesh(sidePanelGeometry, MATERIALS.wood);
+            rightPanel.position.set(0.6, 0.9, 0);
+            object.add(rightPanel);
+            const shelfGeometry = new THREE.BoxGeometry(1.2, 0.05, 0.4);
+            for (let i = 0; i < 5; i++) {
+                const shelf = new THREE.Mesh(shelfGeometry, MATERIALS.wood);
+                shelf.position.y = 0.025 + (i * 0.44);
+                object.add(shelf);
+            }
+            return object;
+        }
+
+        function createPlant() {
+            const object = new THREE.Group();
+            const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.3, 16), MATERIALS.pot);
+            pot.position.y = 0.15;
+            object.add(pot);
+            const leaves = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), MATERIALS.plant);
+            leaves.position.y = 0.5;
+            object.add(leaves);
+            return object;
+        }
+
+        function createTV() {
+            const object = new THREE.Group();
+            const screen = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.8, 0.05), MATERIALS.screen);
+            screen.position.y = 0.7;
+            object.add(screen);
+            const stand = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.1, 0.3), MATERIALS.wood);
+            stand.position.y = 0.25;
+            object.add(stand);
+            return object;
+        }
+
+        function createRug() {
+            const object = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 1.8), MATERIALS.fabric);
+            object.rotation.x = -Math.PI / 2;
+            return object;
+        }
+
+        // --- addObject function (refactored) ---
         function addObject(type) {
              let object;
              objectCount++;
              const objectName = `${type}_${objectCount}`;
-             // ... (元のaddObjectのswitch文はここにそのままコピー)
+             
              switch(type) {
-                case 'chair':
-                    object = new THREE.Group();
-                    const seat = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.1, 0.8), new THREE.MeshLambertMaterial({ color: 0x8b4513 }));
-                    seat.position.y = 0.5; seat.castShadow = true; object.add(seat);
-                    for (let i = 0; i < 4; i++) {
-                        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.5, 0.1), new THREE.MeshLambertMaterial({ color: 0x654321 }));
-                        leg.position.set((i % 2) * 0.7 - 0.35, 0.25, Math.floor(i / 2) * 0.7 - 0.35); leg.castShadow = true; object.add(leg);
-                    }
-                    const back = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.1), new THREE.MeshLambertMaterial({ color: 0x8b4513 }));
-                    back.position.set(0, 0.9, -0.35); back.castShadow = true; object.add(back);
-                    break;
-                case 'table':
-                    object = new THREE.Group();
-                    const top = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.1, 1.0), new THREE.MeshLambertMaterial({ color: 0x8b4513 }));
-                    top.position.y = 0.75; top.castShadow = true; object.add(top);
-                    for (let i = 0; i < 4; i++) {
-                        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.75, 0.1), new THREE.MeshLambertMaterial({ color: 0x654321 }));
-                        leg.position.set((i % 2) * 1.4 - 0.7, 0.375, Math.floor(i / 2) * 0.9 - 0.45); leg.castShadow = true; object.add(leg);
-                    }
-                    break;
-                case 'lamp':
-                    object = new THREE.Group();
-                    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.1, 8), new THREE.MeshLambertMaterial({ color: 0x333333 }));
-                    base.position.y = 0.05; base.castShadow = true; object.add(base);
-                    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.5, 8), new THREE.MeshLambertMaterial({ color: 0x666666 }));
-                    pole.position.y = 0.75; pole.castShadow = true; object.add(pole);
-                    const shade = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.4, 8), new THREE.MeshLambertMaterial({ color: 0xffffff }));
-                    shade.position.y = 1.7; shade.castShadow = true; object.add(shade);
-                    break;
-                case 'sofa':
-                    object = new THREE.Group();
-                    const sofaColor = 0x5a2d1f;
-                    const mainSeat = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.2, 0.9), new THREE.MeshLambertMaterial({ color: sofaColor }));
-                    mainSeat.position.y = 0.4; mainSeat.castShadow = true; object.add(mainSeat);
-                    const sofaBack = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.8, 0.2), new THREE.MeshLambertMaterial({ color: sofaColor }));
-                    sofaBack.position.set(0, 0.9, -0.45); sofaBack.castShadow = true; object.add(sofaBack);
-                    const armrestGeometry = new THREE.BoxGeometry(0.2, 0.6, 0.9);
-                    const armrestMaterial = new THREE.MeshLambertMaterial({ color: sofaColor });
-                    const armrestLeft = new THREE.Mesh(armrestGeometry, armrestMaterial); armrestLeft.position.set(-0.9, 0.6, 0); armrestLeft.castShadow = true; object.add(armrestLeft);
-                    const armrestRight = new THREE.Mesh(armrestGeometry, armrestMaterial); armrestRight.position.set(0.9, 0.6, 0); armrestRight.castShadow = true; object.add(armrestRight);
-                    break;
-                case 'bookshelf':
-                    object = new THREE.Group();
-                    const woodColor = 0x5a432b;
-                    const sidePanelGeometry = new THREE.BoxGeometry(0.1, 1.5, 0.8);
-                    const sidePanelMaterial = new THREE.MeshLambertMaterial({ color: woodColor });
-                    const leftPanel = new THREE.Mesh(sidePanelGeometry, sidePanelMaterial); leftPanel.position.set(-0.6, 0.75, 0); leftPanel.castShadow = true; object.add(leftPanel);
-                    const rightPanel = new THREE.Mesh(sidePanelGeometry, sidePanelMaterial); rightPanel.position.set(0.6, 0.75, 0); rightPanel.castShadow = true; object.add(rightPanel);
-                    const shelfGeometry = new THREE.BoxGeometry(1.3, 0.1, 0.7);
-                    const shelfMaterial = new THREE.MeshLambertMaterial({ color: woodColor });
-                    for (let i = 0; i < 4; i++) {
-                        const shelf = new THREE.Mesh(shelfGeometry, shelfMaterial);
-                        shelf.position.y = 0.1 + (i * 0.45); shelf.castShadow = true; object.add(shelf);
-                    }
-                    break;
-                case 'plant':
-                    object = new THREE.Group();
-                    const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.2, 0.4, 8), new THREE.MeshLambertMaterial({ color: 0x8b4513 }));
-                    pot.position.y = 0.2; pot.castShadow = true; object.add(pot);
-                    const soil = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.05, 8), new THREE.MeshLambertMaterial({ color: 0x4a2c0f }));
-                    soil.position.y = 0.425; soil.castShadow = true; object.add(soil);
-                    const leafMaterial = new THREE.MeshLambertMaterial({ color: 0x228b22 });
-                    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.5, 8), new THREE.MeshLambertMaterial({ color: 0x556b2f }));
-                    stem.position.y = 0.7; stem.castShadow = true; object.add(stem);
-                    const leaves1 = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 16), leafMaterial); leaves1.position.y = 1.0; leaves1.castShadow = true; object.add(leaves1);
-                    break;
+                case 'chair': object = createChair(); break;
+                case 'table': object = createTable(); break;
+                case 'lamp': object = createLamp(false); break;
+                case 'sofa': object = createSofa(); break;
+                case 'bookshelf': object = createBookshelf(); break;
+                case 'plant': object = createPlant(); break;
+                case 'tv': object = createTV(); break;
+                case 'rug': object = createRug(); break;
+                case 'floorLamp': object = createLamp(true); break;
+                default: console.warn('Unknown object type:', type); return;
             }
-             object.name = objectName; 
-             object.position.set((Math.random() - 0.5) * 4, 0, (Math.random() - 0.5) * 4);
-             // 床の高さに合わせる
-             const box = new THREE.Box3().setFromObject(object);
-             object.position.y = -box.min.y;
+             
+             object.name = objectName;
+             // Ensure all meshes within the object cast and receive shadows
+             object.traverse(child => {
+                if (child.isMesh) {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                }
+             });
 
-             room.add(object); roomObjects.push(object); updateObjectList();
+             // Find a collision-free spot
+             for (let i = 0; i < 20; i++) {
+                 object.position.set((Math.random() - 0.5) * 8, 0, (Math.random() - 0.5) * 8);
+                 const box = new THREE.Box3().setFromObject(object);
+                 object.position.y = -box.min.y;
+                 if (type === 'rug') object.position.y += 0.01;
+
+                 if (!checkCollision(object)) break;
+             }
+
+             scene.add(object);
+             roomObjects.push(object);
+             updateObjectList();
+             selectObject(object);
          }
-
-        function deleteSelected() {
-            if (selectedObject) {
-                room.remove(selectedObject);
-                selectedObject.traverse(o => {
-                    if (o.geometry) o.geometry.dispose();
-                    if (o.material) o.material.dispose();
-                });
-                roomObjects = roomObjects.filter(obj => obj !== selectedObject);
-                selectedObject = null;
-                updateSelectedInfo(); updateObjectList();
+        
+        // --- All other functions (unchanged) ---
+        function checkCollision(targetObject) { const furniture = roomObjects.filter(o => o !== targetObject && o.name !== 'photo'); const targetBox = new THREE.Box3().setFromObject(targetObject); for (const other of furniture) { const otherBox = new THREE.Box3().setFromObject(other); if (targetBox.intersectsBox(otherBox)) { return true; } } return false; }
+        function autoArrange() { const furniture = roomObjects.filter(obj => obj.name !== 'photo' && !obj.name.includes('rug')); if (furniture.length === 0) return; deselectObject(); const columns = Math.ceil(Math.sqrt(furniture.length)); const spacing = 2.0; const startX = -((columns - 1) * spacing) / 2; let currentX = startX; let currentZ = -2.0; let colCount = 0; furniture.forEach(obj => { obj.position.x = currentX; obj.position.z = currentZ; obj.rotation.y = 0; currentX += spacing; colCount++; if (colCount >= columns) { colCount = 0; currentX = startX; currentZ += spacing; } }); alert(`${furniture.length}個の家具を整列しました。`); }
+        function getTopLevelObject(object) { let topLevel = object; while (topLevel.parent && topLevel.parent !== scene && topLevel.parent !== room) { if (roomObjects.includes(topLevel)) break; topLevel = topLevel.parent; } return topLevel; }
+        function startRotation(event) { isRotating = true; previousMousePosition = { x: event.clientX, y: event.clientY }; deselectObject(); }
+        function updateMouseCoords(event) { const rect = renderer.domElement.getBoundingClientRect(); mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1; mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1; }
+        function selectObject(object) { deselectObject(); selectedObject = object; selectedObject.traverse(child => { if (child.isMesh) { child.material.emissive?.setHex(0x444444); }}); updateSelectedInfo(); updateObjectList(); }
+        function deselectObject() { if (selectedObject) { selectedObject.traverse(child => { if (child.isMesh && child.material.emissive) { if (getTopLevelObject(child)?.userData.isLight && !isDayMode) child.material.emissive.setHex(0xffaa33); else child.material.emissive.setHex(0x000000); }}); } selectedObject = null; updateSelectedInfo(); updateObjectList(); }
+        function deleteSelected(objectToDelete = selectedObject) { if (!objectToDelete) return; if (objectToDelete.parent) objectToDelete.parent.remove(objectToDelete); objectToDelete.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) { if(o.material.map) o.material.map.dispose(); if (Array.isArray(o.material)) o.material.forEach(m => m.dispose()); else o.material.dispose(); } }); roomObjects = roomObjects.filter(obj => obj !== objectToDelete); if (selectedObject === objectToDelete) selectedObject = null; updateSelectedInfo(); updateObjectList(); }
+        function clearRoom(showAlert) { while (roomObjects.length > 0) { deleteSelected(roomObjects[0]); } objectCount = 0; if (showAlert) alert('全てのオブジェクトが削除されました。'); }
+        function toggleUIVisibility() { const mainPanel = document.getElementById('mainPanel'); const toggleButton = document.getElementById('ui-toggle-btn'); mainPanel.classList.toggle('hidden'); toggleButton.textContent = mainPanel.classList.contains('hidden') ? 'UIを表示' : 'UIを隠す'; }
+        
+        // --- Updated toggleDayNight function to correctly set emissive color on lamps ---
+        function toggleDayNight() {
+            isDayMode = !isDayMode;
+            const btn = document.getElementById('toggleDayNight');
+            if (isDayMode) {
+                btn.innerHTML = "☀️ 昼モード";
+                scene.background.set(0x87ceeb);
+                ambientLight.intensity = 0.7;
+                directionalLight.intensity = 0.8;
+            } else {
+                btn.innerHTML = "🌙 夜モード";
+                scene.background.set(0x1a1a2e);
+                ambientLight.intensity = 0.4;
+                directionalLight.intensity = 0.2;
             }
+            
+            // Update lamp shade emissive color
+            MATERIALS.lampShade.emissive.setHex(isDayMode ? 0x000000 : 0xffaa33);
+
+            // This part is now redundant if MATERIALS.lampShade is used consistently,
+            // but keeping it to ensure consistency with existing objects if any
+            roomObjects.forEach(obj => {
+                if (obj.userData.isLight) {
+                    obj.traverse(child => {
+                        if (child.isMesh && child.material === MATERIALS.lampShade) {
+                            child.material.emissive.setHex(isDayMode ? 0x000000 : 0xffaa33);
+                        }
+                    });
+                }
+            });
         }
-        function updateSelectedPosition() { if (selectedObject) { selectedObject.position.set(parseFloat(document.getElementById('posX').value), parseFloat(document.getElementById('posY').value), parseFloat(document.getElementById('posZ').value)); } }
-        function updateSelectedRotation() { if (selectedObject) { selectedObject.rotation.y = parseFloat(document.getElementById('rotY').value); } }
+
+        function changeWallColor() { wallColorIndex = (wallColorIndex + 1) % wallColors.length; wallMaterial.color.set(wallColors[wallColorIndex]); }
+        function changeFloorColor() { floorColorIndex = (floorColorIndex + 1) % floorColors.length; floorMaterial.color.set(floorColors[floorColorIndex]); }
+        function onAddPhotoClick() { if (!clickedWall) { alert("写真を貼り付けたい壁面を先にクリックしてください。"); return; } document.getElementById('photoInput').click(); }
+        function onPhotoFileChange(event) { const file = event.target.files[0]; if (file) { const reader = new FileReader(); reader.onload = (e) => placePhotoOnWall(e.target.result); reader.readAsDataURL(file); } event.target.value = null; }
+        function placePhotoOnWall(dataUrl) { if (!clickedWall || !lastIntersectPoint) return; const localPoint = clickedWall.worldToLocal(lastIntersectPoint.clone()); localPoint.z += 0.01; const textureLoader = new THREE.TextureLoader(); textureLoader.load(dataUrl, (texture) => { const ar = texture.image.width / texture.image.height; const photoMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.5/ar), new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide })); photoMesh.position.copy(localPoint); photoMesh.name = 'photo'; photoMesh.userData.dataUrl = dataUrl; clickedWall.add(photoMesh); objectCount++; photoMesh.uuid = `photo_${objectCount}`; roomObjects.push(photoMesh); updateObjectList(); selectObject(photoMesh); clickedWall = null; lastIntersectPoint = null; }); }
+        function updateSelectedInfo() { const infoDiv = document.getElementById('selectedInfo'); const transformDiv = document.getElementById('transformControls'); if (selectedObject && selectedObject.name !== 'photo') { infoDiv.textContent = `選択中: ${selectedObject.name}`; transformDiv.style.display = 'block'; document.getElementById('posY').value = selectedObject.position.y; document.getElementById('rotY').value = selectedObject.rotation.y; } else { infoDiv.textContent = selectedObject ? `選択中: ${selectedObject.name}` : 'オブジェクトを選択してください'; transformDiv.style.display = 'none'; } }
+        function updateObjectList() { const listDiv = document.getElementById('objectList'); listDiv.innerHTML = ''; roomObjects.forEach(obj => { const item = document.createElement('div'); item.className = 'object-item'; if (obj === selectedObject) item.classList.add('selected'); item.textContent = obj.name || obj.uuid; item.addEventListener('click', e => { e.stopPropagation(); selectObject(obj); }); listDiv.appendChild(item); }); }
+        function saveRoom() { const furnitureData = roomObjects.filter(o => o.name !== 'photo').map(obj => ({ type: obj.name.split('_')[0], position: obj.position.toArray(), rotation: obj.rotation.toArray() })); const photoData = roomObjects.filter(o => o.name === 'photo').map(obj => ({ wallName: obj.parent.name, position: obj.position.toArray(), dataUrl: obj.userData.dataUrl })); const saveData = { furniture: furnitureData, photos: photoData, cameraAngles: { y: cameraAngleY, x: cameraAngleX }, colors: { wall: wallColorIndex, floor: floorColorIndex } }; try { const jsonString = JSON.stringify(saveData); if (jsonString.length > 4.5 * 1024 * 1024) { alert('保存エラー: データが大きすぎます。写真の数を減らしてください。'); return; } localStorage.setItem("myRoomData", jsonString); alert('部屋のデータが保存されました！'); } catch (e) { alert('保存エラー: ローカルストレージの容量が不足しています。'); console.error("Save failed:", e); } }
+        function loadRoom() { const savedDataString = localStorage.getItem("myRoomData"); if (savedDataString) { clearRoom(false); const data = JSON.parse(savedDataString); if (data.colors) { wallColorIndex = data.colors.wall; floorColorIndex = data.colors.floor; wallMaterial.color.set(wallColors[wallColorIndex]); floorMaterial.color.set(floorColors[floorColorIndex]); } data.furniture?.forEach(objData => { addObject(objData.type); const lastObject = roomObjects[roomObjects.length - 1]; lastObject.position.fromArray(objData.position); lastObject.rotation.fromArray(objData.rotation); }); if(data.photos) { // 写真の読み込みを修正: wall.childrenから写真を探すのではなく、wallオブジェクトを直接指定
+            data.photos.forEach(photoData => {
+                const wall = room.children.find(c => c.name === photoData.wallName);
+                if (wall) {
+                    const textureLoader = new THREE.TextureLoader();
+                    textureLoader.load(photoData.dataUrl, (texture) => {
+                        const ar = texture.image.width / texture.image.height;
+                        const photoMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.5/ar), new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide }));
+                        photoMesh.position.fromArray(photoData.position); // 保存された位置を正確に適用
+                        photoMesh.name = 'photo';
+                        photoMesh.userData.dataUrl = photoData.dataUrl;
+                        wall.add(photoMesh);
+                        objectCount++;
+                        photoMesh.uuid = `photo_${objectCount}`;
+                        roomObjects.push(photoMesh);
+                        updateObjectList();
+                    });
+                }
+            });
+        }
+        if(data.cameraAngles) { cameraAngleY = data.cameraAngles.y; cameraAngleX = data.cameraAngles.x; updateCameraPosition(); } deselectObject(); alert('部屋のデータが読み込まれました！'); } else { alert('保存されたデータがありません。'); } }
+        function updateSelectedPosition() { if (selectedObject && selectedObject.name !=='photo') selectedObject.position.y = parseFloat(document.getElementById('posY').value); }
+        function updateSelectedRotation() { if (selectedObject && selectedObject.name !=='photo') selectedObject.rotation.y = parseFloat(document.getElementById('rotY').value); }
         function toggleAutoRotate() { autoRotate = !autoRotate; document.getElementById('toggleAutoRotate').textContent = autoRotate ? '自動回転 ON' : '自動回転 OFF'; }
-        function toggleLighting() { lightingEnabled = !lightingEnabled; ambientLight.intensity = lightingEnabled ? 0.8 : 0.2; directionalLight.intensity = lightingEnabled ? 0.9 : 0.2; document.getElementById('toggleLighting').textContent = lightingEnabled ? '照明 ON' : '照明 OFF'; }
-        function resetCamera() { room.rotation.set(0, 0, 0); camera.position.set(0, 2, 6); camera.lookAt(0, 0, 0); }
-        function toggleUIVisibility() { const mainPanel = document.getElementById('mainPanel'); mainPanel.classList.toggle('hidden'); document.getElementById('toggleUIVisibility').textContent = mainPanel.classList.contains('hidden') ? 'UIを表示' : 'UIを隠す'; }
-        function saveRoom() { alert('このバージョンでは、壁に貼り付けた写真は保存されません。家具のみ保存されます。'); const saveData = { objects: roomObjects.map(obj => ({ name: obj.name, position: obj.position.toArray(), rotation: obj.rotation.toArray() })), roomRotation: room.rotation.toArray(), timestamp: new Date().toISOString() }; localStorage.setItem("myRoomData", JSON.stringify(saveData)); alert('家具のデータが保存されました！'); }
-        function loadRoom() { const savedDataString = localStorage.getItem("myRoomData"); if (savedDataString) { clearRoom(); const data = JSON.parse(savedDataString); room.rotation.set(...data.roomRotation); data.objects.forEach(objData => { addObject(objData.name.split('_')[0]); const lastObject = roomObjects[roomObjects.length - 1]; lastObject.position.set(...objData.position); lastObject.rotation.set(...objData.rotation); }); alert('部屋のデータが読み込まれました！'); } else { alert('保存されたデータがありません。'); } }
-        function clearRoom() { roomObjects.forEach(obj => room.remove(obj)); roomObjects = []; selectedObject = null; objectCount = 0; room.children.filter(c => c.name.includes('Wall')).forEach(wall => { wall.children.slice().forEach(child => wall.remove(child)); }); updateSelectedInfo(); updateObjectList(); }
+        function resetCamera() { cameraAngleY = 0; cameraAngleX = 0.3; updateCameraPosition(); }
+        function updateCameraPosition() { camera.position.x = cameraRadius * Math.sin(cameraAngleY) * Math.cos(cameraAngleX); camera.position.y = cameraRadius * Math.sin(cameraAngleX); camera.position.z = cameraRadius * Math.cos(cameraAngleY) * Math.cos(cameraAngleX); camera.lookAt(0, 0, 0); }
         function onWindowResize() { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); }
-        function animate() { requestAnimationFrame(animate); if (autoRotate && !isManualControl) room.rotation.y += rotationSpeed; renderer.render(scene, camera); }
+        function animate() { requestAnimationFrame(animate); if (autoRotate) { cameraAngleY -= rotationSpeed * 0.01; updateCameraPosition(); } renderer.render(scene, camera); }
+        
         window.addEventListener('load', init);
     </script>
 </body>
