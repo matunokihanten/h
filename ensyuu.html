@@ -133,6 +133,26 @@
       vertical-align: top; /* 上揃え */
     }
 
+    /* 暗記モードの数字の調整 */
+    .memorize-line {
+      display: flex;
+      justify-content: center; /* 行全体を中央揃え */
+      flex-wrap: wrap; /* 必要に応じて折り返し */
+      margin-bottom: 5px; /* 各行の下に少し余白 */
+    }
+
+    .memorize-digit {
+      font-size: 20px;
+      display: inline-block;
+      width: 1ch; /* 各桁の幅 */
+      text-align: center;
+    }
+
+    .memorize-group-space {
+      margin-right: 1.5ch; /* 2桁ごとのスペースを調整 */
+      display: inline-block; /* スペース用の要素もインラインブロックに */
+    }
+
     .wrong {
       color: #ff6666;
       text-shadow: 0 0 5px rgba(255,102,102,0.8);
@@ -264,6 +284,18 @@
         font-size: 20px; /* スマホでも存在感を残す */
         margin-right: 4px; /* 間隔を狭める */
       }
+      /* 暗記モードのレスポンシブ調整 */
+      .memorize-line {
+        justify-content: center;
+        margin-bottom: 2px;
+      }
+      .memorize-digit {
+        font-size: 16px;
+      }
+      .memorize-group-space {
+        margin-right: 1ch;
+      }
+
       #message {
         font-size: 14px;
         margin: 8px;
@@ -342,6 +374,11 @@
                  "67328620941921285673831410175517260550887893049101"; // 502桁目まで延長
 
       const MAX_PI_DIGITS = pi.length; // 円周率の総桁数を定数として定義
+      const GAME_DIGITS_PER_LINE = 20; // ゲームモードで1行に表示する小数点以下の桁数 (最初の"3."を除いた桁数)
+      const MEMORIZE_DIGITS_PER_LINE = 20; // 暗記モードで1行に表示する小数点以下の桁数 (変更点)
+      const MEMORIZE_BLOCK_SIZE = 100; // 暗記モードでブロックごとの追加改行を入れる桁数 (変更点)
+      const GROUP_SIZE = 2; // 暗記モードでのグループ化の桁数
+      const INDENT_DIGITS = 2; // 2行目以降のインデント桁数 (スペース2つ分)
 
       let targetCount = 502; // 目標桁数を502に固定
       let startIndex = 0;
@@ -446,28 +483,46 @@
         }
 
         let rows = [];
-        let firstRowStr = "";
-        for (let i = 0; i < Math.min(displayDigits.length, 22); i++) {
+        let rowStr = '';
+        
+        // 最初の"3."の部分を追加（startIndexが0の場合のみ）
+        const isDecimalPartStart = (startIndex === 1 && pi.charAt(0) === '3'); // 開始桁が1で、piの最初の桁が3の場合
+
+        if (startIndex === 0) {
+            // "3." を表示
+            rowStr += `<span class="pi-integer-part">${pi.substring(0, 2)}</span>`; 
+        } else if (startIndex > 0 && pi.charAt(startIndex -1) === '.') {
+            // 開始桁が小数点の直後の場合（例：pi.charAt(0)が'3'でstartIndexが1）は、
+            // 実際は"3."の表示部分に続いていると解釈し、インデントは追加しない
+        } else {
+            // それ以外の場合（通常の途中から開始する場合）、2行目以降と同様にインデント
+            rowStr += `<span class="digit">&nbsp;</span>`.repeat(INDENT_DIGITS);
+        }
+
+        // 実際に表示する数字のループ
+        for (let i = 0; i < displayDigits.length; i++) {
           const digitObj = displayDigits[i];
           const digitContent = digitObj.isCurrent ? "" : digitObj.digit; // current-placeholderの時は文字を空にする
           const className = digitObj.wrong ? "digit wrong" : (digitObj.isCurrent ? "digit current-placeholder" : "digit");
-          firstRowStr += `<span class="${className}">${digitContent}</span>`;
-        }
-        rows.push(firstRowStr);
+          rowStr += `<span class="${className}">${digitContent}</span>`;
 
-        let pos = 22;
-        while (pos < displayDigits.length) {
-          let row = displayDigits.slice(pos, Math.min(pos + 20, displayDigits.length));
-          let rowStr = `<span class="digit">&nbsp;</span><span class="digit">&nbsp;</span>`; // インデント
-          for (let i = 0; i < row.length; i++) {
-            const digitObj = row[i];
-            const digitContent = digitObj.isCurrent ? "" : digitObj.digit; // current-placeholderの時は文字を空にする
-            const className = digitObj.wrong ? "digit wrong" : (digitObj.isCurrent ? "digit current-placeholder" : "digit");
-            rowStr += `<span class="${className}">${digitContent}</span>`;
+          // 1行あたりの桁数で改行
+          // ここで「3.」とそれ以降の数字の合計桁数を考慮
+          let currentLineLengthFromStart = i + (startIndex === 0 ? 2 : 0); // piの先頭からの絶対的な桁数
+          if (startIndex === 0 && currentLineLengthFromStart === GAME_DIGITS_PER_LINE) { // 最初の行でGAME_DIGITS_PER_LINEに達した場合
+              rows.push(rowStr);
+              rowStr = `<span class="digit">&nbsp;</span>`.repeat(INDENT_DIGITS); // 新しい行のインデント
+          } else if (startIndex > 0 && pi.charAt(startIndex -1) === '.' && (i + 1) % GAME_DIGITS_PER_LINE === 0 && i < displayDigits.length - 1) {
+              // '.'から始まる行で、GAME_DIGITS_PER_LINEに達した場合
+              rows.push(rowStr);
+              rowStr = `<span class="digit">&nbsp;</span>`.repeat(INDENT_DIGITS); // 新しい行のインデント
+          } else if (startIndex > 0 && pi.charAt(startIndex -1) !== '.' && (i + 1 + INDENT_DIGITS) % GAME_DIGITS_PER_LINE === 0 && i < displayDigits.length - 1) {
+              // 通常の途中の行で、インデント含めてGAME_DIGITS_PER_LINEに達した場合
+              rows.push(rowStr);
+              rowStr = `<span class="digit">&nbsp;</span>`.repeat(INDENT_DIGITS); // 新しい行のインデント
           }
-          rows.push(rowStr);
-          pos += 20;
         }
+        rows.push(rowStr); // 最後の行を追加
 
         piDisplay.innerHTML = rows.join("<br>");
         if (gameActive) {
@@ -481,49 +536,52 @@
       // updateRandomFillDisplay：ランダム穴埋めモード用
       function updateRandomFillDisplay() {
         let rows = [];
-        let firstRowCells = puzzle.slice(0, 22);
-        let firstRowStr = "";
-        for (let i = 0; i < firstRowCells.length; i++) {
-            // グローバルインデックスを計算して、現在入力すべき穴かどうかを判断
+        let rowStr = '';
+
+        // 最初の"3."の部分を追加（startIndexが0の場合のみ）
+        const isDecimalPartStart = (startIndex === 1 && pi.charAt(0) === '3'); 
+
+        if (startIndex === 0) {
+            rowStr += `<span class="pi-integer-part">${pi.substring(0, 2)}</span>`; // "3."
+        } else if (startIndex > 0 && pi.charAt(startIndex -1) === '.') {
+            // '.'から始まる場合はインデントなし
+        } else {
+            // それ以外はインデント
+            rowStr += `<span class="digit">&nbsp;</span>`.repeat(INDENT_DIGITS); 
+        }
+        
+        // 実際に表示する数字のループ
+        for (let i = 0; i < puzzle.length; i++) {
             const currentGlobalIndex = startIndex + i; 
             const isCurrentMissing = gameActive && missingPointer < missingIndices.length && (currentGlobalIndex === missingIndices[missingPointer]);
 
-            if (!firstRowCells[i].prefilled) { // 穴の場合
-                if (firstRowCells[i].userInput === null) { // 未入力
-                    firstRowStr += isCurrentMissing ? `<span class="digit current">_</span>` : `<span class="digit">_</span>`;
-                } else { // 入力済み (正解/不正解に関わらず入力された値を表示)
-                    firstRowStr += firstRowCells[i].wrong
-                                 ? `<span class="digit wrong">${firstRowCells[i].userInput}</span>`
-                                 : `<span class="digit">${firstRowCells[i].userInput}</span>`;
-                }
-            } else { // プレフィルされた数字の場合
-                firstRowStr += `<span class="digit">${firstRowCells[i].correct}</span>`;
-            }
-        }
-        rows.push(firstRowStr);
-        let pos = 22;
-        while (pos < puzzle.length) {
-          let rowCells = puzzle.slice(pos, Math.min(pos + 20, puzzle.length));
-          let rowStr = `<span class="digit">&nbsp;</span><span class="digit">&nbsp;</span>`; // インデント
-          for (let i = 0; i < rowCells.length; i++) {
-            const currentGlobalIndex = startIndex + pos + i;
-            const isCurrentMissing = gameActive && missingPointer < missingIndices.length && (currentGlobalIndex === missingIndices[missingPointer]);
-
-            if (!rowCells[i].prefilled) { // 穴の場合
-                if (rowCells[i].userInput === null) { // 未入力
+            if (!puzzle[i].prefilled) { // 穴の場合
+                if (puzzle[i].userInput === null) { // 未入力
                     rowStr += isCurrentMissing ? `<span class="digit current">_</span>` : `<span class="digit">_</span>`;
-                } else { // 入力済み
-                    rowStr += rowCells[i].wrong
-                               ? `<span class="digit wrong">${rowCells[i].userInput}</span>`
-                               : `<span class="digit">${rowCells[i].userInput}</span>`;
+                } else { // 入力済み (正解/不正解に関わらず入力された値を表示)
+                    rowStr += puzzle[i].wrong
+                                 ? `<span class="digit wrong">${puzzle[i].userInput}</span>`
+                                 : `<span class="digit">${puzzle[i].userInput}</span>`;
                 }
             } else { // プレフィルされた数字の場合
-                rowStr += `<span class="digit">${rowCells[i].correct}</span>`;
+                rowStr += `<span class="digit">${puzzle[i].correct}</span>`;
             }
-          }
-          rows.push(rowStr);
-          pos += 20;
+
+            // 1行あたりの桁数で改行
+            let currentLineLengthFromStart = i + (startIndex === 0 ? 2 : 0);
+            if (startIndex === 0 && currentLineLengthFromStart === GAME_DIGITS_PER_LINE) {
+                rows.push(rowStr);
+                rowStr = `<span class="digit">&nbsp;</span>`.repeat(INDENT_DIGITS);
+            } else if (startIndex > 0 && pi.charAt(startIndex -1) === '.' && (i + 1) % GAME_DIGITS_PER_LINE === 0 && i < puzzle.length - 1) {
+                rows.push(rowStr);
+                rowStr = `<span class="digit">&nbsp;</span>`.repeat(INDENT_DIGITS);
+            } else if (startIndex > 0 && pi.charAt(startIndex -1) !== '.' && (i + 1 + INDENT_DIGITS) % GAME_DIGITS_PER_LINE === 0 && i < puzzle.length - 1) {
+                rows.push(rowStr);
+                rowStr = `<span class="digit">&nbsp;</span>`.repeat(INDENT_DIGITS);
+            }
         }
+        rows.push(rowStr); // 最後の行を追加
+
         piDisplay.innerHTML = rows.join("<br>");
 
         if (gameActive) {
@@ -534,37 +592,58 @@
         }
       }
 
-      // activateMemorizeMode：暗記モード
+      // activateMemorizeMode：暗記モード (画像のように変更)
       function activateMemorizeMode() {
         gameActive = false;
-        // 暗記モードは常にpiの先頭502桁を表示
         let digits = pi.slice(0, Math.min(MAX_PI_DIGITS, 502)); 
         let displayHtml = '';
-        const digitsPerLine = window.innerWidth <= 768 ? 10 : 20; // 画面幅に応じて1行あたりの表示桁数を変更
-        const groupSize = 2;      // 2桁ごとにスペース
 
-        // 「3.」の部分を特別に表示
-        displayHtml += `<span class="pi-integer-part">${digits.substring(0, 2)}</span>`; // "3." を取得
+        // "3." を最初の行に独立して表示
+        displayHtml += `<div class="memorize-line"><span class="pi-integer-part">3.</span></div>`;
+
         let decimalDigits = digits.substring(2); // "14159..." から開始
+        let currentLineDigits = [];
+        let totalDecimalDigitsProcessed = 0; // 小数点以下の処理済み桁数
 
         for (let i = 0; i < decimalDigits.length; i++) {
-            displayHtml += `<span class="digit">${decimalDigits[i]}</span>`;
+            currentLineDigits.push(decimalDigits[i]);
+            totalDecimalDigitsProcessed++;
 
-            // 2桁ごとにスペースを追加（ただし、それが最後の桁ではない場合）
-            if ((i + 1) % groupSize === 0 && (i + 1) < decimalDigits.length) {
-                displayHtml += '&nbsp;'; // 半角スペース
+            // 2桁ごとにスペースを追加 (ただし、その行の最後の数字ではない場合)
+            if ((totalDecimalDigitsProcessed % GROUP_SIZE === 0) &&
+                (totalDecimalDigitsProcessed % MEMORIZE_DIGITS_PER_LINE !== 0) &&
+                (totalDecimalDigitsProcessed < decimalDigits.length)) {
+                currentLineDigits.push('<span class="memorize-group-space"></span>'); // スペース用のタグ
             }
-            
-            // 1行あたりの桁数で改行
-            if ((i + 1) % digitsPerLine === 0 && (i + 1) < decimalDigits.length) {
-                displayHtml += '<br>';
-                // 50桁ごとにさらに大きな改行
-                if ((i + 1) % 50 === 0 && (i + 1) < decimalDigits.length) {
-                    displayHtml += '<br>';
+
+            // 1行あたりの桁数に達したら改行 (実質的な数字の桁数で判断)
+            // MEMORIZE_DIGITS_PER_LINE は小数点以下の数字の桁数を指す
+            if (totalDecimalDigitsProcessed % MEMORIZE_DIGITS_PER_LINE === 0) {
+                // 行の末尾の余分なスペースを削除 (ここは不要になるはずだが念のため)
+                if (currentLineDigits[currentLineDigits.length - 1] === '<span class="memorize-group-space"></span>') {
+                    currentLineDigits.pop();
                 }
-                displayHtml += `<span class="digit">&nbsp;</span><span class="digit">&nbsp;</span>`; // インデント
+                displayHtml += `<div class="memorize-line">${currentLineDigits.join('')}</div>`;
+                currentLineDigits = [];
+
+                // 100桁（小数点以下）ごとに空行を追加
+                if (totalDecimalDigitsProcessed % MEMORIZE_BLOCK_SIZE === 0 && totalDecimalDigitsProcessed < decimalDigits.length) {
+                    displayHtml += `<br>`; // 追加の改行
+                }
             }
         }
+        // 最後の残りの桁があれば追加
+        if (currentLineDigits.length > 0) {
+            // 最後の行の末尾の余分なスペースを削除 (ここも不要になるはずだが念のため)
+            if (currentLineDigits[currentLineDigits.length - 1] === '<span class="memorize-group-space"></span>') {
+                currentLineDigits.pop();
+            }
+            displayHtml += `<div class="memorize-line">${currentLineDigits.join('')}</div>`;
+        }
+        
+        // 各数字を個別の span で囲むため、join 後に replace を使う
+        displayHtml = displayHtml.replace(/(\d)/g, '<span class="memorize-digit">$1</span>');
+
 
         piDisplay.innerHTML = displayHtml;
         messageDiv.textContent = `暗記モード：πの先頭${Math.min(MAX_PI_DIGITS, 502)}桁を表示しています。`;
@@ -793,7 +872,6 @@
                 finalMessage += " 間違いは " + totalWrongAttempts + " 回ありました。";
               }
               messageDiv.textContent = finalMessage;
-              gameActive = false;
           } else {
               messageDiv.textContent = "間違い！ 正解は '" + expected + "' でした。";
           }
@@ -871,7 +949,8 @@
 
       // ウィンドウのリサイズイベントを監視して、暗記モードの表示を再調整
       window.addEventListener('resize', () => {
-          if (!gameActive && memorizeBtn.textContent === "暗記モード") { // 暗記モードが表示中の場合
+          // 暗記モードがアクティブな場合のみ再描画
+          if (!gameActive && memorizeBtn.textContent === "暗記モード") { 
               activateMemorizeMode();
           }
       });
