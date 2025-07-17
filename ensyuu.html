@@ -19,6 +19,7 @@
       justify-content: center;
       align-items: center;
       min-height: 100vh;
+      box-sizing: border-box; /* 全体でbox-sizingをborder-boxに */
     }
     #gameContainer {
       max-width: 650px;
@@ -28,6 +29,7 @@
       padding: 30px;
       box-shadow: 0 6px 30px rgba(0,0,0,0.6);
       box-sizing: border-box;
+      width: 95%; /* 画面幅の95%を使用し、左右に余白を持たせる */
     }
     .config, .mode-select, #controlButtons {
       display: flex;
@@ -119,7 +121,7 @@
       font-size: 20px;
       display: inline-block;
       text-align: center;
-      width: 1.2ch; /* 数字の幅 */
+      width: 1ch; /* 数字の幅を調整 */
       padding: 1px 0;
     }
     /* 暗記モードの3.表示用 */
@@ -227,51 +229,53 @@
     /* レスポンシブデザイン */
     @media (max-width: 768px) {
       #gameContainer {
-        margin: 15px;
-        padding: 20px;
+        margin: 10px;
+        padding: 15px;
+        width: 98%; /* さらに広げて画面いっぱいに近づける */
       }
       .config, .mode-select, #controlButtons {
-        gap: 15px;
-        margin: 15px 0;
+        gap: 10px;
+        margin: 10px 0;
       }
       label, input[type="number"], input[type="radio"] + label {
-        font-size: 16px;
+        font-size: 14px;
       }
       input[type="number"] {
-        width: 70px;
-        font-size: 16px;
-        padding: 8px;
+        width: 60px;
+        font-size: 14px;
+        padding: 6px;
       }
       #controlButtons button {
-        padding: 10px 20px;
-        font-size: 16px;
+        padding: 8px 15px;
+        font-size: 14px;
       }
       #piDisplay {
-        font-size: 18px;
-        padding: 15px;
-        letter-spacing: 1px;
-        line-height: 1.5;
-        min-height: 120px;
+        font-size: 16px; /* スマホでは少し小さく */
+        padding: 10px;
+        letter-spacing: 0.5px; /* スペースを少し狭く */
+        line-height: 1.4;
+        min-height: 100px;
       }
       .digit {
-        font-size: 18px;
-        width: 1.1ch;
+        font-size: 16px; /* スマホでは少し小さく */
+        width: 1ch; /* スマホでは数字の幅をさらに狭く */
       }
       .pi-integer-part {
-        font-size: 20px;
-        margin-right: 6px;
+        font-size: 20px; /* スマホでも存在感を残す */
+        margin-right: 4px; /* 間隔を狭める */
       }
       #message {
-        font-size: 16px;
-        margin: 10px;
+        font-size: 14px;
+        margin: 8px;
+        min-height: 25px;
       }
       #keypad {
-        gap: 10px;
-        max-width: 300px;
+        gap: 8px;
+        max-width: 300px; /* キーパッドの最大幅を調整 */
       }
       #keypad button {
-        padding: 20px;
-        font-size: 28px;
+        padding: 18px;
+        font-size: 24px;
       }
       #randomModeSettings input[type="range"] {
         width: 100px;
@@ -536,8 +540,8 @@
         // 暗記モードは常にpiの先頭502桁を表示
         let digits = pi.slice(0, Math.min(MAX_PI_DIGITS, 502)); 
         let displayHtml = '';
-        const digitsPerLine = 20; // 1行あたりの表示桁数（インデント込みで22桁相当）
-        const groupSize = 2;      // 2桁ごとにスペースに変更
+        const digitsPerLine = window.innerWidth <= 768 ? 10 : 20; // 画面幅に応じて1行あたりの表示桁数を変更
+        const groupSize = 2;      // 2桁ごとにスペース
 
         // 「3.」の部分を特別に表示
         displayHtml += `<span class="pi-integer-part">${digits.substring(0, 2)}</span>`; // "3." を取得
@@ -551,9 +555,7 @@
                 displayHtml += '&nbsp;'; // 半角スペース
             }
             
-            // 20桁ごとに改行 (小数点以下)
-            // iは0から始まるので、(i+1)が20の倍数で、かつそれが最後の桁でない場合
-            // ただし、小数点以下なので、最初の2桁(3.)を除いた桁数で計算
+            // 1行あたりの桁数で改行
             if ((i + 1) % digitsPerLine === 0 && (i + 1) < decimalDigits.length) {
                 displayHtml += '<br>';
                 // 50桁ごとにさらに大きな改行
@@ -867,6 +869,12 @@
         }
       });
 
+      // ウィンドウのリサイズイベントを監視して、暗記モードの表示を再調整
+      window.addEventListener('resize', () => {
+          if (!gameActive && memorizeBtn.textContent === "暗記モード") { // 暗記モードが表示中の場合
+              activateMemorizeMode();
+          }
+      });
 
       // 初期ロード時の処理
       loadSettings(); // 設定をロード
