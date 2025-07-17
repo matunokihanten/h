@@ -124,6 +124,10 @@
       width: 1ch; /* 数字の幅を調整 */
       padding: 1px 0;
     }
+    /* 入力された数字を少し大きく表示するためのスタイル */
+    .entered-digit {
+        font-size: 22px; /* 少し大きく */
+    }
     /* 暗記モードの3.表示用 */
     .pi-integer-part {
       font-size: 24px; /* 少し大きく */
@@ -279,6 +283,9 @@
       .digit {
         font-size: 16px; /* スマホでは少し小さく */
         width: 1ch; /* スマホでは数字の幅をさらに狭く */
+      }
+      .entered-digit {
+        font-size: 18px; /* スマホでの入力済み数字のサイズ */
       }
       .pi-integer-part {
         font-size: 20px; /* スマホでも存在感を残す */
@@ -469,7 +476,8 @@
             displayDigits.push({
                 digit: digitsHistory[i].digit,
                 wrong: digitsHistory[i].wrong,
-                isCurrent: false
+                isCurrent: false,
+                isEntered: true // 入力済みフラグ
             });
         }
         // 次に入力すべき桁 (current index)
@@ -478,46 +486,48 @@
             displayDigits.push({
                 digit: pi.charAt(currentIndex), // 内部的には正しい値を保持するが、CSSで非表示
                 wrong: false,
-                isCurrent: true 
+                isCurrent: true,
+                isEntered: false
             });
         }
 
         let rows = [];
         let rowStr = '';
         
-        // 最初の"3."の部分を追加（startIndexが0の場合のみ）
-        const isDecimalPartStart = (startIndex === 1 && pi.charAt(0) === '3'); // 開始桁が1で、piの最初の桁が3の場合
-
-        if (startIndex === 0) {
-            // "3." を表示
-            rowStr += `<span class="pi-integer-part">${pi.substring(0, 2)}</span>`; 
-        } else if (startIndex > 0 && pi.charAt(startIndex -1) === '.') {
-            // 開始桁が小数点の直後の場合（例：pi.charAt(0)が'3'でstartIndexが1）は、
-            // 実際は"3."の表示部分に続いていると解釈し、インデントは追加しない
+        // 開始桁が0で、かつ1桁目 (3.) が含まれている場合は、その分を考慮してインデントを調整
+        // ここではスタートボタン押下時に「3.」を表示しないようにするため、このロジックは削除します
+        // ただし、2行目以降のインデントは維持します
+        if (startIndex > 0 && pi.charAt(startIndex -1) === '.') {
+            // '.'から始まる場合はインデントなし
         } else {
-            // それ以外の場合（通常の途中から開始する場合）、2行目以降と同様にインデント
+            // それ以外はインデント
             rowStr += `<span class="digit">&nbsp;</span>`.repeat(INDENT_DIGITS);
         }
+        
 
         // 実際に表示する数字のループ
         for (let i = 0; i < displayDigits.length; i++) {
           const digitObj = displayDigits[i];
           const digitContent = digitObj.isCurrent ? "" : digitObj.digit; // current-placeholderの時は文字を空にする
-          const className = digitObj.wrong ? "digit wrong" : (digitObj.isCurrent ? "digit current-placeholder" : "digit");
+          let className = "digit";
+          if (digitObj.wrong) {
+            className += " wrong";
+          } else if (digitObj.isCurrent) {
+            className += " current-placeholder";
+          }
+          if (digitObj.isEntered) { // 入力済みの数字に適用するクラス
+            className += " entered-digit";
+          }
+          
           rowStr += `<span class="${className}">${digitContent}</span>`;
 
           // 1行あたりの桁数で改行
           // ここで「3.」とそれ以降の数字の合計桁数を考慮
-          let currentLineLengthFromStart = i + (startIndex === 0 ? 2 : 0); // piの先頭からの絶対的な桁数
-          if (startIndex === 0 && currentLineLengthFromStart === GAME_DIGITS_PER_LINE) { // 最初の行でGAME_DIGITS_PER_LINEに達した場合
-              rows.push(rowStr);
-              rowStr = `<span class="digit">&nbsp;</span>`.repeat(INDENT_DIGITS); // 新しい行のインデント
-          } else if (startIndex > 0 && pi.charAt(startIndex -1) === '.' && (i + 1) % GAME_DIGITS_PER_LINE === 0 && i < displayDigits.length - 1) {
-              // '.'から始まる行で、GAME_DIGITS_PER_LINEに達した場合
-              rows.push(rowStr);
-              rowStr = `<span class="digit">&nbsp;</span>`.repeat(INDENT_DIGITS); // 新しい行のインデント
-          } else if (startIndex > 0 && pi.charAt(startIndex -1) !== '.' && (i + 1 + INDENT_DIGITS) % GAME_DIGITS_PER_LINE === 0 && i < displayDigits.length - 1) {
-              // 通常の途中の行で、インデント含めてGAME_DIGITS_PER_LINEに達した場合
+          let currentLineLengthFromStart = i; // 小数点以下の桁数のみでカウント
+          
+          // 最初の行（startIndexが0の場合でも、すでに3.が入力済みとみなすため、表示はされない）
+          // または、途中の行で、GAME_DIGITS_PER_LINEに達した場合
+          if ((currentLineLengthFromStart + 1) % GAME_DIGITS_PER_LINE === 0 && i < displayDigits.length - 1) { 
               rows.push(rowStr);
               rowStr = `<span class="digit">&nbsp;</span>`.repeat(INDENT_DIGITS); // 新しい行のインデント
           }
@@ -538,12 +548,10 @@
         let rows = [];
         let rowStr = '';
 
-        // 最初の"3."の部分を追加（startIndexが0の場合のみ）
-        const isDecimalPartStart = (startIndex === 1 && pi.charAt(0) === '3'); 
-
-        if (startIndex === 0) {
-            rowStr += `<span class="pi-integer-part">${pi.substring(0, 2)}</span>`; // "3."
-        } else if (startIndex > 0 && pi.charAt(startIndex -1) === '.') {
+        // 開始桁が0で、かつ1桁目 (3.) が含まれている場合は、その分を考慮してインデントを調整
+        // ここではスタートボタン押下時に「3.」を表示しないようにするため、このロジックは削除します
+        // ただし、2行目以降のインデントは維持します
+        if (startIndex > 0 && pi.charAt(startIndex -1) === '.') {
             // '.'から始まる場合はインデントなし
         } else {
             // それ以外はインデント
@@ -555,27 +563,30 @@
             const currentGlobalIndex = startIndex + i; 
             const isCurrentMissing = gameActive && missingPointer < missingIndices.length && (currentGlobalIndex === missingIndices[missingPointer]);
 
+            let className = "digit";
+            let digitContent = "";
+
             if (!puzzle[i].prefilled) { // 穴の場合
                 if (puzzle[i].userInput === null) { // 未入力
-                    rowStr += isCurrentMissing ? `<span class="digit current">_</span>` : `<span class="digit">_</span>`;
+                    digitContent = "_";
+                    if (isCurrentMissing) {
+                      className += " current";
+                    }
                 } else { // 入力済み (正解/不正解に関わらず入力された値を表示)
-                    rowStr += puzzle[i].wrong
-                                 ? `<span class="digit wrong">${puzzle[i].userInput}</span>`
-                                 : `<span class="digit">${puzzle[i].userInput}</span>`;
+                    digitContent = puzzle[i].userInput;
+                    if (puzzle[i].wrong) {
+                      className += " wrong";
+                    }
+                    className += " entered-digit"; // 入力済み数字にクラスを追加
                 }
             } else { // プレフィルされた数字の場合
-                rowStr += `<span class="digit">${puzzle[i].correct}</span>`;
+                digitContent = puzzle[i].correct;
             }
+            rowStr += `<span class="${className}">${digitContent}</span>`;
 
             // 1行あたりの桁数で改行
-            let currentLineLengthFromStart = i + (startIndex === 0 ? 2 : 0);
-            if (startIndex === 0 && currentLineLengthFromStart === GAME_DIGITS_PER_LINE) {
-                rows.push(rowStr);
-                rowStr = `<span class="digit">&nbsp;</span>`.repeat(INDENT_DIGITS);
-            } else if (startIndex > 0 && pi.charAt(startIndex -1) === '.' && (i + 1) % GAME_DIGITS_PER_LINE === 0 && i < puzzle.length - 1) {
-                rows.push(rowStr);
-                rowStr = `<span class="digit">&nbsp;</span>`.repeat(INDENT_DIGITS);
-            } else if (startIndex > 0 && pi.charAt(startIndex -1) !== '.' && (i + 1 + INDENT_DIGITS) % GAME_DIGITS_PER_LINE === 0 && i < puzzle.length - 1) {
+            let currentLineLengthFromStart = i; // 小数点以下の桁数のみでカウント
+            if ((currentLineLengthFromStart + 1) % GAME_DIGITS_PER_LINE === 0 && i < puzzle.length - 1) {
                 rows.push(rowStr);
                 rowStr = `<span class="digit">&nbsp;</span>`.repeat(INDENT_DIGITS);
             }
@@ -791,7 +802,7 @@
       function handleStandardCorrect(value) {
           correctSound.currentTime = 0; // 再生位置をリセット
           correctSound.play();
-          digitsHistory.push({ digit: value, wrong: false });
+          digitsHistory.push({ digit: value, wrong: false, isEntered: true }); // isEnteredフラグを追加
           currentIndex++; // 次の桁へ
           updateStandardDisplay();
           
@@ -814,7 +825,7 @@
           wrongSound.currentTime = 0; // 再生位置をリセット
           wrongSound.play();
           const expected = pi.charAt(currentIndex);
-          digitsHistory.push({ digit: value, wrong: true }); // 間違った桁を履歴に追加
+          digitsHistory.push({ digit: value, wrong: true, isEntered: true }); // 間違った桁を履歴に追加, isEnteredフラグを追加
           totalWrongAttempts++;
           currentIndex++; // 不正解でも次の桁へ進む
           updateStandardDisplay();
