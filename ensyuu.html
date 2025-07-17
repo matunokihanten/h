@@ -119,9 +119,18 @@
       font-size: 20px;
       display: inline-block;
       text-align: center;
-      width: 1.2ch;
+      width: 1.2ch; /* 数字の幅 */
       padding: 1px 0;
     }
+    /* 暗記モードの3.表示用 */
+    .pi-integer-part {
+      font-size: 24px; /* 少し大きく */
+      font-weight: bold;
+      margin-right: 8px; /* 後ろの数字と少し間隔を空ける */
+      display: inline-block; /* 改行されないように */
+      vertical-align: top; /* 上揃え */
+    }
+
     .wrong {
       color: #ff6666;
       text-shadow: 0 0 5px rgba(255,102,102,0.8);
@@ -131,6 +140,7 @@
       border-radius: 3px;
       padding: 0 2px;
       animation: pulse 1.5s infinite alternate;
+      /* For random fill mode: current digit is visible */
     }
     /* 標準モードの現在の桁のプレースホルダー */
     .current-placeholder {
@@ -162,6 +172,18 @@
     }
     #controlButtons button:active {
       transform: scale(0.96);
+    }
+    #exitBtn {
+        background: linear-gradient(45deg, #6c757d, #5a6268);
+    }
+    #exitBtn:hover {
+        background: linear-gradient(45deg, #5a6268, #4e555b);
+    }
+    #memorizeBtn {
+        background: linear-gradient(45deg, #17a2b8, #138496);
+    }
+    #memorizeBtn:hover {
+        background: linear-gradient(45deg, #138496, #117a8b);
     }
     #message {
       margin: 15px;
@@ -234,6 +256,10 @@
       .digit {
         font-size: 18px;
         width: 1.1ch;
+      }
+      .pi-integer-part {
+        font-size: 20px;
+        margin-right: 6px;
       }
       #message {
         font-size: 16px;
@@ -308,15 +334,18 @@
                  "45648566923460348610454326648213393607260249141273" +
                  "72458700660631558817488152092096282925409171536436" +
                  "78925903600113305305488204665213841469519415116094" +
-                 "33057270365759591953092186117381932611793105118548";
+                 "33057270365759591953092186117381932611793105118548" +
+                 "67328620941921285673831410175517260550887893049101"; // 502桁目まで延長
 
-      let targetCount = 500; // 目標桁数は常に500に固定
+      const MAX_PI_DIGITS = pi.length; // 円周率の総桁数を定数として定義
+
+      let targetCount = 502; // 目標桁数を502に固定
       let startIndex = 0;
       let currentIndex = 0; // 標準モード用
       let digitsHistory = []; // 標準モード用
-      let puzzle = []; // ランダム穴埋めモード用 (旧パズルモードのデータ構造を流用)
-      let missingIndices = []; // ランダム穴埋めモード用
-      let missingPointer = 0; // ランダム穴埋めモード用
+      let puzzle = []; // ランダム穴埋めモード用
+      let missingIndices = []; // ランダム穴埋めモード用 (グローバルインデックス)
+      let missingPointer = 0; // ランダム穴埋めモード用 (missingIndices配列のポインタ)
       let totalWrongAttempts = 0; // 不正解数の追跡
 
       let gameMode = "standard"; // "standard", "randomFill"
@@ -326,7 +355,6 @@
       const startIndexInput = document.getElementById("startIndex");
       const maxPiLengthSpan = document.getElementById("maxPiLength"); // 円周率の最大桁数表示用
       const modeStandardRadio = document.getElementById("modeStandard");
-      // const modePuzzleRadio = document.getElementById("modePuzzle"); // 削除
       const modeRandomFillRadio = document.getElementById("modeRandomFill");
       const randomModeSettingsDiv = document.getElementById("randomModeSettings");
       const fillPercentageSlider = document.getElementById("fillPercentage");
@@ -338,11 +366,11 @@
       const messageDiv = document.getElementById("message");
 
       // サウンド要素の作成 (適切な短い効果音に置き換えてください)
-      const correctSound = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3'); // 短い成功音の例
-      const wrongSound = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3');   // 短い失敗音の例
+      const correctSound = new Audio('https://cdn.jsdelivr.net/gh/Tonejs/Tone.js/examples/audio/context/success.mp3'); 
+      const wrongSound = new Audio('https://cdn.jsdelivr.net/gh/Tonejs/Tone.js/examples/audio/context/fail.mp3');   
 
       // 円周率の総桁数を表示
-      maxPiLengthSpan.textContent = pi.length;
+      maxPiLengthSpan.textContent = MAX_PI_DIGITS;
 
       // --- 設定の記憶機能 ---
       function saveSettings() {
@@ -363,7 +391,7 @@
           if (radio) {
             radio.checked = true;
             gameMode = savedMode; // gameMode変数も更新
-          } else { // 削除されたモードが保存されていた場合、デフォルト（標準モード）にする
+          } else { // 存在しないモードが保存されていた場合、デフォルト（標準モード）にする
              modeStandardRadio.checked = true;
              gameMode = "standard";
           }
@@ -405,32 +433,33 @@
         }
         // 次に入力すべき桁 (current index)
         if (gameActive && currentIndex < startIndex + targetCount) {
-            // ここで正しい数字を直接表示するのではなく、プレースホルダーとして空の桁またはアンダースコアを表示する
-            // CSSでこのクラスの色を透明にすることで、ハイライトだけが表示されるようにする
+            // 現在の入力位置の桁は、見た目上は空のプレースホルダーとして表示
             displayDigits.push({
-                digit: pi.charAt(currentIndex), // 正しい値は内部で保持しつつ、表示はプレースホルダー
+                digit: pi.charAt(currentIndex), // 内部的には正しい値を保持するが、CSSで非表示
                 wrong: false,
-                isCurrent: true // CSSで current-placeholder を適用する
+                isCurrent: true 
             });
         }
 
         let rows = [];
         let firstRowStr = "";
         for (let i = 0; i < Math.min(displayDigits.length, 22); i++) {
-          firstRowStr += displayDigits[i].wrong
-                        ? `<span class="digit wrong">${displayDigits[i].digit}</span>`
-                        : (displayDigits[i].isCurrent ? `<span class="digit current-placeholder">${displayDigits[i].digit}</span>` : `<span class="digit">${displayDigits[i].digit}</span>`);
+          const digitObj = displayDigits[i];
+          const digitContent = digitObj.isCurrent ? "" : digitObj.digit; // current-placeholderの時は文字を空にする
+          const className = digitObj.wrong ? "digit wrong" : (digitObj.isCurrent ? "digit current-placeholder" : "digit");
+          firstRowStr += `<span class="${className}">${digitContent}</span>`;
         }
         rows.push(firstRowStr);
 
         let pos = 22;
         while (pos < displayDigits.length) {
           let row = displayDigits.slice(pos, Math.min(pos + 20, displayDigits.length));
-          let rowStr = `<span class="digit">&nbsp;</span><span class="digit">&nbsp;</span>`;
+          let rowStr = `<span class="digit">&nbsp;</span><span class="digit">&nbsp;</span>`; // インデント
           for (let i = 0; i < row.length; i++) {
-            rowStr += row[i].wrong
-                      ? `<span class="digit wrong">${row[i].digit}</span>`
-                      : (row[i].isCurrent ? `<span class="digit current-placeholder">${row[i].digit}</span>` : `<span class="digit">${row[i].digit}</span>`);
+            const digitObj = row[i];
+            const digitContent = digitObj.isCurrent ? "" : digitObj.digit; // current-placeholderの時は文字を空にする
+            const className = digitObj.wrong ? "digit wrong" : (digitObj.isCurrent ? "digit current-placeholder" : "digit");
+            rowStr += `<span class="${className}">${digitContent}</span>`;
           }
           rows.push(rowStr);
           pos += 20;
@@ -445,18 +474,20 @@
         }
       }
 
-      // updateRandomFillDisplay：ランダム穴埋めモード用 (旧 updatePuzzleDisplay)
+      // updateRandomFillDisplay：ランダム穴埋めモード用
       function updateRandomFillDisplay() {
         let rows = [];
         let firstRowCells = puzzle.slice(0, 22);
         let firstRowStr = "";
         for (let i = 0; i < firstRowCells.length; i++) {
-            const isCurrentMissing = gameActive && (startIndex + i === missingIndices[missingPointer]);
+            // グローバルインデックスを計算して、現在入力すべき穴かどうかを判断
+            const currentGlobalIndex = startIndex + i; 
+            const isCurrentMissing = gameActive && missingPointer < missingIndices.length && (currentGlobalIndex === missingIndices[missingPointer]);
 
             if (!firstRowCells[i].prefilled) { // 穴の場合
                 if (firstRowCells[i].userInput === null) { // 未入力
                     firstRowStr += isCurrentMissing ? `<span class="digit current">_</span>` : `<span class="digit">_</span>`;
-                } else { // 入力済み
+                } else { // 入力済み (正解/不正解に関わらず入力された値を表示)
                     firstRowStr += firstRowCells[i].wrong
                                  ? `<span class="digit wrong">${firstRowCells[i].userInput}</span>`
                                  : `<span class="digit">${firstRowCells[i].userInput}</span>`;
@@ -469,10 +500,10 @@
         let pos = 22;
         while (pos < puzzle.length) {
           let rowCells = puzzle.slice(pos, Math.min(pos + 20, puzzle.length));
-          let rowStr = `<span class="digit">&nbsp;</span><span class="digit">&nbsp;</span>`;
+          let rowStr = `<span class="digit">&nbsp;</span><span class="digit">&nbsp;</span>`; // インデント
           for (let i = 0; i < rowCells.length; i++) {
             const currentGlobalIndex = startIndex + pos + i;
-            const isCurrentMissing = gameActive && (currentGlobalIndex === missingIndices[missingPointer]);
+            const isCurrentMissing = gameActive && missingPointer < missingIndices.length && (currentGlobalIndex === missingIndices[missingPointer]);
 
             if (!rowCells[i].prefilled) { // 穴の場合
                 if (rowCells[i].userInput === null) { // 未入力
@@ -502,44 +533,53 @@
       // activateMemorizeMode：暗記モード
       function activateMemorizeMode() {
         gameActive = false;
-        let digits = pi.slice(0, 500); // 常に500桁を表示
-        let tempHistory = [];
-        for (let i = 0; i < digits.length; i++) {
-          tempHistory.push({ digit: digits[i], wrong: false });
+        // 暗記モードは常にpiの先頭502桁を表示
+        let digits = pi.slice(0, Math.min(MAX_PI_DIGITS, 502)); 
+        let displayHtml = '';
+        const digitsPerLine = 20; // 1行あたりの表示桁数（インデント込みで22桁相当）
+        const groupSize = 2;      // 2桁ごとにスペースに変更
+
+        // 「3.」の部分を特別に表示
+        displayHtml += `<span class="pi-integer-part">${digits.substring(0, 2)}</span>`; // "3." を取得
+        let decimalDigits = digits.substring(2); // "14159..." から開始
+
+        for (let i = 0; i < decimalDigits.length; i++) {
+            displayHtml += `<span class="digit">${decimalDigits[i]}</span>`;
+
+            // 2桁ごとにスペースを追加（ただし、それが最後の桁ではない場合）
+            if ((i + 1) % groupSize === 0 && (i + 1) < decimalDigits.length) {
+                displayHtml += '&nbsp;'; // 半角スペース
+            }
+            
+            // 20桁ごとに改行 (小数点以下)
+            // iは0から始まるので、(i+1)が20の倍数で、かつそれが最後の桁でない場合
+            // ただし、小数点以下なので、最初の2桁(3.)を除いた桁数で計算
+            if ((i + 1) % digitsPerLine === 0 && (i + 1) < decimalDigits.length) {
+                displayHtml += '<br>';
+                // 50桁ごとにさらに大きな改行
+                if ((i + 1) % 50 === 0 && (i + 1) < decimalDigits.length) {
+                    displayHtml += '<br>';
+                }
+                displayHtml += `<span class="digit">&nbsp;</span><span class="digit">&nbsp;</span>`; // インデント
+            }
         }
-        let rows = [];
-        let firstRow = tempHistory.slice(0, 22);
-        let firstRowStr = "";
-        for (let i = 0; i < firstRow.length; i++) {
-          firstRowStr += `<span class="digit">${firstRow[i].digit}</span>`;
-        }
-        rows.push(firstRowStr);
-        let pos = 22;
-        while (pos < tempHistory.length) {
-          let row = tempHistory.slice(pos, pos + 20);
-          let rowStr = `<span class="digit">&nbsp;</span><span class="digit">&nbsp;</span>`;
-          for (let i = 0; i < row.length; i++) {
-            rowStr += `<span class="digit">${row[i].digit}</span>`;
-          }
-          rows.push(rowStr);
-          pos += 20;
-        }
-        piDisplay.innerHTML = rows.join("<br>");
-        messageDiv.textContent = "暗記モード：πの先頭500桁を表示しています。";
+
+        piDisplay.innerHTML = displayHtml;
+        messageDiv.textContent = `暗記モード：πの先頭${Math.min(MAX_PI_DIGITS, 502)}桁を表示しています。`;
       }
 
       // --- ゲーム初期化 ---
       function initGame() {
         startIndex = parseInt(startIndexInput.value, 10);
         // 開始桁数のバリデーション (円周率の総桁数を超えないように)
-        if (isNaN(startIndex) || startIndex < 0 || startIndex >= pi.length) {
+        if (isNaN(startIndex) || startIndex < 0 || startIndex >= MAX_PI_DIGITS) {
           startIndex = 0;
           startIndexInput.value = 0;
         }
         
-        targetCount = 500;
-        if (startIndex + targetCount > pi.length) {
-          targetCount = pi.length - startIndex;
+        targetCount = 502; // 目標桁数は常に502
+        if (startIndex + targetCount > MAX_PI_DIGITS) {
+          targetCount = MAX_PI_DIGITS - startIndex; // 開始桁からpiの終わりまで
         }
 
         saveSettings(); // 設定を保存
@@ -557,9 +597,9 @@
             digitsHistory.push({ digit: pi.charAt(i), wrong: false });
           }
           piDisplay.innerHTML = "";
-          messageDiv.textContent = "標準モード開始！数字を入力してください。";
           gameActive = true;
           updateStandardDisplay();
+          messageDiv.textContent = "標準モード開始！数字を入力してください。";
         }
       }
 
@@ -567,6 +607,7 @@
       function initRandomFillMode() {
         gameActive = true;
         puzzle = [];
+        // startIndexからtargetCount分の円周率の数字を基にパズルを生成
         for (let i = 0; i < targetCount; i++) {
           puzzle.push({ correct: pi.charAt(startIndex + i), prefilled: true, userInput: null, wrong: false });
         }
@@ -574,11 +615,9 @@
         const percentage = parseInt(fillPercentageSlider.value, 10) / 100;
         const numToHide = Math.max(1, Math.floor(targetCount * percentage)); // 最低1つは隠す
 
-        let availableIndices = [];
+        let availableIndices = []; // 隠す候補となるローカルインデックス（0〜targetCount-1）
         for (let i = 0; i < targetCount; i++) {
-            // 小数点「.」は隠さない。かつ、既に埋められている（prefilled=true）ものだけを候補にする
-            // パズルモードからの名残でprefilled=trueになっていますが、ここでは全てがtrueなのでこのチェックは不要
-            // if (puzzle[i].correct !== '.' && puzzle[i].prefilled) { // 現時点では全てprefilledなので不要だが念のため
+            // 小数点「.」は隠さない
             if (puzzle[i].correct !== '.') {
                 availableIndices.push(i);
             }
@@ -590,14 +629,14 @@
             [availableIndices[i], availableIndices[j]] = [availableIndices[j], availableIndices[i]];
         }
 
-        missingIndices = [];
+        missingIndices = []; // グローバルインデックスで記録
         for (let k = 0; k < numToHide && k < availableIndices.length; k++) {
-            const indexToHide = availableIndices[k]; // この indexToHide は0からtargetCount-1までの相対インデックス
-            puzzle[indexToHide].prefilled = false; // 隠す
-            missingIndices.push(startIndex + indexToHide); // グローバルインデックスで記録
+            const indexToHideLocal = availableIndices[k]; // ローカルインデックス
+            puzzle[indexToHideLocal].prefilled = false; // 隠す
+            missingIndices.push(startIndex + indexToHideLocal); // グローバルインデックスに変換して記録
         }
 
-        missingIndices.sort((a, b) => a - b);
+        missingIndices.sort((a, b) => a - b); // 順番に穴を埋めるためにソート
         missingPointer = 0;
         piDisplay.innerHTML = "";
         updateRandomFillDisplay();
@@ -611,21 +650,26 @@
         if (value === "C") {
           if (gameMode === "randomFill") {
             if (missingPointer > 0) {
+              // 1つ前の入力に戻る
               missingPointer--;
               // missingIndicesにはグローバルインデックスが保存されているので、
-              // puzzle配列にアクセスする際は startIndex を引く
-              const indexToClear = missingIndices[missingPointer] - startIndex;
-              puzzle[indexToClear].userInput = null;
-              puzzle[indexToClear].wrong = false;
+              // puzzle配列にアクセスする際は startIndex を引いてローカルインデックスにする
+              const indexToClearLocal = missingIndices[missingPointer] - startIndex;
+              puzzle[indexToClearLocal].userInput = null; // 入力をリセット
+              puzzle[indexToClearLocal].wrong = false;    // 間違い状態もリセット
               updateRandomFillDisplay();
-              messageDiv.textContent = "";
+              messageDiv.textContent = "前の穴に戻りました。";
+            } else {
+                messageDiv.textContent = "これ以上戻れません。";
             }
           } else { // standard mode
-            if (currentIndex > startIndex) {
+            if (currentIndex > startIndex) { // startIndexより後ろなら戻れる
               currentIndex--;
-              digitsHistory.pop();
+              digitsHistory.pop(); // 最後の入力履歴を削除
               updateStandardDisplay();
-              messageDiv.textContent = "";
+              messageDiv.textContent = "最後の入力を消しました。";
+            } else {
+                messageDiv.textContent = "これ以上戻れません。";
             }
           }
           return;
@@ -633,9 +677,9 @@
 
         // 数字およびドットの処理
         if (gameMode === "randomFill") {
-          if (missingPointer < missingIndices.length) {
-            const curGlobalIndex = missingIndices[missingPointer];
-            const curLocalIndex = curGlobalIndex - startIndex; // puzzle配列は0からの相対インデックス
+          if (missingPointer < missingIndices.length) { // まだ埋めるべき穴がある場合
+            const curGlobalIndex = missingIndices[missingPointer]; // 現在埋めるべき穴のグローバルインデックス
+            const curLocalIndex = curGlobalIndex - startIndex; // puzzle配列に対応するローカルインデックス
             const expected = puzzle[curLocalIndex].correct;
             
             if (value === expected) {
@@ -643,28 +687,35 @@
             } else {
               handleRandomFillWrong(value, curLocalIndex);
             }
+          } else {
+              // 全ての穴を埋め終わっている場合の処理（キー入力は無視、または終了メッセージを再表示）
+              messageDiv.textContent = "全ての穴を補完しました！";
           }
         } else { // standard mode
-          if (currentIndex < startIndex + targetCount) {
+          if (currentIndex < startIndex + targetCount) { // まだ入力すべき桁がある場合
             const expected = pi.charAt(currentIndex);
             if (value === expected) {
               handleStandardCorrect(value);
             } else {
               handleStandardWrong(value);
             }
+          } else {
+              // 目標桁数に到達している場合の処理（キー入力は無視、または終了メッセージを再表示）
+              messageDiv.textContent = "おめでとうございます！目標の" + targetCount + "桁に到達しました！";
           }
         }
       }
 
-      // --- 正解/不正解時の処理 --- (関数名をモード別に変更し、明確化)
+      // --- 正解/不正解時の処理 ---
       function handleStandardCorrect(value) {
-          correctSound.currentTime = 0;
+          correctSound.currentTime = 0; // 再生位置をリセット
           correctSound.play();
           digitsHistory.push({ digit: value, wrong: false });
-          messageDiv.textContent = "正解！ 現在 " + (currentIndex - startIndex + 1) + " 桁";
-          currentIndex++;
+          currentIndex++; // 次の桁へ
           updateStandardDisplay();
+          
           if (currentIndex === startIndex + targetCount) {
+              // ゲーム終了
               let finalMessage = "おめでとうございます！目標の" + targetCount + "桁に到達しました！";
               if (totalWrongAttempts > 0) {
                 finalMessage += " 間違いは " + totalWrongAttempts + " 回ありました。";
@@ -673,39 +724,43 @@
               }
               messageDiv.textContent = finalMessage;
               gameActive = false;
+          } else {
+              messageDiv.textContent = "正解！ 現在 " + (currentIndex - startIndex) + " 桁完了 (" + (currentIndex - startIndex + 1) + "桁目を入力)";
           }
       }
 
       function handleStandardWrong(value) {
-          wrongSound.currentTime = 0;
+          wrongSound.currentTime = 0; // 再生位置をリセット
           wrongSound.play();
           const expected = pi.charAt(currentIndex);
-          digitsHistory.push({ digit: value, wrong: true });
+          digitsHistory.push({ digit: value, wrong: true }); // 間違った桁を履歴に追加
           totalWrongAttempts++;
-          messageDiv.textContent = "間違い！ 正解は '" + expected + "' です";
-          currentIndex++;
+          currentIndex++; // 不正解でも次の桁へ進む
           updateStandardDisplay();
+
           if (currentIndex === startIndex + targetCount) {
+              // ゲーム終了
               let finalMessage = "目標桁数に達しました。";
               if (totalWrongAttempts > 0) {
                 finalMessage += " 間違いは " + totalWrongAttempts + " 回ありました。";
-              } else {
-                finalMessage += " 全問正解です！"; // 論理的にはありえないが念のため
               }
               messageDiv.textContent = finalMessage;
               gameActive = false;
+          } else {
+              messageDiv.textContent = "間違い！ 正解は '" + expected + "' です。";
           }
       }
 
       function handleRandomFillCorrect(value, index) {
-          correctSound.currentTime = 0;
+          correctSound.currentTime = 0; // 再生位置をリセット
           correctSound.play();
           puzzle[index].userInput = value;
           puzzle[index].wrong = false;
-          missingPointer++;
-          messageDiv.textContent = "正解！ " + missingPointer + " / " + missingIndices.length + "箇所完了";
+          missingPointer++; // 次の穴へ
           updateRandomFillDisplay();
+
           if (missingPointer === missingIndices.length) {
+              // 全ての穴を埋め終わった
               let finalMessage = "おめでとうございます！全ての穴を補完しました！";
               if (totalWrongAttempts > 0) {
                 finalMessage += " 間違いは " + totalWrongAttempts + " 回ありました。";
@@ -714,28 +769,31 @@
               }
               messageDiv.textContent = finalMessage;
               gameActive = false;
+          } else {
+              messageDiv.textContent = "正解！ " + missingPointer + " / " + missingIndices.length + "箇所完了";
           }
       }
 
       function handleRandomFillWrong(value, index) {
-          wrongSound.currentTime = 0;
+          wrongSound.currentTime = 0; // 再生位置をリセット
           wrongSound.play();
           const expected = puzzle[index].correct;
-          puzzle[index].userInput = value;
-          puzzle[index].wrong = true;
+          puzzle[index].userInput = value; // 入力された間違った値を保存
+          puzzle[index].wrong = true;      // 間違いとしてマーク
           totalWrongAttempts++;
-          missingPointer++;
-          messageDiv.textContent = "間違い！ 正解は '" + expected + "' でした。";
+          missingPointer++; // 不正解でも次の穴へ進む
           updateRandomFillDisplay();
+
           if (missingPointer === missingIndices.length) {
+              // 全ての穴を埋め終わった
               let finalMessage = "全ての穴を補完しました。";
               if (totalWrongAttempts > 0) {
                 finalMessage += " 間違いは " + totalWrongAttempts + " 回ありました。";
-              } else {
-                finalMessage += " 全問正解です！"; // 論理的にはありえないが念のため
               }
               messageDiv.textContent = finalMessage;
               gameActive = false;
+          } else {
+              messageDiv.textContent = "間違い！ 正解は '" + expected + "' でした。";
           }
       }
 
@@ -743,11 +801,12 @@
       const keypadButtons = document.querySelectorAll(".key");
       keypadButtons.forEach(btn => {
         const handler = function(e) {
-          e.preventDefault();
+          e.preventDefault(); // モバイルでの連続タップによるズームなどを防ぐ
           handleKeyInput(this.textContent);
         };
         btn.addEventListener("click", handler);
-        btn.addEventListener("touchstart", handler, { passive: false });
+        // モバイルでのタッチイベントも考慮 (passive: falseでpreventDefaultを有効に)
+        btn.addEventListener("touchstart", handler, { passive: false }); 
       });
 
       startBtn.addEventListener("click", function() {
@@ -776,8 +835,38 @@
       });
 
       // 開始桁数入力フィールドの変更を監視し、設定を保存
-      startIndexInput.addEventListener('change', saveSettings);
-      startIndexInput.addEventListener('input', saveSettings); // 入力中も保存したい場合
+      // 'input'イベントで入力中の変更もキャッチ、'change'で確定時の変更もキャッチ
+      startIndexInput.addEventListener('input', () => {
+        // 入力値が円周率の長さを超えないように制限
+        let currentVal = parseInt(startIndexInput.value, 10);
+        if (isNaN(currentVal) || currentVal < 0) {
+            currentVal = 0;
+        } else if (currentVal > MAX_PI_DIGITS -1) { // 最後の桁の直前まで開始できる
+            currentVal = MAX_PI_DIGITS -1;
+        }
+        startIndexInput.value = currentVal;
+        saveSettings();
+      });
+      startIndexInput.addEventListener('change', saveSettings); 
+
+      // キーボード入力イベントの追加
+      document.addEventListener('keydown', function(event) {
+        if (!gameActive) return;
+
+        const key = event.key;
+        if (key >= '0' && key <= '9') {
+          handleKeyInput(key);
+        } else if (key === '.') {
+          handleKeyInput('.');
+        } else if (key === 'Backspace' || key === 'Delete') {
+          handleKeyInput('C'); // 'C'ボタンと同じ処理を呼び出す
+        } else if (key === 'Enter') {
+            // エンターキーで何か特別なことをする必要がなければ何もしない
+            // 例えば、エラー表示を消すなど
+            // messageDiv.textContent = ""; 
+        }
+      });
+
 
       // 初期ロード時の処理
       loadSettings(); // 設定をロード
