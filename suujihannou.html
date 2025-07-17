@@ -9,20 +9,23 @@
             font-family: 'Arial', 'Hiragino Sans', sans-serif;
             background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%);
             margin: 0;
-            padding: 20px;
+            padding: 10px; /* スマートフォン対応のためpaddingを減らす */
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
+            box-sizing: border-box; /* paddingを含めて要素のサイズを計算 */
         }
 
         .game-container {
             background: #ffffff;
-            padding: 30px;
+            padding: 20px; /* スマートフォン対応のためpaddingを減らす */
             border-radius: 20px;
             box-shadow: 0 15px 35px rgba(0,0,0,0.1);
             text-align: center;
-            width: 380px;
+            width: 100%; /* 幅を100%にする */
+            max-width: 420px; /* 最大幅を設定 */
+            box-sizing: border-box;
         }
 
         .title {
@@ -38,8 +41,15 @@
             margin-bottom: 10px;
             font-size: 18px;
             color: #555;
+            flex-wrap: wrap; /* 要素が折り返すように設定 */
+            justify-content: center; /* 中央寄せ */
+            gap: 5px 15px; /* 行と列の隙間 */
         }
         
+        .stats-bar > div {
+            flex-shrink: 0; /* 縮小させない */
+        }
+
         .stats-bar .score.hot-streak {
             color: #e67e22;
             font-weight: bold;
@@ -51,18 +61,24 @@
             color: #333;
             font-size: 100px;
             font-weight: bold;
-            padding: 40px 20px;
+            padding: 30px 10px; /* スマートフォン対応のためpaddingを減らす */
             margin-bottom: 15px;
             border-radius: 10px;
-            min-height: 150px;
+            min-height: 120px; /* スマートフォン対応のため最小高さを減らす */
             display: flex;
             align-items: center;
             justify-content: center;
             transition: background-color 0.2s, transform 0.1s;
+            word-break: keep-all; /* 単語の途中で改行しない */
+            overflow-wrap: break-word; /* 長い単語は改行 */
         }
         
+        .kanji-display.hard-mode {
+            font-size: 60px; /* 大字が入ることを想定して少し小さく */
+        }
+
         .combo-display {
-            font-size: 24px;
+            font-size: 22px; /* スマートフォン対応のため少し小さく */
             font-weight: bold;
             color: #3498db;
             height: 30px;
@@ -77,16 +93,16 @@
         .buttons {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
+            gap: 10px; /* スマートフォン対応のためgapを減らす */
             margin-bottom: 20px;
         }
 
         .btn {
             width: 100%;
-            height: 70px;
+            height: 60px; /* スマートフォン対応のため高さを減らす */
             border: none;
             border-radius: 10px;
-            font-size: 28px;
+            font-size: 26px; /* スマートフォン対応のためフォントサイズを減らす */
             font-weight: bold;
             cursor: pointer;
             transition: all 0.2s;
@@ -113,12 +129,13 @@
             background: #27ae60;
             color: white;
             border: none;
-            padding: 15px 30px;
+            padding: 12px 25px; /* スマートフォン対応のためpaddingを減らす */
             border-radius: 10px;
             cursor: pointer;
-            font-size: 20px;
+            font-size: 18px; /* スマートフォン対応のためフォントサイズを減らす */
             width: 100%;
             transition: background-color 0.2s;
+            margin-bottom: 10px;
         }
         
         .control-btn:hover {
@@ -129,26 +146,69 @@
             display: none;
         }
 
-        @keyframes flash-correct {
-            from { background-color: #2ecc71; transform: scale(1.05); }
-            to { background-color: #f0f0f0; transform: scale(1); }
-        }
-        @keyframes flash-wrong {
-            from { background-color: #e74c3c; transform: scale(0.95); }
-            to { background-color: #f0f0f0; transform: scale(1); }
+        .mode-selection {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 15px; /* スマートフォン対応のためmarginを減らす */
+            gap: 8px; /* スマートフォン対応のためgapを減らす */
+            flex-wrap: wrap; /* モード選択ボタンも折り返すように設定 */
         }
 
-        .flash-correct { animation: flash-correct 0.4s ease; }
-        .flash-wrong { animation: flash-wrong 0.4s ease; }
+        .mode-btn {
+            background: #f39c12;
+            color: white;
+            border: none;
+            padding: 8px 15px; /* スマートフォン対応のためpaddingを減らす */
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px; /* スマートフォン対応のためフォントサイズを減らす */
+            flex: 1;
+            min-width: 90px; /* ボタンの最小幅 */
+            transition: background-color 0.2s;
+        }
+        
+        .mode-btn:hover {
+            background: #e67e22;
+        }
+
+        .mode-btn.selected {
+            background: #d35400;
+            font-weight: bold;
+            border: 2px solid #e67e22;
+        }
+        
+        /* 終了ボタン */
+        .control-btn.exit-game-btn {
+            background: #e74c3c; /* 赤系の色 */
+        }
+        .control-btn.exit-game-btn:hover {
+            background: #c0392b;
+        }
+
+        /* 画面初期表示の状態 */
+        .game-state-initial .start-game-only {
+            display: block; /* スタートボタン */
+        }
+        .game-state-initial .in-game-only {
+            display: none; /* ゲーム中のボタンは隠す */
+        }
+
+        /* ゲーム中の状態 */
+        .game-state-playing .start-game-only {
+            display: none;
+        }
+        .game-state-playing .in-game-only {
+            display: block;
+        }
     </style>
 </head>
 <body>
-    <div class="game-container">
+    <div class="game-container" id="gameContainer">
         <div class="title">✨ 新・漢数字脳トレ</div>
         
         <div class="stats-bar">
             <div>ハイスコア: <span id="highScore">0</span></div>
-            <div>時間: <span id="timer">30</span>秒</div>
+            <div id="timerDisplayContainer">時間: <span id="timer">30</span>秒</div>
         </div>
         <div class="stats-bar">
             <div class="score">スコア: <span id="score">0</span></div>
@@ -159,27 +219,42 @@
 
         <div class="buttons" id="buttons"></div>
 
-        <button class="control-btn" id="startBtn">スタート</button>
+        <button class="control-btn start-game-only" id="startBtn">スタート</button>
+        <button class="control-btn exit-game-btn in-game-only" id="exitGameBtn">終了</button>
+
+        <div class="mode-selection">
+            <button class="mode-btn selected" id="normalModeBtn" data-mode="normal">ノーマル</button>
+            <button class="mode-btn" id="hardModeBtn" data-mode="hard">難しい</button>
+            <button class="mode-btn" id="relaxModeBtn" data-mode="relax">リラックス</button>
+        </div>
     </div>
 
     <script>
         class KanjiGame {
             constructor() {
                 this.GAME_DURATION = 30;
-                // ▼▼▼ 〇を零に変更 ▼▼▼
                 this.KANJI_NUMBERS = {
                     '零': 0, '一': 1, '二': 2, '三': 3, '四': 4,
                     '五': 5, '六': 6, '七': 7, '八': 8, '九': 9
                 };
-                // ▲▲▲ 〇を零に変更 ▲▲▲
-                this.kanjiKeys = Object.keys(this.KANJI_NUMBERS);
-                
-                // ▼▼▼ 新しいプロパティを追加 ▼▼▼
+                this.HIRAGANA_NUMBERS = {
+                    'れい': 0, 'いち': 1, 'に': 2, 'さん': 3, 'し': 4, 'よん': 4,
+                    'ご': 5, 'ろく': 6, 'なな': 7, 'しち': 7, 'はち': 8, 'きゅう': 9, 'く': 9
+                };
+                this.KATAKANA_NUMBERS = {
+                    'レイ': 0, 'イチ': 1, 'ニ': 2, 'サン': 3, 'シ': 4, 'ヨン': 4,
+                    'ゴ': 5, 'ロク': 6, 'ナナ': 7, 'シチ': 7, 'ハチ': 8, 'キュウ': 9, 'ク': 9
+                };
+                this.DAIJI_NUMBERS = {
+                    '零': 0, '壱': 1, '弐': 2, '参': 3, '肆': 4, '伍': 5,
+                    '陸': 6, '漆': 7, '捌': 8, '玖': 9
+                };
+
+                this.currentMode = 'normal'; // normal, hard, or relax
+                this.kanjiKeys = Object.keys(this.KANJI_NUMBERS); // デフォルトは漢数字
+
                 this.highScore = 0;
                 this.combo = 0;
-                this.sounds = {};
-                // ▲▲▲ 新しいプロパティを追加 ▲▲▲
-
                 this.score = 0;
                 this.timeLeft = this.GAME_DURATION;
                 this.currentKanji = '';
@@ -189,11 +264,13 @@
                 this.initializeDOMElements();
                 this.bindEvents();
                 this.renderButtons();
-                this.preloadSounds();
                 this.loadHighScore();
+                this.setInitialUIState(); // 初期UI状態を設定
             }
 
             initializeDOMElements() {
+                this.gameContainer = document.getElementById('gameContainer');
+                this.timerDisplayContainer = document.getElementById('timerDisplayContainer');
                 this.timerDisplay = document.getElementById('timer');
                 this.scoreDisplay = document.getElementById('score');
                 this.kanjiDisplay = document.getElementById('kanjiDisplay');
@@ -202,45 +279,35 @@
                 this.highScoreDisplay = document.getElementById('highScore');
                 this.comboDisplay = document.getElementById('comboDisplay');
                 this.scoreContainer = document.querySelector('.stats-bar .score');
+                this.normalModeBtn = document.getElementById('normalModeBtn');
+                this.hardModeBtn = document.getElementById('hardModeBtn');
+                this.relaxModeBtn = document.getElementById('relaxModeBtn');
+                this.exitGameBtn = document.getElementById('exitGameBtn'); 
             }
 
             bindEvents() {
                 this.startBtn.addEventListener('click', () => this.startGame());
+                this.normalModeBtn.addEventListener('click', () => this.setMode('normal'));
+                this.hardModeBtn.addEventListener('click', () => this.setMode('hard'));
+                this.relaxModeBtn.addEventListener('click', () => this.setMode('relax'));
+                this.exitGameBtn.addEventListener('click', () => this.exitGame()); 
             }
 
-            // ▼▼▼ サウンド読み込み機能を追加 ▼▼▼
-            preloadSounds() {
-                this.sounds = {
-                    correct: new Audio('data:audio/wav;base64,UklGRlIAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhUQAAAP2/AP/9/wIA/f8EABAA/v8IABAD/v8KABAA/v4NABAA//kRABAD//kUABAA/v+BAAUA/v+HADwA//4kAHEAG/8vAHwAO/+BAB4AFv+MAHwAHf+aAIAAJv+oAIQAAP+zAIwAAACDAJAAAgCLAJQAJgCiAJgAGgDIAKEADgEQALoA+gCeAMEA+wClAOMABAClAQIAFgDLAQYAFgDkAQgAEgD5AQkADAD+AQgA'),
-                    wrong: new Audio('data:audio/wav;base64,UklGRlwAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhWAAAAAEAAgADAAQABQAGAAcACAAJAAoACwAMAA0ADgAPABAAEQASABMAFAAVABYAFwAYABkAGgAbABwAHQAeAB8AIAAhACIAIwAkACUAJgAnACgAKQAqACsALAAtAC4ALwAwADEAMgAzADQANQA2ADcAOAA5ADoAOwA8AD0APgA/AEAAQQBCAEMARABFAEYARwBIAEkASgBLAEwATQBOAE8AUABRAFIAUwBUAFUAVgBXAFgAWQBaAFsAXABdAF4AXwBgAGEAYgBjAGQAZQNm'),
-                    comboBreak: new Audio('data:audio/wav;base64,UklGRkgAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhQAAAAKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKC/h_t.json')
-                };
-            }
-
-            playSound(name) {
-                if (this.sounds[name]) {
-                    this.sounds[name].currentTime = 0;
-                    this.sounds[name].play();
-                }
-            }
-            // ▲▲▲ サウンド読み込み機能を追加 ▲▲▲
-
-            // ▼▼▼ ハイスコア関連の機能を追加 ▼▼▼
             loadHighScore() {
-                this.highScore = localStorage.getItem('kanjiGameHighScore') || 0;
+                this.highScore = localStorage.getItem(`kanjiGameHighScore_${this.currentMode}`) || 0;
                 this.highScoreDisplay.textContent = this.highScore;
             }
 
             saveHighScore() {
                 if (this.score > this.highScore) {
                     this.highScore = this.score;
-                    localStorage.setItem('kanjiGameHighScore', this.highScore);
+                    localStorage.setItem(`kanjiGameHighScore_${this.currentMode}`, this.highScore);
                     this.highScoreDisplay.textContent = this.highScore;
                 }
             }
-            // ▲▲▲ ハイスコア関連の機能を追加 ▲▲▲
 
             renderButtons() {
+                this.buttonsContainer.innerHTML = '';
                 for (let i = 7; i <= 9; i++) this.createButton(i);
                 for (let i = 4; i <= 6; i++) this.createButton(i);
                 for (let i = 1; i <= 3; i++) this.createButton(i);
@@ -255,6 +322,66 @@
                 this.buttonsContainer.appendChild(button);
             }
 
+            setInitialUIState() {
+                // 初期のUI状態を設定
+                this.gameContainer.classList.add('game-state-initial');
+                this.gameContainer.classList.remove('game-state-playing');
+                this.normalModeBtn.classList.add('selected');
+                this.hardModeBtn.classList.remove('selected');
+                this.relaxModeBtn.classList.remove('selected');
+                this.timerDisplayContainer.style.display = 'flex'; // ノーマルモードはタイマー表示
+                this.kanjiDisplay.classList.remove('hard-mode');
+                this.kanjiDisplay.textContent = '待機中'; // 初期表示
+                this.score = 0;
+                this.combo = 0;
+                this.timeLeft = this.GAME_DURATION;
+                this.scoreDisplay.textContent = this.score;
+                this.timerDisplay.textContent = this.timeLeft;
+                this.comboDisplay.textContent = '';
+            }
+
+            setMode(mode) {
+                if (this.isPlaying) return; // ゲーム中はモード変更不可
+
+                this.currentMode = mode;
+                this.loadHighScore(); // モード変更時にハイスコアを更新
+                this.resetGame(); // モード変更時にゲーム状態をリセット
+
+                // モードボタンの選択状態を更新
+                this.normalModeBtn.classList.remove('selected');
+                this.hardModeBtn.classList.remove('selected');
+                this.relaxModeBtn.classList.remove('selected');
+                if (this.currentMode === 'normal') {
+                    this.normalModeBtn.classList.add('selected');
+                    this.kanjiDisplay.classList.remove('hard-mode');
+                    this.timerDisplayContainer.style.display = 'flex'; // ノーマルモードはタイマー表示
+                } else if (this.currentMode === 'hard') {
+                    this.hardModeBtn.classList.add('selected');
+                    this.kanjiDisplay.classList.add('hard-mode');
+                    this.timerDisplayContainer.style.display = 'flex'; // 難しいモードはタイマー表示
+                } else if (this.currentMode === 'relax') {
+                    this.relaxModeBtn.classList.add('selected');
+                    this.kanjiDisplay.classList.add('hard-mode'); // リラックスモードも難しい文字を使用
+                    this.timerDisplayContainer.style.display = 'none'; // リラックスモードはタイマー非表示
+                }
+            }
+
+            resetGame() {
+                clearInterval(this.timerId);
+                this.isPlaying = false;
+                this.score = 0;
+                this.combo = 0;
+                this.timeLeft = this.GAME_DURATION;
+                this.scoreDisplay.textContent = this.score;
+                this.timerDisplay.textContent = this.timeLeft;
+                this.comboDisplay.textContent = '';
+                this.kanjiDisplay.textContent = '待機中'; // リセット時の表示
+
+                this.gameContainer.classList.remove('game-state-playing');
+                this.gameContainer.classList.add('game-state-initial'); // 初期状態に戻す
+                this.startBtn.textContent = 'スタート'; // ボタンテキストをリセット
+            }
+
             startGame() {
                 if (this.isPlaying) return;
                 
@@ -266,17 +393,24 @@
                 this.scoreDisplay.textContent = this.score;
                 this.timerDisplay.textContent = this.timeLeft;
                 this.updateComboDisplay();
-                this.startBtn.classList.add('hidden');
+                
+                this.gameContainer.classList.remove('game-state-initial');
+                this.gameContainer.classList.add('game-state-playing'); // ゲーム中状態にする
+
+                if (this.currentMode !== 'relax') { // リラックスモードでなければタイマーを開始
+                    this.timerDisplayContainer.style.display = 'flex';
+                    this.timerId = setInterval(() => {
+                        this.timeLeft--;
+                        this.timerDisplay.textContent = this.timeLeft;
+                        if (this.timeLeft <= 0) {
+                            this.endGame();
+                        }
+                    }, 1000);
+                } else {
+                    this.timerDisplayContainer.style.display = 'none'; // リラックスモードはタイマー非表示
+                }
 
                 this.nextProblem();
-
-                this.timerId = setInterval(() => {
-                    this.timeLeft--;
-                    this.timerDisplay.textContent = this.timeLeft;
-                    if (this.timeLeft <= 0) {
-                        this.endGame();
-                    }
-                }, 1000);
             }
             
             endGame() {
@@ -284,36 +418,76 @@
                 this.isPlaying = false;
                 this.saveHighScore();
                 this.kanjiDisplay.textContent = `終了！スコア: ${this.score}`;
-                this.startBtn.textContent = 'もう一度挑戦';
-                this.startBtn.classList.remove('hidden');
                 this.comboDisplay.textContent = `ハイスコア: ${this.highScore}`;
+
+                this.gameContainer.classList.remove('game-state-playing');
+                this.gameContainer.classList.add('game-state-initial'); // 初期状態に戻す
+                this.startBtn.textContent = 'もう一度挑戦'; // ボタンテキストを変更
+                this.timerDisplayContainer.style.display = 'flex'; // タイマー表示を元に戻す（終了時も表示）
+            }
+
+            // ゲームを終了し、初期状態に戻るメソッド
+            exitGame() {
+                clearInterval(this.timerId);
+                this.isPlaying = false;
+                this.saveHighScore(); // スコアを保存
+                this.setInitialUIState(); // UIを初期状態にリセット
+                this.loadHighScore(); // ハイスコアを再読み込み
             }
 
             nextProblem() {
                 if (!this.isPlaying) return;
-                const randomIndex = Math.floor(Math.random() * this.kanjiKeys.length);
-                this.currentKanji = this.kanjiKeys[randomIndex];
-                this.kanjiDisplay.textContent = this.currentKanji;
+
+                let problemValue;
+                let problemType;
+                const number = Math.floor(Math.random() * 10); // 0から9までの数字をランダムに生成
+
+                if (this.currentMode === 'normal') {
+                    // ノーマルモードでは漢数字のみ
+                    const kanjiMap = Object.entries(this.KANJI_NUMBERS).find(([key, val]) => val === number);
+                    problemValue = kanjiMap ? kanjiMap[0] : '';
+                    problemType = 'KANJI';
+                } else {
+                    // 難しいモードとリラックスモードでは4種類の表記をランダムに選択
+                    const types = ['KANJI', 'HIRAGANA', 'KATAKANA', 'DAIJI'];
+                    problemType = types[Math.floor(Math.random() * types.length)];
+
+                    switch (problemType) {
+                        case 'KANJI':
+                            const kanjiMap = Object.entries(this.KANJI_NUMBERS).find(([key, val]) => val === number);
+                            problemValue = kanjiMap ? kanjiMap[0] : '';
+                            break;
+                        case 'HIRAGANA':
+                            const hiraganaKeys = Object.entries(this.HIRAGANA_NUMBERS).filter(([key, val]) => val === number).map(([key]) => key);
+                            problemValue = hiraganaKeys[Math.floor(Math.random() * hiraganaKeys.length)];
+                            break;
+                        case 'KATAKANA':
+                            const katakanaKeys = Object.entries(this.KATAKANA_NUMBERS).filter(([key, val]) => val === number).map(([key]) => key);
+                            problemValue = katakanaKeys[Math.floor(Math.random() * katakanaKeys.length)];
+                            break;
+                        case 'DAIJI':
+                            const daijiMap = Object.entries(this.DAIJI_NUMBERS).find(([key, val]) => val === number);
+                            problemValue = daijiMap ? daijiMap[0] : '';
+                            break;
+                    }
+                }
+                
+                this.currentKanji = { value: problemValue, type: problemType, number: number };
+                this.kanjiDisplay.textContent = this.currentKanji.value;
             }
 
             handleGuess(guessedNumber) {
                 if (!this.isPlaying) return;
-                const correctNumber = this.KANJI_NUMBERS[this.currentKanji];
+
+                const correctNumber = this.currentKanji.number;
 
                 if (guessedNumber === correctNumber) {
                     this.combo++;
-                    // ▼▼▼ コンボボーナスをスコアに加算 ▼▼▼
                     this.score += (1 + this.combo); 
                     this.scoreDisplay.textContent = this.score;
                     this.flashFeedback(true);
-                    this.playSound('correct');
                     this.updateComboDisplay(true);
                 } else {
-                    if (this.combo > 0) {
-                        this.playSound('comboBreak');
-                    } else {
-                        this.playSound('wrong');
-                    }
                     this.combo = 0;
                     this.flashFeedback(false);
                     this.updateComboDisplay();
@@ -332,7 +506,6 @@
                     this.comboDisplay.textContent = '';
                 }
 
-                // コンボ数に応じてスコア表示を光らせる
                 this.scoreContainer.classList.toggle('hot-streak', this.combo >= 5);
             }
 
