@@ -340,7 +340,7 @@
       width: 0%;
       background: linear-gradient(90deg, #007bff, #00c0ff);
       border-radius: 5px;
-      transition: width 0.1s linear; /* プログレスバーの動きを滑らかに */
+      transition: width 0.1s linear;
     }
 
     /* レスポンシブデザイン */
@@ -525,11 +525,11 @@
       let missingPointer = 0;
       let totalWrongAttempts = 0;
 
-      let gameMode = "standard";
+      let gameMode = "standard"; // "standard", "randomFill", "time", "memorize"
       let gameActive = false;
       let startTime;
       let ranking = [];
-      let timerInterval; // タイムモードのタイマーID
+      let timerInterval;
 
       // エレメントの取得
       const startIndexInput = document.getElementById("startIndex");
@@ -594,7 +594,7 @@
         }
 
         loadRanking();
-        updateModeSettingsVisibility();
+        updateModeSettingsVisibility(); // モードに基づいてUIの表示を更新
       }
 
       // --- ランキング管理 ---
@@ -647,18 +647,20 @@
 
       // --- UI表示制御 ---
       function updateModeSettingsVisibility() {
-          randomModeSettingsDiv.style.display = (modeRandomFillRadio.checked) ? 'flex' : 'none';
-          
-          startIndexInput.disabled = modeTimeRadio.checked;
-          maxPiLengthSpan.style.display = modeTimeRadio.checked ? 'none' : 'inline';
+          const currentMode = document.querySelector('input[name="mode"]:checked').value;
+          gameMode = currentMode; // gameMode変数を更新
 
-          rankingContainer.style.display = (modeTimeRadio.checked) ? 'block' : 'none';
+          randomModeSettingsDiv.style.display = (currentMode === "randomFill") ? 'flex' : 'none';
           
-          // タイムモードUIの表示/非表示
-          timeModeInfoDiv.style.display = (modeTimeRadio.checked) ? 'flex' : 'none';
-          document.getElementById('progressContainer').style.display = (modeTimeRadio.checked) ? 'block' : 'none';
+          startIndexInput.disabled = (currentMode === "time");
+          maxPiLengthSpan.style.display = (currentMode === "time") ? 'none' : 'inline';
 
-          if (!modeTimeRadio.checked) { // タイムモードでない場合はタイマーを停止
+          rankingContainer.style.display = (currentMode === "time") ? 'block' : 'none';
+          
+          timeModeInfoDiv.style.display = (currentMode === "time") ? 'flex' : 'none';
+          document.getElementById('progressContainer').style.display = (currentMode === "time") ? 'block' : 'none';
+
+          if (currentMode !== "time") { // タイムモードでない場合はタイマーを停止
             clearInterval(timerInterval);
             timerDisplay.textContent = "0.0000";
             progressBar.style.width = "0%";
@@ -666,9 +668,9 @@
           }
 
           saveSettings();
-          piDisplay.innerHTML = "";
-          messageDiv.textContent = "";
-          gameActive = false;
+          piDisplay.innerHTML = ""; // モード切り替え時にディスプレイをクリア
+          messageDiv.textContent = ""; // メッセージもクリア
+          gameActive = false; // ゲーム状態をリセット
       }
 
       // --- ディスプレイ更新関数 ---
@@ -677,6 +679,9 @@
           updateStandardTimeDisplay();
         } else if (gameMode === "randomFill") {
           updateRandomFillDisplay();
+        } else if (gameMode === "memorize") { // 暗記モードの表示は専用関数で
+            activateMemorizeMode(false); // gameActiveを操作しないようにfalseを渡す
+            return; // ここで処理を終える
         }
 
         // タイムモードの場合、進捗バーと桁数表示を更新
@@ -800,8 +805,12 @@
         }
       }
 
-      function activateMemorizeMode() {
-        gameActive = false;
+      // 暗記モード
+      function activateMemorizeMode(setAsCurrentMode = true) {
+        if (setAsCurrentMode) {
+            gameMode = "memorize"; // ゲームモードを暗記モードに設定
+            gameActive = false; // 入力は受け付けない
+        }
         clearInterval(timerInterval); // タイマーを停止
         timerDisplay.textContent = "0.0000"; // 表示をリセット
         progressBar.style.width = "0%";
@@ -849,6 +858,10 @@
 
         piDisplay.innerHTML = displayHtml;
         messageDiv.textContent = `暗記モード：πの先頭${Math.min(MAX_PI_DIGITS, 502)}桁を表示しています。`;
+        
+        // ★★★ 修正点 ★★★
+        // ここにあった `updateModeSettingsVisibility()` の呼び出しを削除しました。
+        // これが画面をクリアしてしまう原因でした。
       }
 
       // --- ゲーム初期化 ---
@@ -875,6 +888,7 @@
             progressDigitsSpan.textContent = currentIndex; // 3.の分として2桁進捗を表示
             targetDigitsSpan.textContent = TIME_MODE_TARGET_DIGITS;
         } else {
+            gameMode = document.querySelector('input[name="mode"]:checked').value; // 現在選択されているモードを取得
             startIndex = parseInt(startIndexInput.value, 10);
             if (isNaN(startIndex) || startIndex < 0 || startIndex >= MAX_PI_DIGITS) {
                 startIndex = 0;
@@ -886,12 +900,10 @@
                 targetCount = MAX_PI_DIGITS - startIndex;
             }
 
-            if (modeRandomFillRadio.checked) {
-                gameMode = "randomFill";
+            if (gameMode === "randomFill") {
                 initRandomFillMode();
                 messageDiv.textContent = "ランダム穴埋めモード開始！隠された数字を入力してください。";
             } else { // standard mode
-                gameMode = "standard";
                 currentIndex = startIndex;
                 digitsHistory = [];
                 for (let i = 0; i < startIndex; i++) {
@@ -913,9 +925,9 @@
           if (gameActive) {
             const currentTime = performance.now();
             const elapsedTime = currentTime - startTime;
-            timerDisplay.textContent = (elapsedTime / 1000).toFixed(4); // 小数点以下4桁で表示
+            timerDisplay.textContent = (elapsedTime / 1000).toFixed(4);
           }
-        }, 10); // 10ミリ秒ごとに更新
+        }, 10);
       }
 
       function initRandomFillMode() {
@@ -955,7 +967,10 @@
 
       // --- キー入力処理 ---
       function handleKeyInput(value) {
-        if (!gameActive) return;
+        if (!gameActive) { // gameActiveがtrueの時だけキー入力を処理
+            messageDiv.textContent = "「スタート」ボタンを押してゲームを開始してください。";
+            return;
+        }
 
         if (value === "C") {
           if (gameMode === "randomFill") {
@@ -1030,7 +1045,7 @@
           
           if (currentIndex === startIndex + targetCount) {
               gameActive = false;
-              clearInterval(timerInterval); // ゲーム終了時にタイマーを停止
+              clearInterval(timerInterval);
               let finalMessage = "";
               if (gameMode === "time") {
                   const elapsedTime = performance.now() - startTime;
@@ -1052,7 +1067,8 @@
               messageDiv.textContent = finalMessage;
           } else {
               if (gameMode === "time") {
-                  messageDiv.textContent = `正解！ 現在 ${currentIndex - 2} / ${TIME_MODE_TARGET_DIGITS - 2} 桁完了`; // 3.の分を除く
+                  // 小数点以下の桁数で進捗を計算 (3.14159... の1から数える)
+                  messageDiv.textContent = `正解！ 現在 ${currentIndex - 2} / ${TIME_MODE_TARGET_DIGITS - 2} 桁完了`;
               } else {
                   messageDiv.textContent = "正解！ 現在 " + (currentIndex - startIndex) + " 桁完了 (" + (currentIndex - startIndex + 1) + "桁目を入力)";
               }
@@ -1070,7 +1086,7 @@
 
           if (currentIndex === startIndex + targetCount) {
               gameActive = false;
-              clearInterval(timerInterval); // ゲーム終了時にタイマーを停止
+              clearInterval(timerInterval);
               let finalMessage = "";
               if (gameMode === "time") {
                   const elapsedTime = performance.now() - startTime;
@@ -1152,17 +1168,24 @@
 
       exitBtn.addEventListener("click", function() {
         gameActive = false;
-        clearInterval(timerInterval); // 終了ボタンでタイマーも停止
+        clearInterval(timerInterval);
         timerDisplay.textContent = "0.0000";
         progressBar.style.width = "0%";
         progressDigitsSpan.textContent = "0";
         piDisplay.innerHTML = "";
         messageDiv.textContent = "ゲーム終了。また挑戦してね！";
+        // モード選択を標準モードに戻す (任意)
+        modeStandardRadio.checked = true;
+        updateModeSettingsVisibility();
       });
 
+      // 暗記モードボタン
       memorizeBtn.addEventListener("click", function() {
-        activateMemorizeMode();
-        updateModeSettingsVisibility();
+        // ★★★ 修正点 ★★★
+        // `updateModeSettingsVisibility()` の呼び出しを削除しました。
+        if (gameMode !== "memorize") {
+            activateMemorizeMode();
+        }
       });
 
       clearRankingBtn.addEventListener("click", clearRanking);
@@ -1189,7 +1212,7 @@
       startIndexInput.addEventListener('change', saveSettings); 
 
       document.addEventListener('keydown', function(event) {
-        if (!gameActive) return;
+        if (!gameActive && gameMode !== "memorize") return; // 暗記モードではキー入力を受け付けない
 
         const key = event.key;
         if (key >= '0' && key <= '9') {
@@ -1202,14 +1225,20 @@
       });
 
       window.addEventListener('resize', () => {
-          if (!gameActive && memorizeBtn.textContent === "暗記モード") { 
-              activateMemorizeMode();
+          // 暗記モードが選択されている場合のみ再描画
+          if (gameMode === "memorize") { 
+              activateMemorizeMode(false); // gameActiveを変更しないようにfalseを渡す
           }
       });
 
       // 初期ロード時の処理
-      loadSettings();
-      activateMemorizeMode();
+      loadSettings(); // 設定をロード
+      // ページロード時に選択されているモードに基づいてUIを適切に表示
+      if (document.querySelector('input[name="mode"]:checked').value === "memorize") {
+          activateMemorizeMode(); // 暗記モードが選択されていれば暗記モードで開始
+      } else {
+          updateModeSettingsVisibility(); // それ以外なら通常のモード表示ロジック
+      }
     });
   </script>
 </body>
