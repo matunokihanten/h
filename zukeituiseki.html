@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🔥アツい記憶チャレンジ🔥 NEO</title>
+  <style>
+    :root {
+      --bg-color: #f0f2f5;
+      --panel-bg: #fff;
+      --text-color: #333;
+      --primary-color: #fcbf49;
+      --correct-color: #2ecc71;
+      --wrong-color: #e74c3c;
+      --border-color: #ddd;
+      --border-hover: #333;
+    }
+    body {
+      font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+      background: var(--bg-color);
+      color: var(--text-color);
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+    .screen {
+      display: none; /* Initially hide all screens */
+      width: 100%;
+      max-width: 420px;
+    }
+    .screen.active {
+      display: block;
+    }
+    h1 {
+      margin-bottom: 5px;
+      color: var(--primary-color);
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    }
+    p { margin: 0 0 20px; }
+    button {
+      font-size: 1.2em;
+      padding: 12px 30px;
+      border-radius: 50px;
+      border: none;
+      background: var(--primary-color);
+      color: white;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+    }
+    #game-container {
+      background: var(--panel-bg);
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    }
+    #scoreboard {
+      font-size: 1.1em;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-around;
+      gap: 10px;
+    }
+    #timerBar {
+      width: 100%; height: 12px;
+      background: var(--border-color); margin: 0 auto 20px;
+      border-radius: 6px; overflow: hidden;
+    }
+    #timerFill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--correct-color), var(--primary-color), var(--wrong-color));
+      width: 100%;
+      transition: width 0.1s linear;
+    }
+    #svgPanel {
+      width: 180px; height: 180px;
+      margin: 0 auto 10px;
+      border: 4px solid var(--border-hover);
+      border-radius: 12px;
+      transition: transform 0.3s ease-in-out;
+    }
+    #question {
+      font-weight: bold;
+      font-size: 1.2em;
+      margin: 10px 0;
+      min-height: 1.5em;
+    }
+    #choices {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: 15px;
+    }
+    .choice {
+      aspect-ratio: 1 / 1;
+      border: 2px solid var(--border-color);
+      background: var(--panel-bg);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: transform .2s, border-color .2s;
+      border-radius: 8px;
+    }
+    .choice:hover {
+      transform: scale(1.05);
+      border-color: var(--border-hover);
+    }
+    .choice.disabled {
+      pointer-events: none;
+      opacity: 0.5;
+    }
+    .label { font-size: 14px; margin-top: 5px; font-weight: bold; }
+    #message { margin-top: 15px; font-size: 1.2em; font-weight: bold; min-height: 1.5em; }
+    .correct { color: var(--correct-color); }
+    .wrong { color: var(--wrong-color); }
+    #gameover-screen #final-score, #gameover-screen #high-score {
+        font-size: 1.5em; font-weight: bold; display: block; margin: 10px 0;
+    }
+    /* Animations */
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+    @keyframes flash-correct {
+      from { border-color: var(--correct-color); box-shadow: 0 0 15px var(--correct-color); }
+      to { border-color: var(--border-hover); box-shadow: none; }
+    }
+    .shake { animation: shake 0.3s ease-in-out; }
+    .flash-correct { animation: flash-correct 0.5s ease-out; }
+  </style>
+</head>
+<body>
+
+  <div id="main-container">
+    <div id="start-screen" class="screen active">
+      <h1>🔥アツい記憶チャレンジ🔥 NEO</h1>
+      <p>次々と表示される図形を記憶し、<br>「N個前の図形」を当てよう！</p>
+      <button id="start-btn">ゲーム開始</button>
+    </div>
+
+    <div id="game-screen" class="screen">
+      <div id="game-container">
+        <div id="scoreboard">
+          <span>❤️ <span id="lives">3</span></span>
+          <span>スコア: <span id="score">0</span></span>
+          <span>連勝: <span id="streak">0</span></span>
+          <span>Lv: <span id="level">1</span></span>
+        </div>
+        <div id="timerBar"><div id="timerFill"></div></div>
+
+        <svg id="svgPanel" viewBox="0 0 200 200"></svg>
+        <div id="question"></div>
+        <div id="choices"></div>
+        <div id="message"></div>
+      </div>
+    </div>
+
+    <div id="gameover-screen" class="screen">
+        <h1>ゲームオーバー</h1>
+        <div>あなたのスコア: <span id="final-score">0</span></div>
+        <div>ハイスコア: <span id="high-score">0</span></div>
+        <br>
+        <button id="retry-btn">もう一度挑戦</button>
+    </div>
+  </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+  // --- 図形データ ---
+  const shapeDefs = [
+    { name:'まる',   draw: (c, svg) => svg.innerHTML = `<circle cx="100" cy="100" r="60" fill="${c}"/>` },
+    { name:'しかく', draw: (c, svg) => svg.innerHTML = `<rect x="50" y="50" width="100" height="100" fill="${c}"/>` },
+    { name:'さんかく',draw: (c, svg) => svg.innerHTML = `<polygon points="100,30 170,170 30,170" fill="${c}"/>` },
+    { name:'ほし',   draw: (c, svg) => svg.innerHTML = `<polygon points="100,10 120,80 190,80 135,125 150,195 100,155 50,195 65,125 10,80 80,80" fill="${c}"/>` },
+    { name:'ひし', draw: (c, svg) => svg.innerHTML = `<polygon points="100,20 180,100 100,180 20,100" fill="${c}"/>` },
+    { name:'じゅうじ', draw: (c, svg) => svg.innerHTML = `<rect x="80" y="30" width="40" height="140" fill="${c}"/><rect x="30" y="80" width="140" height="40" fill="${c}"/>` }
+  ];
+  const colors = ['#ff6666', '#66ccff', '#99ff99', '#fcbf49', '#8e44ad', '#3498db'];
+
+  // --- ゲーム状態 ---
+  let gameState = {};
+
+  // --- DOM要素 ---
+  const screens = {
+    start: document.getElementById('start-screen'),
+    game: document.getElementById('game-screen'),
+    gameOver: document.getElementById('gameover-screen')
+  };
+  const svgPanel = document.getElementById('svgPanel');
+  const choicesEl = document.getElementById('choices');
+  const messageEl = document.getElementById('message');
+  const questionEl = document.getElementById('question');
+  const livesEl = document.getElementById('lives');
+  const scoreEl = document.getElementById('score');
+  const streakEl = document.getElementById('streak');
+  const levelEl = document.getElementById('level');
+  const timerFill = document.getElementById('timerFill');
+  const finalScoreEl = document.getElementById('final-score');
+  const highScoreEl = document.getElementById('high-score');
+  
+  // --- サウンド ---
+  let audioCtx;
+  function playSound(type) {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.connect(g);
+    g.connect(audioCtx.destination);
+    g.gain.setValueAtTime(0, audioCtx.currentTime);
+    g.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.01);
+    g.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
+    
+    if (type === 'correct') {
+      o.type = 'triangle';
+      o.frequency.value = 880;
+    } else if (type === 'wrong') {
+      o.type = 'sawtooth';
+      o.frequency.value = 220;
+    } else { // level up
+      o.type = 'sine';
+      o.frequency.value = 1200;
+    }
+    o.start(audioCtx.currentTime);
+    o.stop(audioCtx.currentTime + 0.2);
+  }
+
+  // --- 画面切り替え ---
+  function showScreen(screenId) {
+    Object.values(screens).forEach(s => s.classList.remove('active'));
+    screens[screenId].classList.add('active');
+  }
+
+  // --- ハイスコア処理 ---
+  function loadHighScore() {
+    return localStorage.getItem('memoryGameHighScore') || 0;
+  }
+  function saveHighScore(score) {
+    const highScore = loadHighScore();
+    if (score > highScore) {
+      localStorage.setItem('memoryGameHighScore', score);
+    }
+  }
+
+  // --- ゲームロジック ---
+  function resetGameState() {
+    gameState = {
+      history: [],
+      score: 0,
+      streak: 0,
+      level: 1,
+      lives: 3,
+      nBack: 1, // 形のNバック数に固定
+      roundTime: 4000,
+      answerAllowed: false,
+      timerInterval: null
+    };
+    updateUI();
+  }
+
+  function startGame() {
+    resetGameState();
+    showScreen('game');
+    setTimeout(nextRound, 500); // Wait a bit before starting
+  }
+
+  function gameOver() {
+    gameState.answerAllowed = false;
+    clearInterval(gameState.timerInterval);
+    saveHighScore(gameState.score);
+    finalScoreEl.textContent = gameState.score;
+    highScoreEl.textContent = loadHighScore();
+    showScreen('gameOver');
+  }
+
+  function updateScore(correct) {
+    if (correct) {
+      gameState.streak++;
+      gameState.score += 10 * gameState.streak * gameState.nBack;
+      // Level Up
+      if (gameState.streak > 0 && gameState.streak % 4 === 0) {
+        gameState.level++;
+        playSound('level-up');
+        // Increase difficulty
+        gameState.roundTime = Math.max(1500, gameState.roundTime - 400);
+        if (gameState.level >= 5 && gameState.level % 4 === 1) {
+          gameState.nBack = Math.min(3, gameState.nBack + 1); // Max N-Back is 3
+        }
+      }
+    } else {
+      gameState.streak = 0;
+      gameState.lives--;
+      svgPanel.parentElement.classList.add('shake');
+      setTimeout(() => svgPanel.parentElement.classList.remove('shake'), 300);
+      if (gameState.lives <= 0) {
+        setTimeout(gameOver, 500);
+        return;
+      }
+    }
+    updateUI();
+  }
+
+  function updateUI() {
+    scoreEl.textContent = gameState.score;
+    streakEl.textContent = gameState.streak;
+    levelEl.textContent = gameState.level;
+    livesEl.textContent = gameState.lives;
+  }
+
+  function nextRound() {
+    messageEl.textContent = '';
+    messageEl.className = '';
+    choicesEl.querySelectorAll('.choice').forEach(c => c.classList.remove('disabled'));
+
+    let newShapeIndex;
+    let newColorIndex;
+
+    // 前と同じ図形と色にならないようにする
+    do {
+      newShapeIndex = Math.floor(Math.random() * shapeDefs.length);
+      newColorIndex = Math.floor(Math.random() * colors.length);
+    } while (gameState.history.length > 0 &&
+             newShapeIndex === gameState.history[0].shapeIndex &&
+             newColorIndex === gameState.history[0].colorIndex); // 色も考慮した連続防止
+
+    gameState.history.unshift({ shapeIndex: newShapeIndex, colorIndex: newColorIndex });
+    
+    shapeDefs[newShapeIndex].draw(colors[newColorIndex], svgPanel);
+    svgPanel.style.transform = 'scale(1.05)';
+    setTimeout(() => svgPanel.style.transform = 'scale(1)', 200);
+
+    // Only start asking questions when enough history is available
+    if (gameState.history.length > gameState.nBack) {
+      questionEl.textContent = `🔥 ${gameState.nBack}個前の形は？`;
+      startRoundTimer();
+    } else {
+      questionEl.textContent = '覚えてね！';
+      // Fast-forward intro rounds
+      setTimeout(nextRound, 1000);
+    }
+  }
+
+  function startRoundTimer() {
+    gameState.answerAllowed = true;
+    let timeLeft = gameState.roundTime;
+    clearInterval(gameState.timerInterval);
+    timerFill.style.transition = 'none'; // Reset transition for instant fill
+    timerFill.style.width = '100%';
+    
+    // Force reflow before re-enabling transition
+    timerFill.offsetHeight; 
+    timerFill.style.transition = `width ${gameState.roundTime / 1000}s linear`;
+    timerFill.style.width = '0%';
+    
+    gameState.timerInterval = setTimeout(() => {
+      if(gameState.answerAllowed) {
+        processAnswer(null); // Time's up
+      }
+    }, gameState.roundTime);
+  }
+
+  function processAnswer(selectedIndex) {
+    if (!gameState.answerAllowed) return;
+    gameState.answerAllowed = false;
+    clearTimeout(gameState.timerInterval);
+
+    const correctShape = gameState.history[gameState.nBack];
+    const isCorrect = selectedIndex === correctShape.shapeIndex;
+
+    playSound(isCorrect ? 'correct' : 'wrong');
+    updateScore(isCorrect);
+    
+    choicesEl.querySelectorAll('.choice').forEach(c => c.classList.add('disabled'));
+
+    if (selectedIndex === null) {
+      messageEl.textContent = `⏰ 時間切れ… 正解は『${shapeDefs[correctShape.shapeIndex].name}』`;
+      messageEl.className = 'wrong';
+    } else if (isCorrect) {
+      messageEl.textContent = `✅ 正解！`;
+      messageEl.className = 'correct';
+      svgPanel.classList.add('flash-correct');
+      setTimeout(()=> svgPanel.classList.remove('flash-correct'), 500);
+    } else {
+      messageEl.textContent = `❌ 不正解… 正解は『${shapeDefs[correctShape.shapeIndex].name}』`;
+      messageEl.className = 'wrong';
+    }
+
+    if (gameState.lives > 0) {
+      setTimeout(nextRound, 1800);
+    }
+  }
+
+  function createChoices() {
+    choicesEl.innerHTML = '';
+    shapeDefs.forEach((shape, i) => {
+      const cont = document.createElement('div');
+      cont.className = 'choice';
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 200 200');
+      svg.style.width = '70%';
+      svg.style.height = '70%';
+      // Draw with a neutral color for choices
+      shape.draw('#555', svg);
+      const label = document.createElement('div');
+      label.className = 'label';
+      label.textContent = shape.name;
+      cont.append(svg, label);
+      cont.onclick = () => processAnswer(i);
+      choicesEl.append(cont);
+    });
+  }
+
+  // --- 初期化とイベントリスナー ---
+  document.getElementById('start-btn').onclick = startGame;
+  document.getElementById('retry-btn').onclick = startGame;
+
+  createChoices();
+  showScreen('start');
+});
+</script>
+</body>
+</html>
