@@ -52,6 +52,7 @@
       cursor: pointer;
       transition: transform 0.2s, box-shadow 0.2s;
       box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      margin-top: 10px; /* Added for mode selection buttons */
     }
     button:hover {
       transform: scale(1.05);
@@ -94,10 +95,11 @@
       margin: 10px 0;
       min-height: 1.5em;
     }
-    #choices {
+    #choices, #colorChoices {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
       gap: 15px;
+      margin-top: 15px; /* Spacing between shape and color choices */
     }
     .choice {
       aspect-ratio: 1 / 1;
@@ -115,11 +117,23 @@
       transform: scale(1.05);
       border-color: var(--border-hover);
     }
+    .choice.selected { /* Added for color selection feedback */
+      border-color: var(--primary-color);
+      box-shadow: 0 0 10px var(--primary-color);
+      transform: scale(1.05);
+    }
     .choice.disabled {
       pointer-events: none;
       opacity: 0.5;
     }
     .label { font-size: 14px; margin-top: 5px; font-weight: bold; }
+    .color-box { /* Added for color choice display */
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        border: 2px solid var(--border-color);
+        box-sizing: border-box;
+    }
     #message { margin-top: 15px; font-size: 1.2em; font-weight: bold; min-height: 1.5em; }
     .correct { color: var(--correct-color); }
     .wrong { color: var(--wrong-color); }
@@ -146,7 +160,9 @@
     <div id="start-screen" class="screen active">
       <h1>🔥アツい記憶チャレンジ🔥 NEO</h1>
       <p>次々と表示される図形を記憶し、<br>「N個前の図形」を当てよう！</p>
-      <button id="start-btn">ゲーム開始</button>
+      <button id="normal-mode-btn">ノーマルモード (1個前)</button>
+      <button id="color-shape-mode-btn">色&形モード (直前)</button>
+      <button id="hard-mode-btn">ハードモード (N個前)</button>
     </div>
 
     <div id="game-screen" class="screen">
@@ -162,7 +178,7 @@
         <svg id="svgPanel" viewBox="0 0 200 200"></svg>
         <div id="question"></div>
         <div id="choices"></div>
-        <div id="message"></div>
+        <div id="colorChoices"></div> <div id="message"></div>
       </div>
     </div>
 
@@ -172,6 +188,7 @@
         <div>ハイスコア: <span id="high-score">0</span></div>
         <br>
         <button id="retry-btn">もう一度挑戦</button>
+        <button id="back-to-menu-btn">モード選択に戻る</button>
     </div>
   </div>
 
@@ -188,9 +205,13 @@ document.addEventListener('DOMContentLoaded', () => {
     { name:'じゅうじ', draw: (c, svg) => svg.innerHTML = `<rect x="80" y="30" width="40" height="140" fill="${c}"/><rect x="30" y="80" width="140" height="40" fill="${c}"/>` }
   ];
   const colors = ['#ff6666', '#66ccff', '#99ff99', '#fcbf49', '#8e44ad', '#3498db'];
+  const colorNames = ['赤', '水色', '緑', '黄', '紫', '青']; // For display purposes
 
   // --- ゲーム状態 ---
   let gameState = {};
+  let gameMode = 'hard'; // 'normal', 'hard', or 'color-shape'
+  let selectedShapeIndex = -1; // For 'color-shape' mode
+  let selectedColorIndex = -1; // For 'color-shape' mode
 
   // --- DOM要素 ---
   const screens = {
@@ -200,6 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   const svgPanel = document.getElementById('svgPanel');
   const choicesEl = document.getElementById('choices');
+  const colorChoicesEl = document.getElementById('colorChoices'); // New
   const messageEl = document.getElementById('message');
   const questionEl = document.getElementById('question');
   const livesEl = document.getElementById('lives');
@@ -243,13 +265,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- ハイスコア処理 ---
-  function loadHighScore() {
-    return localStorage.getItem('memoryGameHighScore') || 0;
+  function loadHighScore(mode) {
+    return localStorage.getItem('memoryGameHighScore_' + mode) || 0;
   }
-  function saveHighScore(score) {
-    const highScore = loadHighScore();
+  function saveHighScore(score, mode) {
+    const highScore = loadHighScore(mode);
     if (score > highScore) {
-      localStorage.setItem('memoryGameHighScore', score);
+      localStorage.setItem('memoryGameHighScore_' + mode, score);
     }
   }
 
@@ -261,15 +283,19 @@ document.addEventListener('DOMContentLoaded', () => {
       streak: 0,
       level: 1,
       lives: 3,
-      nBack: 1,
+      nBack: (gameMode === 'hard' ? 1 : 1), // N-back starts at 1 for normal/color-shape, hard mode increases it
       roundTime: 4000,
       answerAllowed: false,
       timerInterval: null
     };
+    selectedShapeIndex = -1;
+    selectedColorIndex = -1;
     updateUI();
+    toggleChoiceVisibility(); // Ensure correct choices are visible/hidden
   }
 
-  function startGame() {
+  function startGame(mode) {
+    gameMode = mode;
     resetGameState();
     showScreen('game');
     setTimeout(nextRound, 500); // Wait a bit before starting
@@ -278,25 +304,32 @@ document.addEventListener('DOMContentLoaded', () => {
   function gameOver() {
     gameState.answerAllowed = false;
     clearInterval(gameState.timerInterval);
-    saveHighScore(gameState.score);
+    saveHighScore(gameState.score, gameMode);
     finalScoreEl.textContent = gameState.score;
-    highScoreEl.textContent = loadHighScore();
+    highScoreEl.textContent = loadHighScore(gameMode);
     showScreen('gameOver');
   }
 
   function updateScore(correct) {
     if (correct) {
       gameState.streak++;
-      gameState.score += 10 * gameState.streak * gameState.nBack;
-      // Level Up
-      if (gameState.streak > 0 && gameState.streak % 4 === 0) {
-        gameState.level++;
-        playSound('level-up');
-        // Increase difficulty
-        gameState.roundTime = Math.max(1500, gameState.roundTime - 400);
-        if (gameState.level >= 5 && gameState.level % 4 === 1) {
-          gameState.nBack = Math.min(3, gameState.nBack + 1); // Max N-Back is 3
+      gameState.score += 10 * gameState.streak * gameState.nBack; // nBack might be 1 for normal/color-shape
+      // Level Up logic based on mode
+      if (gameMode === 'hard') {
+        if (gameState.streak > 0 && gameState.streak % 4 === 0) {
+          gameState.level++;
+          playSound('level-up');
+          gameState.roundTime = Math.max(1500, gameState.roundTime - 400);
+          if (gameState.level >= 5 && gameState.level % 4 === 1) {
+            gameState.nBack = Math.min(3, gameState.nBack + 1); // Max N-Back is 3
+          }
         }
+      } else { // Normal and Color & Shape modes
+          if (gameState.streak > 0 && gameState.streak % 5 === 0) { // Slightly different progression for simpler modes
+              gameState.level++;
+              playSound('level-up');
+              gameState.roundTime = Math.max(2000, gameState.roundTime - 200);
+          }
       }
     } else {
       gameState.streak = 0;
@@ -321,11 +354,15 @@ document.addEventListener('DOMContentLoaded', () => {
   function nextRound() {
     messageEl.textContent = '';
     messageEl.className = '';
-    choicesEl.querySelectorAll('.choice').forEach(c => c.classList.remove('disabled'));
+    choicesEl.querySelectorAll('.choice').forEach(c => c.classList.remove('disabled', 'selected'));
+    colorChoicesEl.querySelectorAll('.choice').forEach(c => c.classList.remove('disabled', 'selected'));
+    selectedShapeIndex = -1;
+    selectedColorIndex = -1;
 
     let newShapeIndex;
     let newColorIndex;
     
+    // Ensure new shape is different from the previous one
     do {
       newShapeIndex = Math.floor(Math.random() * shapeDefs.length);
     } while (gameState.history.length > 0 &&
@@ -335,15 +372,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     gameState.history.unshift({ shapeIndex: newShapeIndex, colorIndex: newColorIndex });
     
+    // Keep history trimmed to avoid excessive memory usage for very long games
+    // For nBack modes, keep max N-back + 1 to ensure target is always in history
+    const maxHistoryLength = (gameMode === 'hard' ? 4 : 2); // Max nBack is 3, plus current. For others, just previous + current.
+    if (gameState.history.length > maxHistoryLength) {
+        gameState.history.pop();
+    }
+
     shapeDefs[newShapeIndex].draw(colors[newColorIndex], svgPanel);
     svgPanel.style.transform = 'scale(1.05)';
     setTimeout(() => svgPanel.style.transform = 'scale(1)', 200);
 
-    if (gameState.history.length > gameState.nBack) {
-      questionEl.textContent = `🔥 ${gameState.nBack}個前の形は？`;
+    const currentNBack = (gameMode === 'hard' ? gameState.nBack : 1);
+
+    if (gameState.history.length > currentNBack) {
+      if (gameMode === 'color-shape') {
+        questionEl.textContent = `🔥 直前の「形と色」は？`;
+      } else {
+        questionEl.textContent = `🔥 ${currentNBack}個前の形は？`;
+      }
       startRoundTimer();
+      toggleChoiceVisibility(true); // Show choices when it's time to answer
     } else {
       questionEl.textContent = '覚えてね！';
+      toggleChoiceVisibility(false); // Hide choices during memory phase
       setTimeout(nextRound, 1000);
     }
   }
@@ -361,31 +413,61 @@ document.addEventListener('DOMContentLoaded', () => {
     
     gameState.timerInterval = setTimeout(() => {
       if(gameState.answerAllowed) {
-        processAnswer(null); 
+        processAnswer(null, null); 
       }
     }, gameState.roundTime);
   }
 
-  function processAnswer(selectedIndex) {
-    if (!gameState.answerAllowed) return;
+  function processAnswer(shapeIdx, colorIdx) {
+    if (!gameState.answerAllowed && gameMode !== 'color-shape') return; // Allow partial answers in color-shape mode
+    
+    if (gameMode === 'color-shape') {
+      if (shapeIdx !== null) selectedShapeIndex = shapeIdx;
+      if (colorIdx !== null) selectedColorIndex = colorIdx;
+
+      // Highlight selected shape/color
+      choicesEl.querySelectorAll('.choice').forEach((c, i) => {
+        c.classList.toggle('selected', i === selectedShapeIndex);
+      });
+      colorChoicesEl.querySelectorAll('.choice').forEach((c, i) => {
+        c.classList.toggle('selected', i === selectedColorIndex);
+      });
+
+      if (selectedShapeIndex === -1 || selectedColorIndex === -1) {
+        // Not both selected yet, don't finalize answer or clear timer
+        return;
+      }
+    } else { // Normal or Hard mode
+        if (!gameState.answerAllowed) return; // Disallow answer if not allowed
+        selectedShapeIndex = shapeIdx; // Only shape matters
+    }
+
     gameState.answerAllowed = false;
     clearTimeout(gameState.timerInterval);
 
-    const correctShape = gameState.history[gameState.nBack];
+    const currentNBack = (gameMode === 'hard' ? gameState.nBack : 1);
+    const correctTarget = gameState.history[currentNBack];
     
-    // ----- [バグ修正箇所] -----
-    // 厳密な比較(===)から、型の違いを許容する比較(==)に変更し、
-    // 稀に発生する型の不一致によるバグを解消します。
-    const isCorrect = selectedIndex == correctShape.shapeIndex;
-    // ----- [修正ここまで] -----
+    let isCorrect = false;
+    if (gameMode === 'color-shape') {
+      isCorrect = (selectedShapeIndex == correctTarget.shapeIndex && selectedColorIndex == correctTarget.colorIndex);
+    } else { // Normal or Hard
+      isCorrect = (selectedShapeIndex == correctTarget.shapeIndex);
+    }
 
     playSound(isCorrect ? 'correct' : 'wrong');
     updateScore(isCorrect);
     
     choicesEl.querySelectorAll('.choice').forEach(c => c.classList.add('disabled'));
+    colorChoicesEl.querySelectorAll('.choice').forEach(c => c.classList.add('disabled'));
 
-    if (selectedIndex === null) {
-      messageEl.textContent = `⏰ 時間切れ… 正解は『${shapeDefs[correctShape.shapeIndex].name}』`;
+
+    if (shapeIdx === null && colorIdx === null) { // Time out
+      let messageText = `⏰ 時間切れ… 正解は『${shapeDefs[correctTarget.shapeIndex].name}』`;
+      if (gameMode === 'color-shape') {
+        messageText += `の『${colorNames[correctTarget.colorIndex]}』`;
+      }
+      messageEl.textContent = messageText;
       messageEl.className = 'wrong';
     } else if (isCorrect) {
       messageEl.textContent = `✅ 正解！`;
@@ -393,7 +475,11 @@ document.addEventListener('DOMContentLoaded', () => {
       svgPanel.classList.add('flash-correct');
       setTimeout(()=> svgPanel.classList.remove('flash-correct'), 500);
     } else {
-      messageEl.textContent = `❌ 不正解… 正解は『${shapeDefs[correctShape.shapeIndex].name}』`;
+      let messageText = `❌ 不正解… 正解は『${shapeDefs[correctTarget.shapeIndex].name}』`;
+      if (gameMode === 'color-shape') {
+        messageText += `の『${colorNames[correctTarget.colorIndex]}』`;
+      }
+      messageEl.textContent = messageText;
       messageEl.className = 'wrong';
     }
 
@@ -416,14 +502,42 @@ document.addEventListener('DOMContentLoaded', () => {
       label.className = 'label';
       label.textContent = shape.name;
       cont.append(svg, label);
-      cont.onclick = () => processAnswer(i);
+      cont.onclick = () => processAnswer(i, null); // Pass null for color initially
       choicesEl.append(cont);
+    });
+
+    colorChoicesEl.innerHTML = '';
+    colors.forEach((color, i) => {
+      const cont = document.createElement('div');
+      cont.className = 'choice';
+      const colorBox = document.createElement('div');
+      colorBox.className = 'color-box';
+      colorBox.style.backgroundColor = color;
+      const label = document.createElement('div');
+      label.className = 'label';
+      label.textContent = colorNames[i];
+      cont.append(colorBox, label);
+      cont.onclick = () => processAnswer(null, i); // Pass null for shape initially
+      colorChoicesEl.append(cont);
     });
   }
 
+  function toggleChoiceVisibility(show = false) {
+      if (gameMode === 'color-shape') {
+          choicesEl.style.display = show ? 'grid' : 'none';
+          colorChoicesEl.style.display = show ? 'grid' : 'none';
+      } else {
+          choicesEl.style.display = show ? 'grid' : 'none';
+          colorChoicesEl.style.display = 'none'; // Always hide color choices for other modes
+      }
+  }
+
   // --- 初期化とイベントリスナー ---
-  document.getElementById('start-btn').onclick = startGame;
-  document.getElementById('retry-btn').onclick = startGame;
+  document.getElementById('normal-mode-btn').onclick = () => startGame('normal');
+  document.getElementById('color-shape-mode-btn').onclick = () => startGame('color-shape');
+  document.getElementById('hard-mode-btn').onclick = () => startGame('hard');
+  document.getElementById('retry-btn').onclick = () => startGame(gameMode); // Retry with current mode
+  document.getElementById('back-to-menu-btn').onclick = () => showScreen('start');
 
   createChoices();
   showScreen('start');
