@@ -97,9 +97,9 @@
     }
     #choices, #colorChoices {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      grid-template-columns: repeat(3, 1fr); /* Changed to 3 columns */
       gap: 15px;
-      margin-top: 15px; /* Spacing between shape and color choices */
+      margin-top: 15px;
     }
     .choice {
       aspect-ratio: 1 / 1;
@@ -117,7 +117,7 @@
       transform: scale(1.05);
       border-color: var(--border-hover);
     }
-    .choice.selected { /* Added for color selection feedback */
+    .choice.selected {
       border-color: var(--primary-color);
       box-shadow: 0 0 10px var(--primary-color);
       transform: scale(1.05);
@@ -127,7 +127,7 @@
       opacity: 0.5;
     }
     .label { font-size: 14px; margin-top: 5px; font-weight: bold; }
-    .color-box { /* Added for color choice display */
+    .color-box {
         width: 60px;
         height: 60px;
         border-radius: 50%;
@@ -204,8 +204,10 @@ document.addEventListener('DOMContentLoaded', () => {
     { name:'ひし', draw: (c, svg) => svg.innerHTML = `<polygon points="100,20 180,100 100,180 20,100" fill="${c}"/>` },
     { name:'じゅうじ', draw: (c, svg) => svg.innerHTML = `<rect x="80" y="30" width="40" height="140" fill="${c}"/><rect x="30" y="80" width="140" height="40" fill="${c}"/>` }
   ];
-  const colors = ['#ff6666', '#66ccff', '#99ff99', '#fcbf49', '#8e44ad', '#3498db'];
-  const colorNames = ['赤', '水色', '緑', '黄', '紫', '青']; // For display purposes
+  // 水色（#66ccff）を灰色（#808080）に変更
+  const colors = ['#ff6666', '#808080', '#99ff99', '#fcbf49', '#8e44ad', '#3498db'];
+  // 表示用の色名も「水色」から「灰色」に変更
+  const colorNames = ['赤', '灰色', '緑', '黄', '紫', '青'];
 
   // --- ゲーム状態 ---
   let gameState = {};
