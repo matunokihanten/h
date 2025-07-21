@@ -137,9 +137,46 @@
     #message { margin-top: 15px; font-size: 1.2em; font-weight: bold; min-height: 1.5em; }
     .correct { color: var(--correct-color); }
     .wrong { color: var(--wrong-color); }
-    #gameover-screen #final-score, #gameover-screen #high-score {
-        font-size: 1.5em; font-weight: bold; display: block; margin: 10px 0;
+
+    /* Game Over Screen Specific Styles */
+    #gameover-screen #final-score, 
+    #gameover-screen #high-score,
+    #gameover-screen .analysis-item {
+        font-size: 1.1em;
+        font-weight: bold;
+        display: block;
+        margin: 8px 0;
     }
+    #gameover-screen h1 {
+        margin-bottom: 20px;
+    }
+    #analysis-results {
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 1px solid var(--border-color);
+    }
+    #average-time-chart-container {
+        width: 100%;
+        max-width: 400px; /* Adjust as needed */
+        margin: 20px auto 0;
+        background: #fdfdfd;
+        border-radius: 8px;
+        padding: 10px;
+        box-shadow: inset 0 0 5px rgba(0,0,0,0.05);
+    }
+    /* End button specific styles */
+    #end-game-btn {
+        background: #e74c3c; /* Red color for end button */
+        margin-top: 20px;
+        padding: 10px 25px;
+        font-size: 1em;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+    }
+    #end-game-btn:hover {
+        transform: scale(1.03);
+        box-shadow: 0 5px 12px rgba(0,0,0,0.2);
+    }
+
     /* Animations */
     @keyframes shake {
       0%, 100% { transform: translateX(0); }
@@ -153,6 +190,7 @@
     .shake { animation: shake 0.3s ease-in-out; }
     .flash-correct { animation: flash-correct 0.5s ease-out; }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -163,6 +201,7 @@
       <button id="normal-mode-btn">ノーマルモード (1個前)</button>
       <button id="color-shape-mode-btn">色&形モード (直前)</button>
       <button id="hard-mode-btn">ハードモード (N個前)</button>
+      <button id="timed-analysis-mode-btn">タイムアタック＆分析モード</button>
     </div>
 
     <div id="game-screen" class="screen">
@@ -178,14 +217,30 @@
         <svg id="svgPanel" viewBox="0 0 200 200"></svg>
         <div id="question"></div>
         <div id="choices"></div>
-        <div id="colorChoices"></div> <div id="message"></div>
+        <div id="colorChoices"></div>
+        <div id="message"></div>
+        <button id="end-game-btn" style="display: none;">終了</button>
       </div>
     </div>
 
     <div id="gameover-screen" class="screen">
         <h1>ゲームオーバー</h1>
-        <div>あなたのスコア: <span id="final-score">0</span></div>
-        <div>ハイスコア: <span id="high-score">0</span></div>
+        <div id="default-gameover-stats">
+            <div>あなたのスコア: <span id="final-score">0</span></div>
+            <div>ハイスコア: <span id="high-score">0</span></div>
+        </div>
+        
+        <div id="analysis-results" style="display: none;">
+            <h2>分析結果</h2>
+            <div class="analysis-item">解答問題数: <span id="answered-questions-count">0</span></div>
+            <div class="analysis-item">正解数: <span id="correct-answers-count">0</span></div>
+            <div class="analysis-item">間違い数: <span id="wrong-answers-count">0</span></div>
+            <div class="analysis-item">平均解答時間: <span id="average-response-time">0</span>ms</div>
+            <div id="average-time-chart-container">
+                <canvas id="responseTimeChart"></canvas>
+            </div>
+        </div>
+
         <br>
         <button id="retry-btn">もう一度挑戦</button>
         <button id="back-to-menu-btn">モード選択に戻る</button>
@@ -204,16 +259,19 @@ document.addEventListener('DOMContentLoaded', () => {
     { name:'ひし', draw: (c, svg) => svg.innerHTML = `<polygon points="100,20 180,100 100,180 20,100" fill="${c}"/>` },
     { name:'じゅうじ', draw: (c, svg) => svg.innerHTML = `<rect x="80" y="30" width="40" height="140" fill="${c}"/><rect x="30" y="80" width="140" height="40" fill="${c}"/>` }
   ];
-  // 水色（#66ccff）を灰色（#808080）に変更
   const colors = ['#ff6666', '#808080', '#99ff99', '#fcbf49', '#8e44ad', '#3498db'];
-  // 表示用の色名も「水色」から「灰色」に変更
   const colorNames = ['赤', '灰色', '緑', '黄', '紫', '青'];
 
   // --- ゲーム状態 ---
   let gameState = {};
-  let gameMode = 'hard'; // 'normal', 'hard', or 'color-shape'
+  let gameMode = 'hard'; // 'normal', 'hard', 'color-shape', 'timed-analysis'
   let selectedShapeIndex = -1; // For 'color-shape' mode
   let selectedColorIndex = -1; // For 'color-shape' mode
+  let roundStartTime = 0; // For timed-analysis mode
+  let responseTimes = []; // To store response times for timed-analysis mode
+  let correctAnswersCount = 0; // For timed-analysis mode
+  let wrongAnswersCount = 0; // For timed-analysis mode
+  let myChart = null; // Chart.js instance
 
   // --- DOM要素 ---
   const screens = {
@@ -223,17 +281,26 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   const svgPanel = document.getElementById('svgPanel');
   const choicesEl = document.getElementById('choices');
-  const colorChoicesEl = document.getElementById('colorChoices'); // New
+  const colorChoicesEl = document.getElementById('colorChoices');
   const messageEl = document.getElementById('message');
   const questionEl = document.getElementById('question');
   const livesEl = document.getElementById('lives');
   const scoreEl = document.getElementById('score');
   const streakEl = document.getElementById('streak');
   const levelEl = document.getElementById('level');
+  const timerBar = document.getElementById('timerBar');
   const timerFill = document.getElementById('timerFill');
   const finalScoreEl = document.getElementById('final-score');
   const highScoreEl = document.getElementById('high-score');
-  
+  const endGameBtn = document.getElementById('end-game-btn');
+  const defaultGameoverStats = document.getElementById('default-gameover-stats');
+  const analysisResults = document.getElementById('analysis-results');
+  const answeredQuestionsCountEl = document.getElementById('answered-questions-count');
+  const correctAnswersCountEl = document.getElementById('correct-answers-count');
+  const wrongAnswersCountEl = document.getElementById('wrong-answers-count');
+  const averageResponseTimeEl = document.getElementById('average-response-time');
+  const responseTimeChartCanvas = document.getElementById('responseTimeChart');
+
   // --- サウンド ---
   let audioCtx;
   function playSound(type) {
@@ -285,63 +352,94 @@ document.addEventListener('DOMContentLoaded', () => {
       streak: 0,
       level: 1,
       lives: 3,
-      nBack: (gameMode === 'hard' ? 1 : 1), // N-back starts at 1 for normal/color-shape, hard mode increases it
+      nBack: (gameMode === 'hard' ? 1 : 1),
       roundTime: 4000,
       answerAllowed: false,
       timerInterval: null
     };
     selectedShapeIndex = -1;
     selectedColorIndex = -1;
+    roundStartTime = 0;
+    responseTimes = [];
+    correctAnswersCount = 0;
+    wrongAnswersCount = 0;
+
     updateUI();
-    toggleChoiceVisibility(); // Ensure correct choices are visible/hidden
+    toggleChoiceVisibility(); 
+    toggleGameElementsVisibility(); 
   }
 
   function startGame(mode) {
     gameMode = mode;
     resetGameState();
     showScreen('game');
-    setTimeout(nextRound, 500); // Wait a bit before starting
+    setTimeout(nextRound, 500);
   }
 
   function gameOver() {
     gameState.answerAllowed = false;
     clearInterval(gameState.timerInterval);
-    saveHighScore(gameState.score, gameMode);
-    finalScoreEl.textContent = gameState.score;
-    highScoreEl.textContent = loadHighScore(gameMode);
+    
+    if (gameMode !== 'timed-analysis') {
+        saveHighScore(gameState.score, gameMode);
+        finalScoreEl.textContent = gameState.score;
+        highScoreEl.textContent = loadHighScore(gameMode);
+        defaultGameoverStats.style.display = 'block';
+        analysisResults.style.display = 'none';
+    } else {
+        answeredQuestionsCountEl.textContent = responseTimes.length;
+        correctAnswersCountEl.textContent = correctAnswersCount;
+        wrongAnswersCountEl.textContent = wrongAnswersCount;
+        
+        const totalTime = responseTimes.reduce((sum, time) => sum + time, 0);
+        const averageTime = responseTimes.length > 0 ? (totalTime / responseTimes.length).toFixed(0) : 0;
+        averageResponseTimeEl.textContent = averageTime;
+
+        drawResponseTimeChart(responseTimes);
+
+        defaultGameoverStats.style.display = 'none';
+        analysisResults.style.display = 'block';
+    }
     showScreen('gameOver');
   }
 
   function updateScore(correct) {
-    if (correct) {
-      gameState.streak++;
-      gameState.score += 10 * gameState.streak * gameState.nBack; // nBack might be 1 for normal/color-shape
-      // Level Up logic based on mode
-      if (gameMode === 'hard') {
-        if (gameState.streak > 0 && gameState.streak % 4 === 0) {
-          gameState.level++;
-          playSound('level-up');
-          gameState.roundTime = Math.max(1500, gameState.roundTime - 400);
-          if (gameState.level >= 5 && gameState.level % 4 === 1) {
-            gameState.nBack = Math.min(3, gameState.nBack + 1); // Max N-Back is 3
-          }
+    if (gameMode === 'timed-analysis') {
+        if (correct) {
+            correctAnswersCount++;
+        } else {
+            wrongAnswersCount++;
         }
-      } else { // Normal and Color & Shape modes
-          if (gameState.streak > 0 && gameState.streak % 5 === 0) { // Slightly different progression for simpler modes
-              gameState.level++;
-              playSound('level-up');
-              gameState.roundTime = Math.max(2000, gameState.roundTime - 200);
-          }
-      }
     } else {
-      gameState.streak = 0;
-      gameState.lives--;
-      svgPanel.parentElement.classList.add('shake');
-      setTimeout(() => svgPanel.parentElement.classList.remove('shake'), 300);
-      if (gameState.lives <= 0) {
-        setTimeout(gameOver, 500);
-        return;
-      }
+        if (correct) {
+            gameState.streak++;
+            gameState.score += 10 * gameState.streak * gameState.nBack;
+            if (gameMode === 'hard') {
+                if (gameState.streak > 0 && gameState.streak % 4 === 0) {
+                    gameState.level++;
+                    playSound('level-up');
+                    gameState.roundTime = Math.max(1500, gameState.roundTime - 400);
+                    if (gameState.level >= 5 && gameState.level % 4 === 1) {
+                        gameState.nBack = Math.min(3, gameState.nBack + 1);
+                    }
+                }
+            } else {
+                if (gameState.streak > 0 && gameState.streak % 5 === 0) {
+                    gameState.level++;
+                    playSound('level-up');
+                    gameState.roundTime = Math.max(2000, gameState.roundTime - 200);
+                }
+            }
+        } else {
+            gameState.streak = 0;
+            gameState.lives--;
+            svgPanel.parentElement.classList.add('shake');
+            setTimeout(() => svgPanel.parentElement.classList.remove('shake'), 300);
+            if (gameState.lives <= 0) {
+                setTimeout(gameOver, 500);
+                return;
+            }
+        }
     }
     updateUI();
   }
@@ -351,6 +449,13 @@ document.addEventListener('DOMContentLoaded', () => {
     streakEl.textContent = gameState.streak;
     levelEl.textContent = gameState.level;
     livesEl.textContent = gameState.lives;
+
+    const scoreboard = document.getElementById('scoreboard');
+    if (gameMode === 'timed-analysis') {
+        scoreboard.style.display = 'none';
+    } else {
+        scoreboard.style.display = 'flex';
+    }
   }
 
   function nextRound() {
@@ -364,7 +469,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let newShapeIndex;
     let newColorIndex;
     
-    // Ensure new shape is different from the previous one
     do {
       newShapeIndex = Math.floor(Math.random() * shapeDefs.length);
     } while (gameState.history.length > 0 &&
@@ -374,9 +478,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     gameState.history.unshift({ shapeIndex: newShapeIndex, colorIndex: newColorIndex });
     
-    // Keep history trimmed to avoid excessive memory usage for very long games
-    // For nBack modes, keep max N-back + 1 to ensure target is always in history
-    const maxHistoryLength = (gameMode === 'hard' ? 4 : 2); // Max nBack is 3, plus current. For others, just previous + current.
+    const maxHistoryLength = (gameMode === 'hard' ? 4 : 2);
     if (gameState.history.length > maxHistoryLength) {
         gameState.history.pop();
     }
@@ -394,40 +496,51 @@ document.addEventListener('DOMContentLoaded', () => {
         questionEl.textContent = `🔥 ${currentNBack}個前の形は？`;
       }
       startRoundTimer();
-      toggleChoiceVisibility(true); // Show choices when it's time to answer
+      toggleChoiceVisibility(true);
     } else {
       questionEl.textContent = '覚えてね！';
-      toggleChoiceVisibility(false); // Hide choices during memory phase
+      toggleChoiceVisibility(false);
       setTimeout(nextRound, 1000);
     }
   }
 
   function startRoundTimer() {
     gameState.answerAllowed = true;
-    let timeLeft = gameState.roundTime;
-    clearInterval(gameState.timerInterval);
-    timerFill.style.transition = 'none'; 
-    timerFill.style.width = '100%';
-    
-    timerFill.offsetHeight; 
-    timerFill.style.transition = `width ${gameState.roundTime / 1000}s linear`;
-    timerFill.style.width = '0%';
-    
-    gameState.timerInterval = setTimeout(() => {
-      if(gameState.answerAllowed) {
-        processAnswer(null, null); 
-      }
-    }, gameState.roundTime);
+    roundStartTime = performance.now();
+
+    if (gameMode !== 'timed-analysis') {
+        let timeLeft = gameState.roundTime;
+        clearInterval(gameState.timerInterval);
+        timerFill.style.transition = 'none'; 
+        timerFill.style.width = '100%';
+        
+        timerFill.offsetHeight; 
+        timerFill.style.transition = `width ${gameState.roundTime / 1000}s linear`;
+        timerFill.style.width = '0%';
+        
+        gameState.timerInterval = setTimeout(() => {
+          if(gameState.answerAllowed) {
+            processAnswer(null, null); 
+          }
+        }, gameState.roundTime);
+    } else {
+        clearInterval(gameState.timerInterval);
+    }
   }
 
   function processAnswer(shapeIdx, colorIdx) {
-    if (!gameState.answerAllowed && gameMode !== 'color-shape') return; // Allow partial answers in color-shape mode
+    let responseTime = 0;
+    if (gameMode === 'timed-analysis' && roundStartTime > 0) {
+        responseTime = performance.now() - roundStartTime;
+        roundStartTime = 0;
+    }
+
+    if (!gameState.answerAllowed && gameMode !== 'color-shape' && gameMode !== 'timed-analysis') return;
     
     if (gameMode === 'color-shape') {
       if (shapeIdx !== null) selectedShapeIndex = shapeIdx;
       if (colorIdx !== null) selectedColorIndex = colorIdx;
 
-      // Highlight selected shape/color
       choicesEl.querySelectorAll('.choice').forEach((c, i) => {
         c.classList.toggle('selected', i === selectedShapeIndex);
       });
@@ -436,12 +549,11 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       if (selectedShapeIndex === -1 || selectedColorIndex === -1) {
-        // Not both selected yet, don't finalize answer or clear timer
         return;
       }
-    } else { // Normal or Hard mode
-        if (!gameState.answerAllowed) return; // Disallow answer if not allowed
-        selectedShapeIndex = shapeIdx; // Only shape matters
+    } else {
+        if (!gameState.answerAllowed && gameMode !== 'timed-analysis') return;
+        selectedShapeIndex = shapeIdx;
     }
 
     gameState.answerAllowed = false;
@@ -453,18 +565,21 @@ document.addEventListener('DOMContentLoaded', () => {
     let isCorrect = false;
     if (gameMode === 'color-shape') {
       isCorrect = (selectedShapeIndex == correctTarget.shapeIndex && selectedColorIndex == correctTarget.colorIndex);
-    } else { // Normal or Hard
+    } else {
       isCorrect = (selectedShapeIndex == correctTarget.shapeIndex);
     }
 
     playSound(isCorrect ? 'correct' : 'wrong');
     updateScore(isCorrect);
     
+    if (gameMode === 'timed-analysis' && shapeIdx !== null) {
+        responseTimes.push(responseTime);
+    }
+
     choicesEl.querySelectorAll('.choice').forEach(c => c.classList.add('disabled'));
     colorChoicesEl.querySelectorAll('.choice').forEach(c => c.classList.add('disabled'));
 
-
-    if (shapeIdx === null && colorIdx === null) { // Time out
+    if (shapeIdx === null && colorIdx === null && gameMode !== 'timed-analysis') {
       let messageText = `⏰ 時間切れ… 正解は『${shapeDefs[correctTarget.shapeIndex].name}』`;
       if (gameMode === 'color-shape') {
         messageText += `の『${colorNames[correctTarget.colorIndex]}』`;
@@ -485,7 +600,7 @@ document.addEventListener('DOMContentLoaded', () => {
       messageEl.className = 'wrong';
     }
 
-    if (gameState.lives > 0) {
+    if (gameState.lives > 0 || gameMode === 'timed-analysis') {
       setTimeout(nextRound, 1800);
     }
   }
@@ -504,7 +619,7 @@ document.addEventListener('DOMContentLoaded', () => {
       label.className = 'label';
       label.textContent = shape.name;
       cont.append(svg, label);
-      cont.onclick = () => processAnswer(i, null); // Pass null for color initially
+      cont.onclick = () => processAnswer(i, null);
       choicesEl.append(cont);
     });
 
@@ -519,11 +634,13 @@ document.addEventListener('DOMContentLoaded', () => {
       label.className = 'label';
       label.textContent = colorNames[i];
       cont.append(colorBox, label);
-      cont.onclick = () => processAnswer(null, i); // Pass null for shape initially
+      cont.onclick = () => processAnswer(null, i);
       colorChoicesEl.append(cont);
     });
   }
-
+  
+  // --- [BUG FIX] ---
+  // Only show color choices in 'color-shape' mode.
   function toggleChoiceVisibility(show = false) {
       if (gameMode === 'color-shape') {
           choicesEl.style.display = show ? 'grid' : 'none';
@@ -534,12 +651,86 @@ document.addEventListener('DOMContentLoaded', () => {
       }
   }
 
+  function toggleGameElementsVisibility() {
+    if (gameMode === 'timed-analysis') {
+        timerBar.style.display = 'none';
+        endGameBtn.style.display = 'block';
+    } else {
+        timerBar.style.display = 'block';
+        endGameBtn.style.display = 'none';
+    }
+  }
+  
+  function drawResponseTimeChart(data) {
+    if (myChart) {
+      myChart.destroy();
+    }
+
+    // --- [BUG FIX] ---
+    // Replaced CSS variables with hardcoded color values for Chart.js compatibility.
+    const chartTextColor = '#333'; 
+
+    const ctx = responseTimeChartCanvas.getContext('2d');
+    myChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: data.map((_, i) => `問題 ${i + 1}`),
+        datasets: [{
+          label: '解答時間 (ms)',
+          data: data,
+          borderColor: 'rgb(75, 192, 192)',
+          tension: 0.4,
+          fill: false,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: 'rgb(75, 192, 192)',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          title: {
+            display: true,
+            text: '各問題の解答時間推移',
+            font: { size: 16 },
+            color: chartTextColor
+          },
+          legend: { display: false }
+        },
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: '問題番号',
+              color: chartTextColor
+            },
+            ticks: { color: chartTextColor }
+          },
+          y: {
+            title: {
+              display: true,
+              text: '時間 (ms)',
+              color: chartTextColor
+            },
+            min: 0,
+            ticks: { color: chartTextColor }
+          }
+        }
+      }
+    });
+  }
+
   // --- 初期化とイベントリスナー ---
   document.getElementById('normal-mode-btn').onclick = () => startGame('normal');
   document.getElementById('color-shape-mode-btn').onclick = () => startGame('color-shape');
   document.getElementById('hard-mode-btn').onclick = () => startGame('hard');
-  document.getElementById('retry-btn').onclick = () => startGame(gameMode); // Retry with current mode
+  document.getElementById('timed-analysis-mode-btn').onclick = () => startGame('timed-analysis');
+  document.getElementById('retry-btn').onclick = () => startGame(gameMode);
   document.getElementById('back-to-menu-btn').onclick = () => showScreen('start');
+  endGameBtn.onclick = gameOver;
 
   createChoices();
   showScreen('start');
