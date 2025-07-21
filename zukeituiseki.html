@@ -261,7 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
       streak: 0,
       level: 1,
       lives: 3,
-      nBack: 1, // 形のNバック数に固定
+      nBack: 1,
       roundTime: 4000,
       answerAllowed: false,
       timerInterval: null
@@ -325,14 +325,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let newShapeIndex;
     let newColorIndex;
-
-    // 前と同じ図形と色にならないようにする
+    
     do {
       newShapeIndex = Math.floor(Math.random() * shapeDefs.length);
-      newColorIndex = Math.floor(Math.random() * colors.length);
     } while (gameState.history.length > 0 &&
-             newShapeIndex === gameState.history[0].shapeIndex &&
-             newColorIndex === gameState.history[0].colorIndex); // 色も考慮した連続防止
+             newShapeIndex === gameState.history[0].shapeIndex);
+    
+    newColorIndex = Math.floor(Math.random() * colors.length);
 
     gameState.history.unshift({ shapeIndex: newShapeIndex, colorIndex: newColorIndex });
     
@@ -340,13 +339,11 @@ document.addEventListener('DOMContentLoaded', () => {
     svgPanel.style.transform = 'scale(1.05)';
     setTimeout(() => svgPanel.style.transform = 'scale(1)', 200);
 
-    // Only start asking questions when enough history is available
     if (gameState.history.length > gameState.nBack) {
       questionEl.textContent = `🔥 ${gameState.nBack}個前の形は？`;
       startRoundTimer();
     } else {
       questionEl.textContent = '覚えてね！';
-      // Fast-forward intro rounds
       setTimeout(nextRound, 1000);
     }
   }
@@ -355,17 +352,16 @@ document.addEventListener('DOMContentLoaded', () => {
     gameState.answerAllowed = true;
     let timeLeft = gameState.roundTime;
     clearInterval(gameState.timerInterval);
-    timerFill.style.transition = 'none'; // Reset transition for instant fill
+    timerFill.style.transition = 'none'; 
     timerFill.style.width = '100%';
     
-    // Force reflow before re-enabling transition
     timerFill.offsetHeight; 
     timerFill.style.transition = `width ${gameState.roundTime / 1000}s linear`;
     timerFill.style.width = '0%';
     
     gameState.timerInterval = setTimeout(() => {
       if(gameState.answerAllowed) {
-        processAnswer(null); // Time's up
+        processAnswer(null); 
       }
     }, gameState.roundTime);
   }
@@ -376,7 +372,12 @@ document.addEventListener('DOMContentLoaded', () => {
     clearTimeout(gameState.timerInterval);
 
     const correctShape = gameState.history[gameState.nBack];
-    const isCorrect = selectedIndex === correctShape.shapeIndex;
+    
+    // ----- [バグ修正箇所] -----
+    // 厳密な比較(===)から、型の違いを許容する比較(==)に変更し、
+    // 稀に発生する型の不一致によるバグを解消します。
+    const isCorrect = selectedIndex == correctShape.shapeIndex;
+    // ----- [修正ここまで] -----
 
     playSound(isCorrect ? 'correct' : 'wrong');
     updateScore(isCorrect);
@@ -410,7 +411,6 @@ document.addEventListener('DOMContentLoaded', () => {
       svg.setAttribute('viewBox', '0 0 200 200');
       svg.style.width = '70%';
       svg.style.height = '70%';
-      // Draw with a neutral color for choices
       shape.draw('#555', svg);
       const label = document.createElement('div');
       label.className = 'label';
