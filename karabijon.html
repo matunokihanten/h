@@ -184,6 +184,17 @@
             cursor: not-allowed;
         }
 
+        /* 正解ボタンの縁取りスタイル */
+        .number-btn.correct-highlight {
+            border: 4px solid limegreen !important; /* 強制的に上書き */
+            box-shadow: 0 0 15px limegreen;
+        }
+        /* 不正解時に正解ボタンがハイライトされる際のスタイル */
+        .number-btn.wrong-answer-correct-highlight {
+            border: 4px solid orange !important; /* 不正解でも正解を教えるためにオレンジ色に */
+            box-shadow: 0 0 15px orange;
+        }
+
         .hidden {
             display: none;
         }
@@ -358,8 +369,7 @@
             
             gameState.answered = false;
             gameState.questionStartTime = Date.now();
-            // 数字を0から9までに変更
-            gameState.currentAnswer = Math.floor(Math.random() * 10); 
+            gameState.currentAnswer = Math.floor(Math.random() * 10); // 数字を0から9までに変更
             
             const baseHue = Math.floor(Math.random() * 360);
             const baseSat = 40 + Math.random() * 40;
@@ -376,6 +386,11 @@
             document.getElementById('hiddenNumber').style.color = numberColor;
             document.getElementById('hiddenNumber').textContent = gameState.currentAnswer;
             
+            // 前回ハイライトされたボタンのリセット
+            document.querySelectorAll('.number-btn').forEach(btn => {
+                btn.classList.remove('correct-highlight', 'wrong-answer-correct-highlight');
+            });
+
             generateChoices();
             if (!gameState.isRelaxMode) startQuestionTimer();
         }
@@ -448,7 +463,7 @@
             for (let i = 0; i < 9; i++) {
                 const button = document.createElement('button');
                 button.className = 'number-btn';
-                button.textContent = choiceArray[i]; // ここはchoiceArray[i]を使用
+                button.textContent = choiceArray[i];
                 button.onclick = () => selectAnswer(choiceArray[i]);
                 buttons.appendChild(button);
             }
@@ -472,13 +487,15 @@
             if (gameState.answered || !gameState.gameActive) return;
             gameState.answered = true;
             clearTimeout(gameState.questionTimer);
-            document.querySelectorAll('.number-btn').forEach(btn => btn.disabled = true);
-
+            
             const responseTime = Date.now() - gameState.questionStartTime;
             if (!gameState.isRelaxMode) gameState.responseTimes.push(responseTime);
             
             const isCorrect = selectedNum === gameState.currentAnswer;
             
+            // 全てのボタンを無効化
+            document.querySelectorAll('.number-btn').forEach(btn => btn.disabled = true);
+
             if (isCorrect) {
                 gameState.correctAnswers++;
                 gameState.combo++;
@@ -490,11 +507,30 @@
                     points += timeBonus + comboBonus;
                 }
                 gameState.score += points;
+                // 正解のボタンを緑色にハイライト
+                document.querySelectorAll('.number-btn').forEach(btn => {
+                    if (parseInt(btn.textContent) === gameState.currentAnswer) {
+                        btn.classList.add('correct-highlight');
+                    }
+                });
             } else {
                 gameState.combo = 0;
+                // 不正解のボタンを赤色にハイライト (選択したボタン)
+                document.querySelectorAll('.number-btn').forEach(btn => {
+                    if (parseInt(btn.textContent) === selectedNum) {
+                        btn.style.border = '4px solid red';
+                        btn.style.boxShadow = '0 0 15px red';
+                    }
+                    // 正解のボタンをオレンジ色にハイライト
+                    if (parseInt(btn.textContent) === gameState.currentAnswer) {
+                        btn.classList.add('wrong-answer-correct-highlight');
+                    }
+                });
             }
+            
             updateDisplay();
-            setTimeout(() => nextQuestion(), 800);
+            // 1.5秒後に次の問題へ進む
+            setTimeout(() => nextQuestion(), 1500);
         }
 
         // === UI更新 & 評価 ===
