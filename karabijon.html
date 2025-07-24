@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>カラービジョンゲーム (最終超絶難易度版)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', 'Hiragino Sans', 'Meiryo', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+        }
+
+        .game-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .game-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+            pointer-events: none;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            font-size: 2.2em;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        h2 { font-size: 1.8em; margin-bottom: 15px; }
+        h3 { font-size: 1.1em; margin-bottom: 10px; }
+
+        .menu-screen, .game-screen, .results-screen {
+            position: relative;
+            z-index: 1;
+        }
+
+        .selection-group {
+            margin: 25px 0;
+        }
+
+        .selection-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .selection-btn, .action-btn {
+            padding: 10px 18px;
+            border: 2px solid transparent;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .selection-btn:hover, .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+            background: rgba(255,255,255,0.3);
+        }
+
+        .selection-btn.selected {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            transform: scale(1.05);
+            border-color: white;
+        }
+        
+        .action-btn {
+             background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+        }
+
+        #levelDescription {
+            margin-top: 10px;
+            min-height: 20px;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .combo-display {
+            color: #ffd700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            font-size: 20px;
+            margin: 10px 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b6b, #ffa500);
+            border-radius: 4px;
+        }
+
+        .game-area {
+            width: 100%;
+            max-width: 300px;
+            height: 200px;
+            margin: 20px auto;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 80px;
+            font-weight: bold;
+            /* text-shadow: 1px 1px 2px rgba(0,0,0,0.1);  ← この行を削除しました */
+            position: relative;
+            overflow: hidden;
+        }
+
+        .number-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .number-btn {
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 20px;
+            font-weight: bold;
+            transition: all 0.2s ease;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            backdrop-filter: blur(5px);
+        }
+
+        .number-btn:hover {
+            transform: scale(1.05);
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .number-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .results {
+            text-align: left;
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+        
+        .results p {
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div id="menuScreen" class="menu-screen">
+            <h1>🎨 カラービジョンゲーム</h1>
+            <p>背景とほぼ同じ色の数字を見つけよう！</p>
+            
+            <div class="selection-group">
+                <h3>難易度を選択</h3>
+                <div id="levelButtons" class="selection-buttons">
+                    <button class="selection-btn selected" data-level="4">極限</button>
+                    <button class="selection-btn" data-level="5">神業</button>
+                    <button class="selection-btn" data-level="6">修羅</button>
+                    <button class="selection-btn" data-level="7">幻惑</button>
+                    <button class="selection-btn" data-level="8">心眼</button>
+                    <button class="selection-btn" data-level="9">無</button>
+                    <button class="selection-btn" data-level="10">悟</button>
+                </div>
+                <p id="levelDescription">極めて微細な色の違い。真の色覚マスター向け</p>
+            </div>
+            
+            <div class="selection-group">
+                <h3>モードを選択</h3>
+                <div id="modeButtons" class="selection-buttons">
+                    <button class="selection-btn selected" data-mode="normal">通常</button>
+                    <button class="selection-btn" data-mode="relax">リラックス</button>
+                </div>
+            </div>
+            
+            <button class="action-btn" onclick="startGame()">ゲーム開始</button>
+        </div>
+
+        <div id="gameScreen" class="game-screen hidden">
+            <div class="game-info">
+                <div>スコア: <span id="score">0</span></div>
+                <div>問題: <span id="questionCounter">1/20</span></div>
+            </div>
+            
+            <div class="combo-display" id="comboDisplay">コンボ: 0</div>
+            
+            <div class="progress-bar" id="progressBar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            
+            <div class="game-area" id="gameArea">
+                <span id="hiddenNumber"></span>
+            </div>
+            
+            <div class="number-buttons" id="numberButtons"></div>
+            
+            <button class="action-btn" onclick="endGame(true)">ゲーム終了</button>
+        </div>
+
+        <div id="resultsScreen" class="results-screen hidden">
+            <h2>🏆 ゲーム結果</h2>
+            <div class="results" id="results"></div>
+            <button class="action-btn" onclick="resetGame()">もう一度プレイ</button>
+        </div>
+    </div>
+
+    <script>
+        // === DOM要素の取得 ===
+        const menuScreen = document.getElementById('menuScreen');
+        const gameScreen = document.getElementById('gameScreen');
+        const resultsScreen = document.getElementById('resultsScreen');
+        
+        // === ゲーム設定 ===
+        const levelDescriptions = {
+            4: "極めて微細な色の違い。真の色覚マスター向け",
+            5: "人間の限界を超える色覚。神の領域です",
+            6: "修羅の道。常人には見えざる色を視よ",
+            7: "幻惑の色彩。もはや色の差は幻かもしれない",
+            8: "心眼を開き、色の奥に潜む数字を感じよ",
+            9: "無の境地。色と数字の境界線は存在しない",
+            10: "悟りを開く者のみが、この色を視認できる"
+        };
+
+        const levelSettings = {
+            4: { colorDiff: 7, timeBonus: 350 },
+            5: { colorDiff: 5, timeBonus: 450 },
+            6: { colorDiff: 4, timeBonus: 550 },
+            7: { colorDiff: 3, timeBonus: 700 },
+            8: { colorDiff: 2.5, timeBonus: 850 },
+            9: { colorDiff: 2.0, timeBonus: 1000 },
+            10: { colorDiff: 1.2, timeBonus: 1500 }
+        };
+        
+        // === ゲーム状態管理 ===
+        let gameState = {};
+        function resetGameState() {
+            gameState = {
+                level: 4,
+                isRelaxMode: false,
+                score: 0,
+                currentQuestion: 1,
+                totalQuestions: 20,
+                correctAnswers: 0,
+                combo: 0,
+                maxCombo: 0,
+                startTime: null,
+                questionStartTime: null,
+                responseTimes: [],
+                questionTimer: null,
+                currentAnswer: null,
+                gameActive: false,
+                answered: false
+            };
+        }
+        resetGameState();
+
+        // === イベントリスナー ===
+        document.getElementById('levelButtons').addEventListener('click', (e) => {
+            if (e.target.matches('.selection-btn')) {
+                document.querySelectorAll('#levelButtons .selection-btn').forEach(b => b.classList.remove('selected'));
+                e.target.classList.add('selected');
+                gameState.level = parseInt(e.target.dataset.level);
+                document.getElementById('levelDescription').textContent = levelDescriptions[gameState.level];
+            }
+        });
+        
+        document.getElementById('modeButtons').addEventListener('click', (e) => {
+            if (e.target.matches('.selection-btn')) {
+                document.querySelectorAll('#modeButtons .selection-btn').forEach(b => b.classList.remove('selected'));
+                e.target.classList.add('selected');
+            }
+        });
+
+        // === ゲームフロー ===
+        function startGame() {
+            resetGameState();
+            const selectedLevel = document.querySelector('#levelButtons .selected');
+            const selectedMode = document.querySelector('#modeButtons .selected');
+            gameState.level = parseInt(selectedLevel.dataset.level);
+            gameState.isRelaxMode = selectedMode.dataset.mode === 'relax';
+            gameState.gameActive = true;
+            gameState.startTime = Date.now();
+            
+            menuScreen.classList.add('hidden');
+            resultsScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            
+            document.getElementById('progressBar').style.display = gameState.isRelaxMode ? 'none' : 'block';
+
+            updateDisplay();
+            generateQuestion();
+        }
+
+        function generateQuestion() {
+            if (!gameState.gameActive) return;
+            
+            gameState.answered = false;
+            gameState.questionStartTime = Date.now();
+            gameState.currentAnswer = Math.floor(Math.random() * 9) + 1;
+            
+            const baseHue = Math.floor(Math.random() * 360);
+            const baseSat = 40 + Math.random() * 40;
+            const baseLit = 30 + Math.random() * 40;
+            const backgroundColor = `hsl(${baseHue}, ${baseSat}%, ${baseLit}%)`;
+            
+            const { colorDiff } = levelSettings[gameState.level];
+            const numberHue = baseHue + (Math.random() - 0.5) * colorDiff;
+            const numberSat = baseSat + (Math.random() - 0.5) * colorDiff;
+            const numberLit = baseLit + (Math.random() - 0.5) * colorDiff;
+            const numberColor = `hsl(${numberHue}, ${Math.max(0, Math.min(100, numberSat))}%, ${Math.max(0, Math.min(100, numberLit))}%)`;
+            
+            document.getElementById('gameArea').style.backgroundColor = backgroundColor;
+            document.getElementById('hiddenNumber').style.color = numberColor;
+            document.getElementById('hiddenNumber').textContent = gameState.currentAnswer;
+            
+            generateChoices();
+            if (!gameState.isRelaxMode) startQuestionTimer();
+        }
+
+        function nextQuestion() {
+            gameState.currentQuestion++;
+            if (!gameState.isRelaxMode && gameState.currentQuestion > gameState.totalQuestions) {
+                endGame(false);
+            } else {
+                updateDisplay();
+                generateQuestion();
+            }
+        }
+        
+        function endGame(isManual) {
+            if (!gameState.gameActive) return;
+            gameState.gameActive = false;
+            clearTimeout(gameState.questionTimer);
+            
+            const totalTime = Date.now() - gameState.startTime;
+            const questionsAttempted = gameState.currentQuestion - 1;
+            
+            const accuracy = questionsAttempted > 0 ? (gameState.correctAnswers / questionsAttempted) * 100 : 0;
+            const avgResponseTime = gameState.responseTimes.length > 0 ? gameState.responseTimes.reduce((a, b) => a + b, 0) / gameState.responseTimes.length : 0;
+            
+            document.getElementById('results').innerHTML = `
+                <h3>📊 詳細分析</h3>
+                <p><strong>モード:</strong> ${gameState.isRelaxMode ? 'リラックス' : '通常'}</p>
+                <p><strong>難易度:</strong> ${document.querySelector('#levelButtons .selected').textContent}</p>
+                <p><strong>総合スコア:</strong> ${gameState.score.toLocaleString()}点</p>
+                <p><strong>正解率:</strong> ${accuracy.toFixed(1)}% (${gameState.correctAnswers}/${questionsAttempted}問)</p>
+                <p><strong>最大コンボ:</strong> ${gameState.maxCombo}回</p>
+                <p><strong>平均反応時間:</strong> ${avgResponseTime > 0 ? (avgResponseTime / 1000).toFixed(2) + '秒' : 'N/A'}</p>
+                <p><strong>プレイ時間:</strong> ${Math.floor(totalTime / 1000)}秒</p>
+                <h3>🏅 評価</h3>
+                <p><strong>${getGrade(accuracy, gameState.maxCombo, gameState.level)}</strong></p>
+            `;
+            
+            gameScreen.classList.add('hidden');
+            resultsScreen.classList.remove('hidden');
+        }
+
+        function resetGame() {
+            resultsScreen.classList.add('hidden');
+            menuScreen.classList.remove('hidden');
+            resetGameState();
+        }
+
+        // === ゲーム内ロジック ===
+        function generateChoices() {
+            const buttons = document.getElementById('numberButtons');
+            buttons.innerHTML = '';
+            const choices = new Set([gameState.currentAnswer]);
+            while (choices.size < 9) {
+                choices.add(Math.floor(Math.random() * 9) + 1);
+            }
+            const choiceArray = Array.from(choices).sort(() => Math.random() - 0.5);
+            choiceArray.forEach(num => {
+                const button = document.createElement('button');
+                button.className = 'number-btn';
+                button.textContent = num;
+                button.onclick = () => selectAnswer(num);
+                buttons.appendChild(button);
+            });
+        }
+
+        function startQuestionTimer() {
+            clearTimeout(gameState.questionTimer);
+            const progressFill = document.getElementById('progressFill');
+            progressFill.style.transition = 'none';
+            progressFill.style.width = '100%';
+            progressFill.offsetHeight; 
+            progressFill.style.transition = 'width 5s linear';
+            progressFill.style.width = '0%';
+
+            gameState.questionTimer = setTimeout(() => {
+                if (gameState.gameActive && !gameState.answered) selectAnswer(null);
+            }, 5000);
+        }
+
+        function selectAnswer(selectedNum) {
+            if (gameState.answered || !gameState.gameActive) return;
+            gameState.answered = true;
+            clearTimeout(gameState.questionTimer);
+            document.querySelectorAll('.number-btn').forEach(btn => btn.disabled = true);
+
+            const responseTime = Date.now() - gameState.questionStartTime;
+            if (!gameState.isRelaxMode) gameState.responseTimes.push(responseTime);
+            
+            const isCorrect = selectedNum === gameState.currentAnswer;
+            
+            if (isCorrect) {
+                gameState.correctAnswers++;
+                gameState.combo++;
+                gameState.maxCombo = Math.max(gameState.maxCombo, gameState.combo);
+                let points = 100;
+                if (!gameState.isRelaxMode) {
+                    const timeBonus = Math.max(0, levelSettings[gameState.level].timeBonus - Math.floor(responseTime / 20));
+                    const comboBonus = gameState.combo * 10;
+                    points += timeBonus + comboBonus;
+                }
+                gameState.score += points;
+            } else {
+                gameState.combo = 0;
+            }
+            updateDisplay();
+            setTimeout(() => nextQuestion(), 800);
+        }
+
+        // === UI更新 & 評価 ===
+        function updateDisplay() {
+            document.getElementById('score').textContent = gameState.score.toLocaleString();
+            const questionCounter = document.getElementById('questionCounter');
+            if (gameState.isRelaxMode) {
+                questionCounter.textContent = gameState.currentQuestion;
+            } else {
+                questionCounter.textContent = `${Math.min(gameState.currentQuestion, gameState.totalQuestions)}/${gameState.totalQuestions}`;
+            }
+            document.getElementById('comboDisplay').textContent = `コンボ: ${gameState.combo}`;
+        }
+
+        function getGrade(accuracy, maxCombo, level) {
+            if (level === 10 && accuracy >= 95) return "色の救世主 ✨";
+            if (level >= 8 && accuracy >= 90) return "心眼の持ち主 👁️";
+            if (level >= 6 && accuracy >= 90) return "修羅を統べる者 🔥";
+            if (accuracy >= 95 && maxCombo >= 15) return "色覚マスター 🏆";
+            if (accuracy >= 85 && maxCombo >= 10) return "色彩エキスパート 🥇";
+            return "色彩の挑戦者 チャレンジャー";
+        }
+    </script>
+</body>
+</html>
