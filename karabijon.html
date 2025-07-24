@@ -150,7 +150,6 @@
             justify-content: center;
             font-size: 80px;
             font-weight: bold;
-            /* text-shadow: 1px 1px 2px rgba(0,0,0,0.1);  ← この行を削除しました */
             position: relative;
             overflow: hidden;
         }
@@ -211,6 +210,8 @@
             <div class="selection-group">
                 <h3>難易度を選択</h3>
                 <div id="levelButtons" class="selection-buttons">
+                    <button class="selection-btn" data-level="2">普通</button>
+                    <button class="selection-btn" data-level="3">難しい</button>
                     <button class="selection-btn selected" data-level="4">極限</button>
                     <button class="selection-btn" data-level="5">神業</button>
                     <button class="selection-btn" data-level="6">修羅</button>
@@ -269,6 +270,8 @@
         
         // === ゲーム設定 ===
         const levelDescriptions = {
+            2: "色覚の基本を試す。初心者向け",
+            3: "色の違いが少しずつ分かり始める。中級者向け",
             4: "極めて微細な色の違い。真の色覚マスター向け",
             5: "人間の限界を超える色覚。神の領域です",
             6: "修羅の道。常人には見えざる色を視よ",
@@ -279,6 +282,8 @@
         };
 
         const levelSettings = {
+            2: { colorDiff: 15, timeBonus: 100 }, // 普通
+            3: { colorDiff: 10, timeBonus: 200 }, // 難しい
             4: { colorDiff: 7, timeBonus: 350 },
             5: { colorDiff: 5, timeBonus: 450 },
             6: { colorDiff: 4, timeBonus: 550 },
@@ -292,7 +297,7 @@
         let gameState = {};
         function resetGameState() {
             gameState = {
-                level: 4,
+                level: 4, // デフォルトを極限に設定
                 isRelaxMode: false,
                 score: 0,
                 currentQuestion: 1,
@@ -353,7 +358,8 @@
             
             gameState.answered = false;
             gameState.questionStartTime = Date.now();
-            gameState.currentAnswer = Math.floor(Math.random() * 9) + 1;
+            // 数字を0から9までに変更
+            gameState.currentAnswer = Math.floor(Math.random() * 10); 
             
             const baseHue = Math.floor(Math.random() * 360);
             const baseSat = 40 + Math.random() * 40;
@@ -414,6 +420,15 @@
 
         function resetGame() {
             resultsScreen.classList.add('hidden');
+            // デフォルトの難易度設定に戻るように、選択ボタンの状態をリセット
+            document.querySelectorAll('#levelButtons .selection-btn').forEach(b => b.classList.remove('selected'));
+            document.querySelector('#levelButtons button[data-level="4"]').classList.add('selected'); // 極限をデフォルトに
+            document.getElementById('levelDescription').textContent = levelDescriptions[4]; // 極限の説明をセット
+
+            // モードもデフォルトに
+            document.querySelectorAll('#modeButtons .selection-btn').forEach(b => b.classList.remove('selected'));
+            document.querySelector('#modeButtons button[data-mode="normal"]').classList.add('selected');
+
             menuScreen.classList.remove('hidden');
             resetGameState();
         }
@@ -422,18 +437,21 @@
         function generateChoices() {
             const buttons = document.getElementById('numberButtons');
             buttons.innerHTML = '';
+            // 数字を0から9までの10種類に
             const choices = new Set([gameState.currentAnswer]);
-            while (choices.size < 9) {
-                choices.add(Math.floor(Math.random() * 9) + 1);
+            while (choices.size < 9) { // 9個の選択肢（今回は0-9のどれか9つ）
+                choices.add(Math.floor(Math.random() * 10));
             }
             const choiceArray = Array.from(choices).sort(() => Math.random() - 0.5);
-            choiceArray.forEach(num => {
+            
+            // 選択肢のボタン生成
+            for (let i = 0; i < 9; i++) {
                 const button = document.createElement('button');
                 button.className = 'number-btn';
-                button.textContent = num;
-                button.onclick = () => selectAnswer(num);
+                button.textContent = choiceArray[i]; // ここはchoiceArray[i]を使用
+                button.onclick = () => selectAnswer(choiceArray[i]);
                 buttons.appendChild(button);
-            });
+            }
         }
 
         function startQuestionTimer() {
@@ -497,8 +515,16 @@
             if (level >= 6 && accuracy >= 90) return "修羅を統べる者 🔥";
             if (accuracy >= 95 && maxCombo >= 15) return "色覚マスター 🏆";
             if (accuracy >= 85 && maxCombo >= 10) return "色彩エキスパート 🥇";
+            // 新しい難易度に応じた評価を追加
+            if (level === 3 && accuracy >= 90) return "色彩理解者";
+            if (level === 2 && accuracy >= 80) return "色の探求者";
             return "色彩の挑戦者 チャレンジャー";
         }
+
+        // ページロード時にデフォルトの難易度説明を設定
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('levelDescription').textContent = levelDescriptions[gameState.level];
+        });
     </script>
 </body>
 </html>
