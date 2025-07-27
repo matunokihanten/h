@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>正直者ゲーム</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start; /* 上部に寄せる */
+            min-height: 100vh; /* 画面全体を使う */
+            background-color: #f0f8ff;
+            color: #333;
+            padding: 10px; /* パディングを少なめに */
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px; /* パディングを少なめに */
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 600px; /* スマホ向けに最大幅を調整 */
+            width: 100%;
+            margin-top: 10px; /* 上部の余白 */
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #4682b4;
+            margin-bottom: 15px; /* マージンを調整 */
+            font-size: 1.8em; /* フォントサイズを調整 */
+        }
+        p {
+            font-size: 0.95em; /* フォントサイズを調整 */
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+        .characters {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap; /* 折り返しを有効に */
+            margin: 15px 0; /* マージンを調整 */
+            gap: 10px; /* 間隔を調整 */
+        }
+        .character-card {
+            background-color: #e0f2f7;
+            border: 1px solid #b0e0e6;
+            border-radius: 8px;
+            padding: 10px; /* パディングを調整 */
+            width: 80px; /* カードの幅を調整 */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s;
+            font-size: 0.9em; /* フォントサイズを調整 */
+        }
+        .character-card:hover {
+            transform: translateY(-3px);
+        }
+        .character-card h3 {
+            color: #2f758f;
+            margin-top: 0;
+            margin-bottom: 5px;
+            font-size: 1.1em; /* フォントサイズを調整 */
+        }
+        .controls {
+            margin-top: 15px;
+        }
+        button {
+            background-color: #5cb85c;
+            color: white;
+            padding: 10px 20px; /* パディングを調整 */
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em; /* フォントサイズを調整 */
+            margin: 5px 3px; /* マージンを調整 */
+            transition: background-color 0.3s ease;
+            width: calc(50% - 10px); /* ボタンの幅を調整 */
+            box-sizing: border-box;
+            white-space: nowrap; /* テキストの折り返しを防ぐ */
+        }
+        button:hover {
+            background-color: #4cae4c;
+        }
+        button#resetGame {
+            background-color: #f0ad4e;
+        }
+        button#resetGame:hover {
+            background-color: #ec971f;
+        }
+        button#showExplanation {
+            background-color: #5bc0de; /* 新しいボタンの色 */
+        }
+        button#showExplanation:hover {
+            background-color: #31b0d5;
+        }
+
+        .question-area, .answer-area {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 12px; /* パディングを調整 */
+            margin-top: 15px;
+            text-align: left;
+        }
+        .answer-area strong {
+            color: #d9534f;
+        }
+        .feedback {
+            margin-top: 15px;
+            font-size: 1.1em; /* フォントサイズを調整 */
+            font-weight: bold;
+            color: #333;
+        }
+        .feedback.correct {
+            color: #5cb85c;
+        }
+        .feedback.incorrect {
+            color: #d9534f;
+        }
+        select {
+            padding: 7px; /* パディングを調整 */
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            margin-right: 5px; /* マージンを調整 */
+            font-size: 0.95em; /* フォントサイズを調整 */
+            width: calc(50% - 10px); /* 幅を調整 */
+            box-sizing: border-box;
+        }
+
+        /* モーダルウィンドウのスタイル */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #888;
+            border-radius: 10px;
+            width: 80%; /* Could be more or less, depending on screen size */
+            max-width: 500px; /* Max width for larger screens */
+            box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
+            animation-name: animatetop;
+            animation-duration: 0.4s;
+            text-align: left;
+        }
+        /* The Close Button */
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        @keyframes animatetop {
+            from {top: -300px; opacity: 0}
+            to {top: 0; opacity: 1}
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>正直者ゲーム</h1>
+        <p>5人のキャラクターの中から、ただ1人だけいる<strong>正直者</strong>を見つけ出しましょう！</p>
+        <p>正直者は常に真実を話します。それ以外の4人は嘘をついたり、真実を話したり、ランダムに答えます。</p>
+
+        <div class="characters" id="characterList">
+            </div>
+
+        <div class="question-area">
+            <p><strong>質問：</strong> <span id="currentQuestion"></span></p>
+            <div class="controls">
+                <button onclick="askQuestion()">質問する</button>
+            </div>
+        </div>
+
+        <div class="answer-area">
+            <p><strong>答え：</strong></p>
+            <ul id="answersList">
+                </ul>
+        </div>
+
+        <hr>
+
+        <div class="controls">
+            <p>正直者は誰だと思う？</p>
+            <select id="guessCharacter">
+                </select>
+            <button onclick="makeGuess()">正直者を当てる！</button>
+            <button id="showExplanation" onclick="showHonestExplanation()">正直者解説</button>
+            <button id="resetGame" onclick="resetGame()">もう一度プレイ</button>
+        </div>
+
+        <div class="feedback" id="gameFeedback">
+            </div>
+    </div>
+
+    <div id="explanationModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeModal()">&times;</span>
+            <h2>正直者の解説</h2>
+            <p><strong id="honestCharNameInModal"></strong>さんが正直者でした！</p>
+            <p><strong>正直者の特徴:</strong></p>
+            <ul>
+                <li>常に正しいことを言います。</li>
+                <li>質問に対する答えが、その質問の真実に一致します。</li>
+            </ul>
+            <p>今回のゲームでは、以下のような理由から<strong id="honestCharNameReason"></strong>さんが正直者であると推測できます。</p>
+            <div id="explanationDetails">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        let characters = [];
+        let honestCharacterIndex = -1;
+        let currentQuestionData = null; // 現在の質問と正しい答えを保持
+        let gameAnswers = []; // 各ラウンドのキャラクターの答えを保存
+
+        // キャラクター名を日本で一般的なものに変更し、性別も追加
+        const allCharactersData = [
+            { name: "アキコ", gender: "女性" },
+            { name: "タロウ", gender: "男性" },
+            { name: "ハナ", gender: "女性" },
+            { name: "ケンタ", gender: "男性" },
+            { name: "ユミ", gender: "女性" },
+            { name: "ダイスケ", gender: "男性" },
+            { name: "サクラ", gender: "女性" },
+            { name: "コウタ", gender: "男性" },
+            { name: "ミサキ", gender: "女性" },
+            { name: "ショウタ", gender: "男性" }
+        ];
+
+        const questions = [
+            {
+                question: "あなたは正直者ですか？",
+                trueAnswer: "はい、私は正直者です。",
+                falseAnswer: "いいえ、私は正直者ではありません。",
+                type: "self_honesty"
+            },
+            {
+                question: "今朝、朝食を食べましたか？",
+                trueAnswer: "はい、食べました。",
+                falseAnswer: "いいえ、食べていません。",
+                type: "general_random"
+            },
+            {
+                question: "2 + 2 = 4ですか？",
+                trueAnswer: "はい、その通りです。",
+                falseAnswer: "いいえ、違います。",
+                type: "general_fact"
+            },
+            {
+                question: "[キャラクターの名前]は正直者ですか？", // 特定のキャラクターの正直さを聞く
+                trueAnswer: "[キャラクターの名前]は正直者です。",
+                falseAnswer: "[キャラクターの名前]は正直者ではありません。",
+                type: "other_honesty"
+            },
+            {
+                question: "[キャラクターの名前]は男性ですか？", // 特定のキャラクターの性別を聞く
+                trueAnswer: "[キャラクターの名前]は男性です。",
+                falseAnswer: "[キャラクターの名前]は女性です。",
+                type: "other_gender"
+            },
+            {
+                question: "[キャラクターの名前]は女性ですか？", // 特定のキャラクターの性別を聞く
+                trueAnswer: "[キャラクターの名前]は女性です。",
+                falseAnswer: "[キャラクターの名前]は男性です。",
+                type: "other_gender_female"
+            }
+        ];
+
+        function initializeGame() {
+            // allCharactersDataからランダムに5人を選ぶ
+            const shuffledCharacters = allCharactersData.sort(() => 0.5 - Math.random());
+            characters = shuffledCharacters.slice(0, 5).map(char => ({
+                name: char.name,
+                gender: char.gender,
+                isHonest: false // 初期化時に全員正直ではないと設定
+            }));
+
+            honestCharacterIndex = Math.floor(Math.random() * characters.length);
+            characters[honestCharacterIndex].isHonest = true;
+
+            gameAnswers = []; // リセット時に回答履歴もクリア
+
+            renderCharacters();
+            generateNewQuestion();
+            document.getElementById('answersList').innerHTML = '';
+            document.getElementById('gameFeedback').textContent = '';
+            document.getElementById('showExplanation').style.display = 'none'; // 解説ボタンを非表示に
+            populateGuessDropdown();
+        }
+
+        function renderCharacters() {
+            const characterListDiv = document.getElementById('characterList');
+            characterListDiv.innerHTML = '';
+            characters.forEach((char, index) => {
+                const card = document.createElement('div');
+                card.className = 'character-card';
+                card.innerHTML = `<h3>${char.name}</h3>`;
+                characterListDiv.appendChild(card);
+            });
+        }
+
+        function generateNewQuestion() {
+            let selectedQuestion = questions[Math.floor(Math.random() * questions.length)];
+            let displayQuestion = selectedQuestion.question;
+            let targetCharForQuestion = null; // 質問の対象となるキャラクター
+
+            // 質問内容を動的に変更
+            if (selectedQuestion.question.includes("[キャラクターの名前]")) {
+                let randomChar;
+                // 他のキャラクターを対象にする質問の場合、正直者以外のキャラを選ぶ (ゲーム性を考慮)
+                if (selectedQuestion.type === "other_honesty" || selectedQuestion.type === "other_gender" || selectedQuestion.type === "other_gender_female") {
+                    do {
+                        randomChar = characters[Math.floor(Math.random() * characters.length)];
+                    } while (randomChar.name === characters[honestCharacterIndex].name);
+                } else {
+                    randomChar = characters[Math.floor(Math.random() * characters.length)];
+                }
+                
+                displayQuestion = selectedQuestion.question.replace("[キャラクターの名前]", randomChar.name);
+                targetCharForQuestion = randomChar;
+                currentQuestionData = {
+                    question: displayQuestion,
+                    trueAnswer: selectedQuestion.trueAnswer.replace("[キャラクターの名前]", randomChar.name),
+                    falseAnswer: selectedQuestion.falseAnswer.replace("[キャラクターの名前]", randomChar.name),
+                    type: selectedQuestion.type,
+                    targetCharacter: randomChar
+                };
+            } else {
+                currentQuestionData = {
+                    question: displayQuestion,
+                    trueAnswer: selectedQuestion.trueAnswer,
+                    falseAnswer: selectedQuestion.falseAnswer,
+                    type: selectedQuestion.type
+                };
+            }
+            document.getElementById('currentQuestion').textContent = currentQuestionData.question;
+        }
+
+        function askQuestion() {
+            const answersList = document.getElementById('answersList');
+            answersList.innerHTML = ''; // 前回の答えをクリア
+
+            const roundAnswers = []; // このラウンドの答えを一時的に保存
+
+            characters.forEach((char, index) => {
+                const li = document.createElement('li');
+                let answerText;
+                let actualTruthValue; // このキャラクターにとっての「真実」
+                let charactersPerspectiveAnswer; // このキャラクターが真実を言う場合の答え
+
+                // 質問の種類に応じて「真実」を決定
+                if (currentQuestionData.type === "self_honesty") {
+                    // 「あなたは正直者ですか？」
+                    actualTruthValue = char.isHonest;
+                    charactersPerspectiveAnswer = actualTruthValue ? currentQuestionData.trueAnswer : currentQuestionData.falseAnswer;
+                } else if (currentQuestionData.type === "general_random") {
+                    // 「今朝、朝食を食べましたか？」
+                    actualTruthValue = Math.random() < 0.5; // ランダムな真実
+                    charactersPerspectiveAnswer = actualTruthValue ? currentQuestionData.trueAnswer : currentQuestionData.falseAnswer;
+                } else if (currentQuestionData.type === "general_fact") {
+                    // 「2 + 2 = 4ですか？」
+                    actualTruthValue = true; // 常に真実
+                    charactersPerspectiveAnswer = actualTruthValue ? currentQuestionData.trueAnswer : currentQuestionData.falseAnswer;
+                } else if (currentQuestionData.type === "other_honesty") {
+                    // 「[キャラクターの名前]は正直者ですか？」
+                    if (currentQuestionData.targetCharacter.isHonest) {
+                        actualTruthValue = true;
+                    } else {
+                        actualTruthValue = false;
+                    }
+                    charactersPerspectiveAnswer = actualTruthValue ? currentQuestionData.trueAnswer : currentQuestionData.falseAnswer;
+                } else if (currentQuestionData.type === "other_gender") {
+                    // 「[キャラクターの名前]は男性ですか？」
+                    if (currentQuestionData.targetCharacter.gender === "男性") {
+                        actualTruthValue = true;
+                    } else {
+                        actualTruthValue = false;
+                    }
+                    charactersPerspectiveAnswer = actualTruthValue ? currentQuestionData.trueAnswer : currentQuestionData.falseAnswer;
+                } else if (currentQuestionData.type === "other_gender_female") {
+                    // 「[キャラクターの名前]は女性ですか？」
+                    if (currentQuestionData.targetCharacter.gender === "女性") {
+                        actualTruthValue = true;
+                    } else {
+                        actualTruthValue = false;
+                    }
+                    charactersPerspectiveAnswer = actualTruthValue ? currentQuestionData.trueAnswer : currentQuestionData.falseAnswer;
+                }
+
+                if (char.isHonest) {
+                    answerText = charactersPerspectiveAnswer; // 正直者は真実を言う
+                } else {
+                    const lieTruthRatio = 0.5; // 嘘をつく確率 (例: 50%の確率で嘘、50%の確率で真実)
+                    if (Math.random() < lieTruthRatio) {
+                        // 嘘をつく場合、真実の逆を言う
+                        answerText = actualTruthValue ? currentQuestionData.falseAnswer : currentQuestionData.trueAnswer;
+                    } else {
+                        answerText = charactersPerspectiveAnswer; // 真実を言うこともある
+                    }
+                }
+                li.innerHTML = `<strong>${char.name}:</strong> ${answerText}`;
+                answersList.appendChild(li);
+
+                roundAnswers.push({
+                    character: char.name,
+                    question: currentQuestionData.question,
+                    answer: answerText,
+                    isHonest: char.isHonest,
+                    actualTruth: charactersPerspectiveAnswer // そのキャラクターにとっての真実の答え
+                });
+            });
+            gameAnswers.push(roundAnswers); // ラウンドごとの答えを保存
+
+            // 質問が終わったら新しい質問を生成しておく
+            generateNewQuestion();
+        }
+
+        function populateGuessDropdown() {
+            const guessSelect = document.getElementById('guessCharacter');
+            guessSelect.innerHTML = '';
+            characters.forEach((char, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = char.name;
+                guessSelect.appendChild(option);
+            });
+        }
+
+        function makeGuess() {
+            const selectedIndex = parseInt(document.getElementById('guessCharacter').value);
+            const feedbackDiv = document.getElementById('gameFeedback');
+            document.getElementById('showExplanation').style.display = 'inline-block'; // 解説ボタンを表示
+
+            if (selectedIndex === honestCharacterIndex) {
+                feedbackDiv.textContent = `正解！${characters[selectedIndex].name}さんが正直者でした！`;
+                feedbackDiv.className = 'feedback correct';
+            } else {
+                feedbackDiv.textContent = `残念！${characters[selectedIndex].name}さんではありませんでした。正直者は${characters[honestCharacterIndex].name}さんです。`;
+                feedbackDiv.className = 'feedback incorrect';
+            }
+        }
+
+        function resetGame() {
+            initializeGame();
+        }
+
+        function showHonestExplanation() {
+            const honestChar = characters[honestCharacterIndex];
+            document.getElementById('honestCharNameInModal').textContent = honestChar.name;
+            document.getElementById('honestCharNameReason').textContent = honestChar.name;
+
+            const explanationDetailsDiv = document.getElementById('explanationDetails');
+            explanationDetailsDiv.innerHTML = '';
+
+            // 過去の各質問と正直者の答えを元に解説を生成
+            gameAnswers.forEach((round, roundIndex) => {
+                const p = document.createElement('p');
+                p.innerHTML = `<strong>--- ラウンド ${roundIndex + 1} ---</strong>`;
+                explanationDetailsDiv.appendChild(p);
+
+                const honestAnswerInRound = round.find(answer => answer.isHonest);
+                if (honestAnswerInRound) {
+                    const questionP = document.createElement('p');
+                    questionP.innerHTML = `<strong>質問:</strong> ${honestAnswerInRound.question}`;
+                    explanationDetailsDiv.appendChild(questionP);
+
+                    const answerP = document.createElement('p');
+                    answerP.innerHTML = `<strong>${honestChar.name}の答え:</strong> <span style="color: blue;">${honestAnswerInRound.answer}</span>`;
+                    explanationDetailsDiv.appendChild(answerP);
+
+                    const reasonP = document.createElement('p');
+                    // 正直者の答えが、その質問に対する真実の答えと一致していることを説明
+                    reasonP.innerHTML = `<em>理由: この質問に対する真実は「${honestAnswerInRound.actualTruth}」であり、${honestChar.name}の答えと一致しています。</em>`;
+                    explanationDetailsDiv.appendChild(reasonP);
+                }
+            });
+
+            document.getElementById('explanationModal').style.display = 'flex'; // モーダルを表示
+        }
+
+        function closeModal() {
+            document.getElementById('explanationModal').style.display = 'none'; // モーダルを非表示
+        }
+
+        // モーダルの外側をクリックで閉じる
+        window.onclick = function(event) {
+            const modal = document.getElementById('explanationModal');
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+
+        // ゲーム開始
+        initializeGame();
+    </script>
+</body>
+</html>
