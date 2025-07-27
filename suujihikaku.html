@@ -94,12 +94,13 @@
             overflow: hidden;
             margin-bottom: 25px;
             border: 2px solid rgba(255, 255, 255, 0.3);
+            display: flex; /* Flexboxを使って中央揃え */
+            align-items: center;
+            justify-content: center;
         }
 
         .number-panel {
             position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
             width: 70px;
             height: 70px;
             background: linear-gradient(45deg, #4ecdc4, #44a08d);
@@ -112,16 +113,23 @@
             color: white;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
             animation: slideRightToLeft 2s linear forwards;
+            opacity: 1; /* 初期状態を不透明に */
         }
 
         @keyframes slideRightToLeft {
-            from { 
+            0% { 
                 right: -80px;
-                opacity: 1;
+                opacity: 0; /* 開始時は透明 */
             }
-            to { 
+            10% {
+                opacity: 1; /* すぐに不透明に */
+            }
+            90% {
+                opacity: 1; /* 終了間際まで不透明 */
+            }
+            100% { 
                 right: calc(100% + 20px);
-                opacity: 0;
+                opacity: 0; /* 終了時は透明 */
             }
         }
 
@@ -337,7 +345,7 @@
                 <div class="info-item">不正解: <span id="incorrectCount">0</span></div>
             </div>
             
-            <div class="timer" id="timer">2</div>
+            <div class="timer" id="timer"></div>
             
             <div class="number-track" id="numberTrack"></div>
             
@@ -348,8 +356,8 @@
             
             <div class="result" id="result"></div>
             
-            <div id="relaxControls" style="display: none;">
-                <button class="end-btn" onclick="endGame()">終了</button>
+            <div id="relaxControls" style="display: none; margin-top: 15px;">
+                <button class="end-btn" onclick="endGame()">ゲームを終了する</button>
             </div>
             
             <button class="end-btn" onclick="backToMenu()" style="margin-top: 10px;">メニューに戻る</button>
@@ -359,25 +367,46 @@
     <script>
         let gameState = {
             mode: '',
-            currentQuestion: 1,
+            currentQuestion: 0, 
             totalQuestions: 20,
             correctAnswers: 0,
             incorrectAnswers: 0,
             previousNumber: null,
             currentNumber: null,
-            timer: null,
-            timeLeft: 2,
+            timerIntervalId: null, 
+            timeLeft: 0,
             gameEnded: false,
-            animationTimeout: null
+            // numberPanelAnimationTimeoutId: null // 不要になったため削除
         };
+
+        const TIMER_DURATION = 2; // タイマーの初期値（秒）
+        const PANEL_ANIMATION_DURATION = 2000; // パネルアニメーションの期間（ミリ秒）
+        const TRANSITION_DELAY = 500; // 問題間の移行の遅延（ミリ秒）
+
+        function initGame() {
+            // 初期表示のリセット
+            document.getElementById('modeSelection').style.display = 'block';
+            document.getElementById('gameArea').style.display = 'none';
+            document.getElementById('questionCount').textContent = '1';
+            document.getElementById('correctCount').textContent = '0';
+            document.getElementById('incorrectCount').textContent = '0';
+            document.getElementById('timer').textContent = '';
+            document.getElementById('result').textContent = '';
+            document.getElementById('numberTrack').innerHTML = '';
+            document.getElementById('largeBtn').disabled = true; // 初期状態では無効
+            document.getElementById('smallBtn').disabled = true; // 初期状態では無効
+            document.getElementById('totalQuestions').style.display = 'inline';
+            document.getElementById('relaxControls').style.display = 'none';
+        }
 
         function startGame(mode) {
             gameState.mode = mode;
-            gameState.currentQuestion = 1;
+            gameState.currentQuestion = 0; 
             gameState.correctAnswers = 0;
             gameState.incorrectAnswers = 0;
             gameState.previousNumber = null;
             gameState.gameEnded = false;
+            stopTimer(); // 念のため既存タイマーを停止
 
             document.getElementById('modeSelection').style.display = 'none';
             document.getElementById('gameArea').style.display = 'block';
@@ -387,77 +416,80 @@
                 document.getElementById('relaxControls').style.display = 'block';
             } else {
                 document.getElementById('totalQuestions').style.display = 'inline';
-                document.getElementById('relaxControls').style.display = 'none';
             }
             
             updateDisplay();
-            generateNextQuestion();
+            prepareNextQuestion(); // 最初の問題の準備
         }
 
-        function generateNextQuestion() {
+        function prepareNextQuestion() {
             if (gameState.gameEnded) return;
-            
-            if (gameState.mode === 'normal' && gameState.currentQuestion > gameState.totalQuestions) {
+
+            // ノーマルモードで規定問題数を超えたら終了
+            if (gameState.mode === 'normal' && gameState.currentQuestion >= gameState.totalQuestions) {
                 endGame();
                 return;
             }
 
-            // 前の数字と異なる新しい数字を生成
+            // 回答結果をクリア
+            document.getElementById('result').textContent = ''; 
+            document.getElementById('timer').textContent = ''; // タイマー表示をクリア
+            
+            // パネル表示
+            generateNewNumber();
+            showNumberPanel(gameState.currentNumber);
+
+            if (gameState.previousNumber === null) {
+                // 最初の数字表示時（比較なし）
+                gameState.previousNumber = gameState.currentNumber;
+                gameState.currentQuestion++;
+                updateDisplay();
+                // 少し間を置いて次の問題を生成 (数字パネルが消える時間 + 移行遅延)
+                setTimeout(prepareNextQuestion, PANEL_ANIMATION_DURATION + TRANSITION_DELAY); 
+            } else {
+                // 比較問題の開始
+                gameState.currentQuestion++;
+                updateDisplay();
+                startTimer();
+                // 数字が表示されたらすぐにボタンを有効にする
+                document.getElementById('largeBtn').disabled = false;
+                document.getElementById('smallBtn').disabled = false;
+            }
+        }
+
+        function generateNewNumber() {
             let newNumber;
+            // 前の数字と異なる新しい数字を生成 (1-100)
             do {
                 newNumber = Math.floor(Math.random() * 100) + 1;
             } while (newNumber === gameState.previousNumber);
-            
             gameState.currentNumber = newNumber;
-            
-            // 最初の問題の場合は自動的に次へ
-            if (gameState.previousNumber === null) {
-                gameState.previousNumber = newNumber;
-                gameState.currentQuestion++;
-                updateDisplay();
-                showNumberPanel(newNumber);
-                setTimeout(() => {
-                    generateNextQuestion();
-                }, 2500); // パネルが消えた後、少し間を置いて次の問題
-                return;
-            }
-            
-            // パネルを表示
-            showNumberPanel(newNumber);
-            
-            // タイマー開始
-            startTimer();
-            
-            // ボタンを有効化
-            document.getElementById('largeBtn').disabled = false;
-            document.getElementById('smallBtn').disabled = false;
-            
-            // 結果をクリア
-            document.getElementById('result').textContent = '';
         }
 
         function showNumberPanel(number) {
             const track = document.getElementById('numberTrack');
-            track.innerHTML = '';
+            // 既存のパネルがあれば削除
+            track.innerHTML = ''; 
             
             const panel = document.createElement('div');
             panel.className = 'number-panel';
             panel.textContent = number;
             track.appendChild(panel);
-            
-            // 2秒後にパネルを削除
+
+            // アニメーション完了後にパネルをDOMから削除
             setTimeout(() => {
                 if (track.contains(panel)) {
                     track.removeChild(panel);
                 }
-            }, 2000);
+            }, PANEL_ANIMATION_DURATION);
         }
 
         function startTimer() {
-            gameState.timeLeft = 2;
+            stopTimer(); // 二重起動防止
+            gameState.timeLeft = TIMER_DURATION;
             updateTimer();
             
-            gameState.timer = setInterval(() => {
+            gameState.timerIntervalId = setInterval(() => {
                 gameState.timeLeft--;
                 updateTimer();
                 
@@ -472,35 +504,34 @@
         }
 
         function stopTimer() {
-            if (gameState.timer) {
-                clearInterval(gameState.timer);
-                gameState.timer = null;
+            if (gameState.timerIntervalId) {
+                clearInterval(gameState.timerIntervalId);
+                gameState.timerIntervalId = null;
             }
         }
 
         function timeUp() {
+            if (gameState.gameEnded) return; // ゲームが終了している場合は何もしない
             stopTimer();
+            document.getElementById('largeBtn').disabled = true;
+            document.getElementById('smallBtn').disabled = true;
+
             gameState.incorrectAnswers++;
             document.getElementById('result').innerHTML = '<span class="incorrect">時間切れ！</span>';
             
-            // ボタンを無効化
-            document.getElementById('largeBtn').disabled = true;
-            document.getElementById('smallBtn').disabled = true;
-            
-            gameState.previousNumber = gameState.currentNumber;
-            gameState.currentQuestion++;
-            
-            updateDisplay();
-            
-            setTimeout(() => {
-                generateNextQuestion();
-            }, 2500); // パネルが消えた後、少し間を置いて次の問題
+            // 次回比較のために現在の数字を保存
+            gameState.previousNumber = gameState.currentNumber; 
+            // 少し遅れて次の問題へ
+            setTimeout(prepareNextQuestion, TRANSITION_DELAY);
         }
 
         function answer(choice) {
+            // ゲーム終了時、または比較する前の数字がない場合は何もしない
             if (gameState.gameEnded || gameState.previousNumber === null) return;
             
-            stopTimer();
+            stopTimer(); // タイマーを停止
+            document.getElementById('largeBtn').disabled = true; // 回答したらボタンを無効化
+            document.getElementById('smallBtn').disabled = true;
             
             const isLarger = gameState.currentNumber > gameState.previousNumber;
             const isCorrect = (choice === 'large' && isLarger) || (choice === 'small' && !isLarger);
@@ -510,22 +541,16 @@
                 document.getElementById('result').innerHTML = '<span class="correct">正解！</span>';
             } else {
                 gameState.incorrectAnswers++;
-                const correctAnswer = isLarger ? '大' : '小';
-                document.getElementById('result').innerHTML = `<span class="incorrect">不正解！正解は「${correctAnswer}」でした</span>`;
+                const correctAnswerText = isLarger ? '大' : '小';
+                document.getElementById('result').innerHTML = `<span class="incorrect">不正解！正解は「${correctAnswerText}」でした</span>`;
             }
             
-            // ボタンを無効化
-            document.getElementById('largeBtn').disabled = true;
-            document.getElementById('smallBtn').disabled = true;
-            
-            gameState.previousNumber = gameState.currentNumber;
-            gameState.currentQuestion++;
-            
+            // 次回比較のために現在の数字を保存
+            gameState.previousNumber = gameState.currentNumber; 
             updateDisplay();
             
-            setTimeout(() => {
-                generateNextQuestion();
-            }, 2500); // パネルが消えた後、少し間を置いて次の問題
+            // 少し遅れて次の問題へ
+            setTimeout(prepareNextQuestion, TRANSITION_DELAY);
         }
 
         function updateDisplay() {
@@ -537,14 +562,16 @@
         function endGame() {
             gameState.gameEnded = true;
             stopTimer();
-            
-            const accuracy = gameState.correctAnswers + gameState.incorrectAnswers > 0 ? 
-                Math.round((gameState.correctAnswers / (gameState.correctAnswers + gameState.incorrectAnswers)) * 100) : 0;
+            // clearNumberPanelAnimationTimeout(); // 不要になったため削除
+
+            const totalAnswered = gameState.correctAnswers + gameState.incorrectAnswers;
+            const accuracy = totalAnswered > 0 ? 
+                Math.round((gameState.correctAnswers / totalAnswered) * 100) : 0;
             
             document.getElementById('numberTrack').innerHTML = `
                 <div class="final-score">
                     <h2>ゲーム終了！</h2>
-                    <p>総問題数: ${gameState.correctAnswers + gameState.incorrectAnswers}問</p>
+                    <p>総問題数: ${totalAnswered}問</p>
                     <p>正解数: ${gameState.correctAnswers}問</p>
                     <p>不正解数: ${gameState.incorrectAnswers}問</p>
                     <p>正解率: ${accuracy}%</p>
@@ -553,32 +580,38 @@
             
             document.getElementById('largeBtn').disabled = true;
             document.getElementById('smallBtn').disabled = true;
-            document.getElementById('timer').textContent = '';
-            document.getElementById('result').textContent = '';
+            document.getElementById('timer').textContent = ''; 
+            document.getElementById('result').textContent = ''; 
+            document.getElementById('relaxControls').style.display = 'none'; 
         }
 
         function backToMenu() {
-            gameState.gameEnded = true;
+            gameState.gameEnded = true; 
             stopTimer();
+            // clearNumberPanelAnimationTimeout(); // 不要になったため削除
             
             document.getElementById('gameArea').style.display = 'none';
             document.getElementById('modeSelection').style.display = 'block';
             
-            // リセット
+            // ゲームの状態を初期化
             gameState = {
                 mode: '',
-                currentQuestion: 1,
+                currentQuestion: 0,
                 totalQuestions: 20,
                 correctAnswers: 0,
                 incorrectAnswers: 0,
                 previousNumber: null,
                 currentNumber: null,
-                timer: null,
-                timeLeft: 2,
+                timerIntervalId: null,
+                timeLeft: 0,
                 gameEnded: false,
-                animationTimeout: null
+                // numberPanelAnimationTimeoutId: null // 不要になったため削除
             };
+            initGame(); // 初期表示に戻す
         }
+
+        // ページ読み込み時に初期化
+        window.onload = initGame;
     </script>
 </body>
 </html>
