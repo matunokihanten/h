@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数字比較ゲーム</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+
+        .game-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            min-width: 600px;
+        }
+
+        .title {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .mode-selection {
+            margin-bottom: 30px;
+        }
+
+        .mode-btn {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            margin: 10px;
+            border-radius: 25px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .mode-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .game-area {
+            display: none;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            font-size: 18px;
+        }
+
+        .number-track {
+            height: 120px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 30px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .number-panel {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            animation: slideRightToLeft 2s linear forwards;
+        }
+
+        @keyframes slideRightToLeft {
+            from { 
+                right: -100px;
+                opacity: 1;
+            }
+            to { 
+                right: calc(100% + 20px);
+                opacity: 0;
+            }
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+
+        .answer-btn {
+            padding: 20px 40px;
+            font-size: 24px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-large {
+            background: linear-gradient(45deg, #fd79a8, #e84393);
+        }
+
+        .btn-small {
+            background: linear-gradient(45deg, #00b894, #00a085);
+        }
+
+        .answer-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .answer-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .previous-number {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: #ffeaa7;
+        }
+
+        .timer {
+            font-size: 24px;
+            color: #ff7675;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .result {
+            font-size: 18px;
+            margin-bottom: 10px;
+            min-height: 25px;
+        }
+
+        .correct {
+            color: #00b894;
+        }
+
+        .incorrect {
+            color: #e17055;
+        }
+
+        .final-score {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+
+        .end-btn {
+            background: linear-gradient(45deg, #a29bfe, #6c5ce7);
+            border: none;
+            color: white;
+            padding: 12px 25px;
+            margin: 10px;
+            border-radius: 20px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .end-btn:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="title">数字比較ゲーム</h1>
+        
+        <div class="mode-selection" id="modeSelection">
+            <h2>モードを選択してください</h2>
+            <br>
+            <button class="mode-btn" onclick="startGame('normal')">普通モード (20問)</button>
+            <button class="mode-btn" onclick="startGame('relax')">リラックスモード (無制限)</button>
+        </div>
+
+        <div class="game-area" id="gameArea">
+            <div class="game-info">
+                <div>問題: <span id="questionCount">1</span><span id="totalQuestions">/20</span></div>
+                <div>正解: <span id="correctCount">0</span></div>
+                <div>不正解: <span id="incorrectCount">0</span></div>
+            </div>
+            
+            <div class="timer" id="timer">2</div>
+            
+            <div class="previous-number" id="previousNumber">直前の数字: -</div>
+            
+            <div class="number-track" id="numberTrack"></div>
+            
+            <div class="controls">
+                <button class="answer-btn btn-large" id="largeBtn" onclick="answer('large')">大</button>
+                <button class="answer-btn btn-small" id="smallBtn" onclick="answer('small')">小</button>
+            </div>
+            
+            <div class="result" id="result"></div>
+            
+            <div id="relaxControls" style="display: none;">
+                <button class="end-btn" onclick="endGame()">終了</button>
+            </div>
+            
+            <button class="end-btn" onclick="backToMenu()" style="margin-top: 20px;">メニューに戻る</button>
+        </div>
+    </div>
+
+    <script>
+        let gameState = {
+            mode: '',
+            currentQuestion: 1,
+            totalQuestions: 20,
+            correctAnswers: 0,
+            incorrectAnswers: 0,
+            previousNumber: null,
+            currentNumber: null,
+            timer: null,
+            timeLeft: 2,
+            gameEnded: false,
+            animationTimeout: null
+        };
+
+        function startGame(mode) {
+            gameState.mode = mode;
+            gameState.currentQuestion = 1;
+            gameState.correctAnswers = 0;
+            gameState.incorrectAnswers = 0;
+            gameState.previousNumber = null;
+            gameState.gameEnded = false;
+
+            document.getElementById('modeSelection').style.display = 'none';
+            document.getElementById('gameArea').style.display = 'block';
+            
+            if (mode === 'relax') {
+                document.getElementById('totalQuestions').style.display = 'none';
+                document.getElementById('relaxControls').style.display = 'block';
+            } else {
+                document.getElementById('totalQuestions').style.display = 'inline';
+                document.getElementById('relaxControls').style.display = 'none';
+            }
+            
+            updateDisplay();
+            generateNextQuestion();
+        }
+
+        function generateNextQuestion() {
+            if (gameState.gameEnded) return;
+            
+            if (gameState.mode === 'normal' && gameState.currentQuestion > gameState.totalQuestions) {
+                endGame();
+                return;
+            }
+
+            // 前の数字と異なる新しい数字を生成
+            let newNumber;
+            do {
+                newNumber = Math.floor(Math.random() * 100) + 1;
+            } while (newNumber === gameState.previousNumber);
+            
+            gameState.currentNumber = newNumber;
+            
+            // パネルを表示
+            showNumberPanel(newNumber);
+            
+            // タイマー開始
+            startTimer();
+            
+            // ボタンを有効化
+            document.getElementById('largeBtn').disabled = false;
+            document.getElementById('smallBtn').disabled = false;
+            
+            // 結果をクリア
+            document.getElementById('result').textContent = '';
+        }
+
+        function showNumberPanel(number) {
+            const track = document.getElementById('numberTrack');
+            track.innerHTML = '';
+            
+            const panel = document.createElement('div');
+            panel.className = 'number-panel';
+            panel.textContent = number;
+            track.appendChild(panel);
+            
+            // 2秒後にパネルを削除
+            setTimeout(() => {
+                if (track.contains(panel)) {
+                    track.removeChild(panel);
+                }
+            }, 2000);
+        }
+
+        function startTimer() {
+            gameState.timeLeft = 2;
+            updateTimer();
+            
+            gameState.timer = setInterval(() => {
+                gameState.timeLeft--;
+                updateTimer();
+                
+                if (gameState.timeLeft <= 0) {
+                    timeUp();
+                }
+            }, 1000);
+        }
+
+        function updateTimer() {
+            document.getElementById('timer').textContent = gameState.timeLeft;
+        }
+
+        function stopTimer() {
+            if (gameState.timer) {
+                clearInterval(gameState.timer);
+                gameState.timer = null;
+            }
+        }
+
+        function timeUp() {
+            stopTimer();
+            gameState.incorrectAnswers++;
+            document.getElementById('result').innerHTML = '<span class="incorrect">時間切れ！</span>';
+            
+            // ボタンを無効化
+            document.getElementById('largeBtn').disabled = true;
+            document.getElementById('smallBtn').disabled = true;
+            
+            gameState.previousNumber = gameState.currentNumber;
+            gameState.currentQuestion++;
+            
+            updateDisplay();
+            
+            setTimeout(() => {
+                generateNextQuestion();
+            }, 2500); // パネルが消えた後、少し間を置いて次の問題
+        }
+
+        function answer(choice) {
+            if (gameState.gameEnded || gameState.previousNumber === null) return;
+            
+            stopTimer();
+            
+            const isLarger = gameState.currentNumber > gameState.previousNumber;
+            const isCorrect = (choice === 'large' && isLarger) || (choice === 'small' && !isLarger);
+            
+            if (isCorrect) {
+                gameState.correctAnswers++;
+                document.getElementById('result').innerHTML = '<span class="correct">正解！</span>';
+            } else {
+                gameState.incorrectAnswers++;
+                const correctAnswer = isLarger ? '大' : '小';
+                document.getElementById('result').innerHTML = `<span class="incorrect">不正解！正解は「${correctAnswer}」でした</span>`;
+            }
+            
+            // ボタンを無効化
+            document.getElementById('largeBtn').disabled = true;
+            document.getElementById('smallBtn').disabled = true;
+            
+            gameState.previousNumber = gameState.currentNumber;
+            gameState.currentQuestion++;
+            
+            updateDisplay();
+            
+            setTimeout(() => {
+                generateNextQuestion();
+            }, 2500); // パネルが消えた後、少し間を置いて次の問題
+        }
+
+        function updateDisplay() {
+            document.getElementById('questionCount').textContent = gameState.currentQuestion;
+            document.getElementById('correctCount').textContent = gameState.correctAnswers;
+            document.getElementById('incorrectCount').textContent = gameState.incorrectAnswers;
+            
+            if (gameState.previousNumber !== null) {
+                document.getElementById('previousNumber').textContent = `直前の数字: ${gameState.previousNumber}`;
+            }
+        }
+
+        function endGame() {
+            gameState.gameEnded = true;
+            stopTimer();
+            
+            const accuracy = gameState.correctAnswers + gameState.incorrectAnswers > 0 ? 
+                Math.round((gameState.correctAnswers / (gameState.correctAnswers + gameState.incorrectAnswers)) * 100) : 0;
+            
+            document.getElementById('numberTrack').innerHTML = `
+                <div class="final-score">
+                    <h2>ゲーム終了！</h2>
+                    <p>総問題数: ${gameState.correctAnswers + gameState.incorrectAnswers}問</p>
+                    <p>正解数: ${gameState.correctAnswers}問</p>
+                    <p>不正解数: ${gameState.incorrectAnswers}問</p>
+                    <p>正解率: ${accuracy}%</p>
+                </div>
+            `;
+            
+            document.getElementById('largeBtn').disabled = true;
+            document.getElementById('smallBtn').disabled = true;
+            document.getElementById('timer').textContent = '';
+            document.getElementById('result').textContent = '';
+        }
+
+        function backToMenu() {
+            gameState.gameEnded = true;
+            stopTimer();
+            
+            document.getElementById('gameArea').style.display = 'none';
+            document.getElementById('modeSelection').style.display = 'block';
+            
+            // リセット
+            gameState = {
+                mode: '',
+                currentQuestion: 1,
+                totalQuestions: 20,
+                correctAnswers: 0,
+                incorrectAnswers: 0,
+                previousNumber: null,
+                currentNumber: null,
+                timer: null,
+                timeLeft: 2,
+                gameEnded: false,
+                animationTimeout: null
+            };
+        }
+
+        function generateNextQuestion() {
+            if (gameState.gameEnded) return;
+            
+            if (gameState.mode === 'normal' && gameState.currentQuestion > gameState.totalQuestions) {
+                endGame();
+                return;
+            }
+
+            // 前の数字と異なる新しい数字を生成
+            let newNumber;
+            do {
+                newNumber = Math.floor(Math.random() * 100) + 1;
+            } while (newNumber === gameState.previousNumber);
+            
+            gameState.currentNumber = newNumber;
+            
+            // 最初の問題の場合は自動的に次へ
+            if (gameState.previousNumber === null) {
+                gameState.previousNumber = newNumber;
+                gameState.currentQuestion++;
+                updateDisplay();
+                showNumberPanel(newNumber);
+                setTimeout(() => {
+                    generateNextQuestion();
+                }, 2500); // パネルが消えた後、少し間を置いて次の問題
+                return;
+            }
+            
+            // パネルを表示
+            showNumberPanel(newNumber);
+            
+            // タイマー開始
+            startTimer();
+            
+            // ボタンを有効化
+            document.getElementById('largeBtn').disabled = false;
+            document.getElementById('smallBtn').disabled = false;
+            
+            // 結果をクリア
+            document.getElementById('result').textContent = '';
+        }
+    </script>
+</body>
+</html>
