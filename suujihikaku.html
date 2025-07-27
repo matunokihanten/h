@@ -19,20 +19,22 @@
             justify-content: center;
             align-items: center;
             color: white;
+            padding: 20px;
         }
 
         .game-container {
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
             border-radius: 20px;
-            padding: 30px;
+            padding: 20px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             text-align: center;
-            min-width: 600px;
+            width: 100%;
+            max-width: 500px;
         }
 
         .title {
-            font-size: 2.5em;
+            font-size: 2em;
             margin-bottom: 20px;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
         }
@@ -41,17 +43,24 @@
             margin-bottom: 30px;
         }
 
+        .mode-selection h2 {
+            font-size: 1.3em;
+            margin-bottom: 20px;
+        }
+
         .mode-btn {
             background: linear-gradient(45deg, #ff6b6b, #ee5a24);
             border: none;
             color: white;
-            padding: 15px 30px;
-            margin: 10px;
+            padding: 15px 25px;
+            margin: 8px;
             border-radius: 25px;
-            font-size: 18px;
+            font-size: 16px;
             cursor: pointer;
             transition: all 0.3s ease;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 250px;
         }
 
         .mode-btn:hover {
@@ -64,19 +73,26 @@
         }
 
         .game-info {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 30px;
-            font-size: 18px;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 25px;
+            font-size: 14px;
+        }
+
+        .info-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px;
+            border-radius: 10px;
         }
 
         .number-track {
-            height: 120px;
+            height: 100px;
             background: rgba(255, 255, 255, 0.2);
             border-radius: 15px;
             position: relative;
             overflow: hidden;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
             border: 2px solid rgba(255, 255, 255, 0.3);
         }
 
@@ -84,14 +100,14 @@
             position: absolute;
             top: 50%;
             transform: translateY(-50%);
-            width: 80px;
-            height: 80px;
+            width: 70px;
+            height: 70px;
             background: linear-gradient(45deg, #4ecdc4, #44a08d);
             border-radius: 15px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 36px;
+            font-size: 28px;
             font-weight: bold;
             color: white;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
@@ -100,7 +116,7 @@
 
         @keyframes slideRightToLeft {
             from { 
-                right: -100px;
+                right: -80px;
                 opacity: 1;
             }
             to { 
@@ -109,16 +125,27 @@
             }
         }
 
+        .timer {
+            font-size: 2em;
+            color: #ff7675;
+            margin-bottom: 20px;
+            font-weight: bold;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
         .controls {
             display: flex;
             justify-content: center;
-            gap: 30px;
-            margin-bottom: 20px;
+            gap: 20px;
+            margin-bottom: 15px;
         }
 
         .answer-btn {
-            padding: 20px 40px;
-            font-size: 24px;
+            padding: 20px 30px;
+            font-size: 20px;
             border: none;
             border-radius: 20px;
             cursor: pointer;
@@ -126,6 +153,8 @@
             color: white;
             font-weight: bold;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            flex: 1;
+            max-width: 120px;
         }
 
         .btn-large {
@@ -136,7 +165,7 @@
             background: linear-gradient(45deg, #00b894, #00a085);
         }
 
-        .answer-btn:hover {
+        .answer-btn:hover:not(:disabled) {
             transform: translateY(-3px);
             box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
         }
@@ -147,22 +176,9 @@
             transform: none;
         }
 
-        .previous-number {
-            font-size: 20px;
-            margin-bottom: 20px;
-            color: #ffeaa7;
-        }
-
-        .timer {
-            font-size: 24px;
-            color: #ff7675;
-            margin-bottom: 20px;
-            font-weight: bold;
-        }
-
         .result {
-            font-size: 18px;
-            margin-bottom: 10px;
+            font-size: 16px;
+            margin-bottom: 15px;
             min-height: 25px;
         }
 
@@ -181,20 +197,126 @@
             margin-top: 20px;
         }
 
+        .final-score h2 {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+        }
+
+        .final-score p {
+            margin: 8px 0;
+            font-size: 16px;
+        }
+
         .end-btn {
             background: linear-gradient(45deg, #a29bfe, #6c5ce7);
             border: none;
             color: white;
             padding: 12px 25px;
-            margin: 10px;
+            margin: 8px;
             border-radius: 20px;
-            font-size: 16px;
+            font-size: 14px;
             cursor: pointer;
             transition: all 0.3s ease;
         }
 
         .end-btn:hover {
             transform: translateY(-2px);
+        }
+
+        /* スマホ縦画面用の調整 */
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+
+            .game-container {
+                padding: 15px;
+            }
+
+            .title {
+                font-size: 1.8em;
+                margin-bottom: 15px;
+            }
+
+            .mode-selection h2 {
+                font-size: 1.2em;
+            }
+
+            .mode-btn {
+                padding: 12px 20px;
+                font-size: 14px;
+            }
+
+            .game-info {
+                font-size: 12px;
+                gap: 5px;
+            }
+
+            .info-item {
+                padding: 6px;
+            }
+
+            .number-track {
+                height: 80px;
+                margin-bottom: 20px;
+            }
+
+            .number-panel {
+                width: 60px;
+                height: 60px;
+                font-size: 24px;
+            }
+
+            .timer {
+                font-size: 1.8em;
+                height: 50px;
+                margin-bottom: 15px;
+            }
+
+            .controls {
+                gap: 15px;
+                margin-bottom: 10px;
+            }
+
+            .answer-btn {
+                padding: 18px 25px;
+                font-size: 18px;
+                max-width: 100px;
+            }
+
+            .result {
+                font-size: 14px;
+                margin-bottom: 10px;
+            }
+
+            .final-score {
+                padding: 15px;
+            }
+
+            .final-score h2 {
+                font-size: 1.3em;
+            }
+
+            .final-score p {
+                font-size: 14px;
+            }
+        }
+
+        /* 極小画面用の調整 */
+        @media (max-width: 320px) {
+            .title {
+                font-size: 1.5em;
+            }
+
+            .answer-btn {
+                padding: 15px 20px;
+                font-size: 16px;
+                max-width: 90px;
+            }
+
+            .timer {
+                font-size: 1.5em;
+            }
         }
     </style>
 </head>
@@ -204,21 +326,18 @@
         
         <div class="mode-selection" id="modeSelection">
             <h2>モードを選択してください</h2>
-            <br>
             <button class="mode-btn" onclick="startGame('normal')">普通モード (20問)</button>
             <button class="mode-btn" onclick="startGame('relax')">リラックスモード (無制限)</button>
         </div>
 
         <div class="game-area" id="gameArea">
             <div class="game-info">
-                <div>問題: <span id="questionCount">1</span><span id="totalQuestions">/20</span></div>
-                <div>正解: <span id="correctCount">0</span></div>
-                <div>不正解: <span id="incorrectCount">0</span></div>
+                <div class="info-item">問題: <span id="questionCount">1</span><span id="totalQuestions">/20</span></div>
+                <div class="info-item">正解: <span id="correctCount">0</span></div>
+                <div class="info-item">不正解: <span id="incorrectCount">0</span></div>
             </div>
             
             <div class="timer" id="timer">2</div>
-            
-            <div class="previous-number" id="previousNumber">直前の数字: -</div>
             
             <div class="number-track" id="numberTrack"></div>
             
@@ -233,7 +352,7 @@
                 <button class="end-btn" onclick="endGame()">終了</button>
             </div>
             
-            <button class="end-btn" onclick="backToMenu()" style="margin-top: 20px;">メニューに戻る</button>
+            <button class="end-btn" onclick="backToMenu()" style="margin-top: 10px;">メニューに戻る</button>
         </div>
     </div>
 
@@ -290,6 +409,18 @@
             } while (newNumber === gameState.previousNumber);
             
             gameState.currentNumber = newNumber;
+            
+            // 最初の問題の場合は自動的に次へ
+            if (gameState.previousNumber === null) {
+                gameState.previousNumber = newNumber;
+                gameState.currentQuestion++;
+                updateDisplay();
+                showNumberPanel(newNumber);
+                setTimeout(() => {
+                    generateNextQuestion();
+                }, 2500); // パネルが消えた後、少し間を置いて次の問題
+                return;
+            }
             
             // パネルを表示
             showNumberPanel(newNumber);
@@ -401,10 +532,6 @@
             document.getElementById('questionCount').textContent = gameState.currentQuestion;
             document.getElementById('correctCount').textContent = gameState.correctAnswers;
             document.getElementById('incorrectCount').textContent = gameState.incorrectAnswers;
-            
-            if (gameState.previousNumber !== null) {
-                document.getElementById('previousNumber').textContent = `直前の数字: ${gameState.previousNumber}`;
-            }
         }
 
         function endGame() {
@@ -451,48 +578,6 @@
                 gameEnded: false,
                 animationTimeout: null
             };
-        }
-
-        function generateNextQuestion() {
-            if (gameState.gameEnded) return;
-            
-            if (gameState.mode === 'normal' && gameState.currentQuestion > gameState.totalQuestions) {
-                endGame();
-                return;
-            }
-
-            // 前の数字と異なる新しい数字を生成
-            let newNumber;
-            do {
-                newNumber = Math.floor(Math.random() * 100) + 1;
-            } while (newNumber === gameState.previousNumber);
-            
-            gameState.currentNumber = newNumber;
-            
-            // 最初の問題の場合は自動的に次へ
-            if (gameState.previousNumber === null) {
-                gameState.previousNumber = newNumber;
-                gameState.currentQuestion++;
-                updateDisplay();
-                showNumberPanel(newNumber);
-                setTimeout(() => {
-                    generateNextQuestion();
-                }, 2500); // パネルが消えた後、少し間を置いて次の問題
-                return;
-            }
-            
-            // パネルを表示
-            showNumberPanel(newNumber);
-            
-            // タイマー開始
-            startTimer();
-            
-            // ボタンを有効化
-            document.getElementById('largeBtn').disabled = false;
-            document.getElementById('smallBtn').disabled = false;
-            
-            // 結果をクリア
-            document.getElementById('result').textContent = '';
         }
     </script>
 </body>
