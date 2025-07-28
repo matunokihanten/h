@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>簡単サーバー作成アプリ</title>
+    <title>🚀 超簡単サーバー作成シミュレーター</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
+        /* General Reset & Base Styles */
         * {
             margin: 0;
             padding: 0;
@@ -12,35 +14,45 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Noto Sans JP', 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             padding: 20px;
+            color: #333;
+            line-height: 1.6;
         }
 
+        /* Container & Global Styling */
         .container {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.98); /* Slightly less transparent */
+            backdrop-filter: blur(15px); /* Increased blur for more depth */
+            border-radius: 25px; /* Softer corners */
             padding: 40px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            max-width: 600px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15); /* Stronger shadow */
+            max-width: 650px; /* Slightly wider */
             width: 100%;
             text-align: center;
             position: relative;
             overflow: hidden;
+            animation: fadeIn 0.8s ease-out; /* Fade in animation */
         }
 
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Top Gradient Border */
         .container::before {
             content: '';
             position: absolute;
             top: 0;
             left: 0;
             right: 0;
-            height: 4px;
+            height: 6px; /* Thicker border */
             background: linear-gradient(90deg, #667eea, #764ba2, #667eea);
             background-size: 200% 100%;
             animation: gradient 3s ease infinite;
@@ -51,20 +63,43 @@
             50% { background-position: 100% 50%; }
         }
 
+        /* Headings */
         h1 {
             color: #333;
             margin-bottom: 30px;
-            font-size: 2.5em;
-            font-weight: 700;
+            font-size: 2.8em; /* Larger heading */
+            font-weight: 800; /* Bolder */
             background: linear-gradient(135deg, #667eea, #764ba2);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+            letter-spacing: -1px; /* Tighter letter spacing */
+            animation: pulseText 2s infinite; /* Subtle pulse animation */
         }
 
+        @keyframes pulseText {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+
+        h3 {
+            color: #444;
+            font-size: 1.6em;
+            margin-bottom: 20px;
+            border-bottom: 2px solid rgba(102, 126, 234, 0.3);
+            padding-bottom: 10px;
+            display: inline-block; /* For the border to wrap content */
+        }
+
+        /* Form Configuration */
         .server-config {
             margin-bottom: 30px;
             text-align: left;
+            background: rgba(230, 235, 255, 0.5); /* Light background for config section */
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05); /* Subtle inner shadow */
         }
 
         .config-group {
@@ -74,40 +109,45 @@
         label {
             display: block;
             margin-bottom: 8px;
-            font-weight: 600;
+            font-weight: 700; /* Bolder label */
             color: #555;
+            font-size: 1.1em;
         }
 
         input, select {
             width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 16px;
+            padding: 14px; /* More padding */
+            border: 2px solid #ddd; /* Lighter border */
+            border-radius: 12px; /* Softer border radius */
+            font-size: 17px; /* Slightly larger font */
             transition: all 0.3s ease;
             background: white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05); /* Subtle shadow */
         }
 
         input:focus, select:focus {
             outline: none;
             border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2); /* Stronger glow */
             transform: translateY(-2px);
         }
 
+        /* Buttons */
         .btn {
             background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
             border: none;
-            padding: 15px 30px;
+            padding: 15px 35px; /* More padding */
             border-radius: 50px;
-            font-size: 18px;
-            font-weight: 600;
+            font-size: 19px; /* Larger font */
+            font-weight: 700; /* Bolder */
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); /* Smoother transition */
             margin: 10px;
             position: relative;
             overflow: hidden;
+            letter-spacing: 0.5px;
+            vertical-align: middle; /* Align button with others */
         }
 
         .btn::before {
@@ -117,8 +157,8 @@
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent); /* Brighter shimmer */
+            transition: left 0.5s ease-out;
         }
 
         .btn:hover::before {
@@ -126,12 +166,13 @@
         }
 
         .btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+            transform: translateY(-5px); /* More pronounced lift */
+            box-shadow: 0 15px 30px rgba(102, 126, 234, 0.5); /* Stronger shadow */
         }
 
         .btn:active {
-            transform: translateY(-1px);
+            transform: translateY(-2px); /* Slightly less active push */
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
         }
 
         .btn:disabled {
@@ -141,14 +182,17 @@
             box-shadow: none;
         }
 
+        /* Status Messages */
         .status {
             margin-top: 30px;
             padding: 20px;
             border-radius: 15px;
-            font-weight: 600;
+            font-weight: 700; /* Bolder */
             opacity: 0;
             transform: translateY(20px);
-            transition: all 0.5s ease;
+            transition: all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+            font-size: 1.1em;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
         }
 
         .status.show {
@@ -159,45 +203,68 @@
         .status.running {
             background: linear-gradient(135deg, #4CAF50, #45a049);
             color: white;
-            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.3);
+            box-shadow: 0 10px 30px rgba(76, 175, 80, 0.4); /* Stronger shadow */
         }
 
         .status.stopped {
             background: linear-gradient(135deg, #f44336, #da190b);
             color: white;
-            box-shadow: 0 8px 25px rgba(244, 67, 54, 0.3);
+            box-shadow: 0 10px 30px rgba(244, 67, 54, 0.4);
         }
 
+        /* Server Info Display */
         .server-info {
-            background: rgba(102, 126, 234, 0.1);
-            border-radius: 15px;
-            padding: 20px;
-            margin-top: 20px;
-            border-left: 5px solid #667eea;
+            background: rgba(102, 126, 234, 0.08); /* Lighter background */
+            border-radius: 18px; /* Softer corners */
+            padding: 25px;
+            margin-top: 30px;
+            border-left: 6px solid #667eea; /* Thicker border */
+            text-align: left;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            animation: slideIn 0.6s ease-out forwards;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
         }
 
         .server-url {
-            background: #333;
+            background: #222; /* Darker background */
             color: #4CAF50;
-            padding: 10px;
-            border-radius: 8px;
+            padding: 15px; /* More padding */
+            border-radius: 10px; /* Softer corners */
             font-family: 'Courier New', monospace;
-            margin: 10px 0;
+            margin: 15px 0;
             word-break: break-all;
+            font-size: 1.1em;
+            box-shadow: inset 0 0 8px rgba(0,0,0,0.2);
         }
 
+        .server-info p {
+            font-size: 1.1em;
+            color: #555;
+            margin-bottom: 10px;
+        }
+        .server-info p strong {
+            color: #333;
+        }
+
+        /* File Upload Section */
         .file-upload {
-            margin-top: 20px;
-            padding: 20px;
-            border: 2px dashed #667eea;
-            border-radius: 15px;
+            margin-top: 30px;
+            padding: 25px;
+            border: 3px dashed #667eea; /* Thicker dashed border */
+            border-radius: 18px;
             background: rgba(102, 126, 234, 0.05);
             transition: all 0.3s ease;
+            text-align: center;
         }
 
         .file-upload:hover {
             background: rgba(102, 126, 234, 0.1);
-            transform: translateY(-2px);
+            transform: translateY(-3px); /* More pronounced lift */
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.15);
         }
 
         .file-upload input[type="file"] {
@@ -207,34 +274,67 @@
         .upload-label {
             cursor: pointer;
             display: inline-block;
-            padding: 10px 20px;
+            padding: 12px 25px; /* More padding */
             background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
-            border-radius: 25px;
+            border-radius: 30px; /* More rounded */
             transition: all 0.3s ease;
+            font-weight: 600;
+            font-size: 1.1em;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
         }
 
         .upload-label:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.5);
         }
 
         .file-list {
-            margin-top: 15px;
+            margin-top: 20px;
             text-align: left;
         }
 
         .file-item {
             background: white;
-            padding: 10px;
-            margin: 5px 0;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08); /* Stronger shadow */
             display: flex;
             justify-content: space-between;
             align-items: center;
+            font-size: 0.95em;
+            transition: transform 0.2s ease;
         }
 
+        .file-item:hover {
+            transform: translateX(5px);
+        }
+
+        .file-item > span {
+            display: flex;
+            align-items: center;
+            word-break: break-all;
+        }
+
+        .file-item button {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            font-size: 0.9em;
+            flex-shrink: 0; /* prevent button from shrinking */
+            margin-left: 10px;
+        }
+
+        .file-item button:hover {
+            background: #d32f2f;
+        }
+
+        /* Animations */
         .pulse {
             animation: pulse 2s infinite;
         }
@@ -247,13 +347,14 @@
 
         .loading {
             display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
+            width: 24px; /* Larger spinner */
+            height: 24px;
+            border: 4px solid rgba(255, 255, 255, 0.3); /* Lighter border */
+            border-top: 4px solid white; /* White top border */
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin-left: 10px;
+            vertical-align: middle;
         }
 
         @keyframes spin {
@@ -261,7 +362,7 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* モーダルスタイル */
+        /* Modal Styles */
         .modal {
             position: fixed;
             z-index: 1000;
@@ -269,124 +370,156 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(5px);
+            background: rgba(0, 0, 0, 0.85); /* Darker overlay */
+            backdrop-filter: blur(8px); /* More blur */
             display: flex;
             justify-content: center;
             align-items: center;
             opacity: 0;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.4s ease; /* Slower transition */
+            visibility: hidden; /* Hide completely when not shown */
         }
 
         .modal.show {
             opacity: 1;
+            visibility: visible;
         }
 
         .modal-content {
             background: white;
-            border-radius: 20px;
-            max-width: 800px;
-            width: 90%;
+            border-radius: 25px; /* Softer corners */
+            max-width: 900px; /* Wider modal */
+            width: 95%;
             max-height: 90vh;
             overflow-y: auto;
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
-            transform: translateY(50px);
-            transition: transform 0.3s ease;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4); /* Stronger shadow */
+            transform: translateY(50px) scale(0.95); /* Slightly smaller and lower initial state */
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); /* Smoother animation */
+            padding-bottom: 20px; /* Space for scrollbar */
         }
 
         .modal.show .modal-content {
-            transform: translateY(0);
+            transform: translateY(0) scale(1);
         }
 
         .modal-header {
             background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
-            padding: 25px;
-            border-radius: 20px 20px 0 0;
+            padding: 30px; /* More padding */
+            border-radius: 25px 25px 0 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            position: sticky; /* Make header sticky when scrolling */
+            top: 0;
+            z-index: 10;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         }
 
         .modal-header h2 {
             margin: 0;
-            font-size: 1.8em;
+            font-size: 2.2em; /* Larger header text */
+            font-weight: 700;
+            letter-spacing: -0.5px;
         }
 
         .close {
-            font-size: 2em;
+            font-size: 2.5em; /* Larger close icon */
             cursor: pointer;
-            transition: transform 0.2s ease;
+            transition: transform 0.2s ease, color 0.2s ease;
+            line-height: 1; /* Align vertically */
         }
 
         .close:hover {
-            transform: scale(1.2);
+            transform: scale(1.3) rotate(5deg);
+            color: rgba(255, 255, 255, 0.8);
         }
 
         .modal-body {
             padding: 30px;
-            line-height: 1.6;
+            line-height: 1.7; /* Increased line height for readability */
+            font-size: 1.05em;
         }
 
         .modal-footer {
             padding: 20px 30px;
             text-align: center;
             border-top: 1px solid #eee;
+            position: sticky; /* Make footer sticky */
+            bottom: 0;
+            background: white;
+            border-radius: 0 0 25px 25px;
+            z-index: 10;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
         }
 
+        /* Help Section Specifics */
         .help-section {
-            margin-bottom: 30px;
+            margin-bottom: 40px; /* More space between sections */
+            padding-bottom: 20px;
+            border-bottom: 1px dashed #eee; /* Light dashed separator */
+        }
+        .help-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
         }
 
         .help-section h3 {
             color: #333;
-            margin-bottom: 15px;
-            font-size: 1.4em;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 5px;
+            margin-bottom: 25px; /* More space below sub-heading */
+            font-size: 1.8em; /* Larger sub-heading */
+            border-bottom: 3px solid #667eea; /* Thicker border */
+            padding-bottom: 10px;
+            text-align: left;
+            display: block; /* Ensure border spans full width */
         }
 
-        .help-section p {
+        .help-section p, .help-section ul {
             color: #666;
             margin-bottom: 15px;
         }
 
         .help-section ul {
-            padding-left: 20px;
-            color: #666;
+            padding-left: 25px;
+            list-style: disc; /* Default disc for clarity */
         }
-
         .help-section li {
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
 
         .step {
             display: flex;
-            margin-bottom: 20px;
-            background: rgba(102, 126, 234, 0.05);
-            border-radius: 15px;
-            padding: 20px;
-            border-left: 5px solid #667eea;
+            align-items: flex-start; /* Align number to top of content */
+            margin-bottom: 25px;
+            background: rgba(102, 126, 234, 0.08); /* Slightly darker background for steps */
+            border-radius: 18px;
+            padding: 25px;
+            border-left: 6px solid #667eea;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
         }
 
         .step-number {
             background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
-            width: 30px;
-            height: 30px;
+            width: 40px; /* Larger number bubble */
+            height: 40px;
+            min-width: 40px; /* Prevent shrinking */
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            margin-right: 20px;
+            font-size: 1.4em; /* Larger number */
+            margin-right: 25px;
             flex-shrink: 0;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
         }
 
         .step-content h4 {
             color: #333;
             margin-bottom: 10px;
-            font-size: 1.1em;
+            font-size: 1.3em; /* Larger step title */
+            font-weight: 700;
         }
 
         .step-content p {
@@ -396,138 +529,204 @@
 
         .code-example {
             background: #1e1e1e;
-            border-radius: 10px;
+            border-radius: 12px;
             padding: 20px;
-            margin: 15px 0;
+            margin: 20px 0;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
         }
 
         .code-example h5 {
             color: #4CAF50;
             margin-bottom: 10px;
-            font-size: 1em;
+            font-size: 1.1em;
+            border-bottom: 1px dashed rgba(76, 175, 80, 0.5);
+            padding-bottom: 5px;
         }
 
         .code-example pre {
             margin: 0;
             color: #f8f8f2;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            line-height: 1.5;
+            font-family: 'Fira Code', 'Courier New', monospace; /* More modern monospace font */
+            font-size: 15px; /* Slightly larger code font */
+            line-height: 1.6;
             overflow-x: auto;
+            white-space: pre-wrap; /* Wrap long lines */
+            word-break: break-all;
         }
 
+        /* Warning Box */
         .warning-box {
             background: linear-gradient(135deg, #ff6b6b, #ee5a24);
             color: white;
-            padding: 20px;
-            border-radius: 15px;
-            margin: 15px 0;
+            padding: 25px;
+            border-radius: 18px;
+            margin: 20px 0;
+            font-weight: 600;
+            box-shadow: 0 10px 30px rgba(255, 107, 107, 0.4);
+        }
+
+        .warning-box h4 {
+            margin-top: 0;
+            font-size: 1.3em;
+            text-align: center;
+            margin-bottom: 15px;
         }
 
         .warning-box ul {
             margin: 0;
-            padding-left: 20px;
+            padding-left: 25px;
+            list-style: '🚨 '; /* Custom bullet point */
         }
 
         .warning-box li {
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
 
+        /* Real Server Info & Use Cases */
         .real-server-info {
-            background: rgba(76, 175, 80, 0.1);
-            border-radius: 15px;
-            padding: 20px;
-            border-left: 5px solid #4CAF50;
+            background: rgba(76, 175, 80, 0.08); /* Lighter green background */
+            border-radius: 18px;
+            padding: 25px;
+            border-left: 6px solid #4CAF50;
+            margin-top: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
         }
 
         .real-server-info h4 {
             color: #2e7d32;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid rgba(76, 175, 80, 0.4);
+            padding-bottom: 8px;
         }
 
         .use-cases {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); /* Larger minimum width */
+            gap: 20px; /* More gap */
+            margin-top: 20px;
         }
 
         .use-case {
             background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
-            padding: 20px;
-            border-radius: 15px;
+            padding: 25px; /* More padding */
+            border-radius: 18px;
             text-align: center;
-            border: 2px solid rgba(102, 126, 234, 0.2);
-            transition: transform 0.3s ease;
+            border: 2px solid rgba(102, 126, 234, 0.25); /* Stronger border */
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
         }
 
         .use-case:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.2);
+            transform: translateY(-8px); /* More pronounced lift */
+            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.3); /* Stronger shadow */
         }
 
         .use-case h4 {
             color: #333;
-            margin-bottom: 10px;
-            font-size: 1.1em;
+            margin-bottom: 12px;
+            font-size: 1.3em; /* Larger title */
+            font-weight: 700;
         }
 
         .use-case p {
             color: #666;
-            font-size: 0.9em;
+            font-size: 1em; /* Slightly larger text */
             margin: 0;
+        }
+
+        .use-case .icon {
+            font-size: 2.5em; /* Larger icon */
+            margin-bottom: 15px;
+            color: #764ba2; /* Icon color */
+        }
+
+        /* Scrollbar styles for modal */
+        .modal-content::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .modal-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .modal-content::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+
+        .modal-content::-webkit-scrollbar-thumb:hover {
+            background: #555;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🚀 簡単サーバー作成</h1>
+        <h1>🚀 超簡単サーバー作成シミュレーター</h1>
+        <p style="font-size: 1.1em; color: #666; margin-bottom: 30px;">
+            あなたのPCで「仮想サーバー」を体験！
+            <br>Webサイトの公開やファイル共有の仕組みを学ぶのに最適です。
+        </p>
         
         <div class="server-config">
             <div class="config-group">
                 <label for="serverName">サーバー名:</label>
-                <input type="text" id="serverName" value="MyServer" placeholder="サーバー名を入力">
+                <input type="text" id="serverName" value="MyAwesomeServer" placeholder="サーバー名を入力">
+                <small style="color: #888; display: block; margin-top: 5px;">サーバーを識別するための名前です。後から変更も可能です。</small>
             </div>
             
             <div class="config-group">
                 <label for="port">ポート番号:</label>
-                <input type="number" id="port" value="3000" min="1000" max="65535" placeholder="ポート番号">
+                <input type="number" id="port" value="3000" min="1024" max="65535" placeholder="ポート番号">
+                <small style="color: #888; display: block; margin-top: 5px;">
+                    サーバーが外部と通信するための「玄関」番号。一般的には3000, 8000, 8080などが開発用に使われます。
+                    <a href="#" onclick="event.preventDefault(); showHelp('port')" style="color: #667eea;">詳しくはこちら</a>
+                </small>
             </div>
             
             <div class="config-group">
                 <label for="serverType">サーバータイプ:</label>
                 <select id="serverType">
-                    <option value="http">HTTP サーバー</option>
-                    <option value="file">ファイル共有サーバー</option>
-                    <option value="api">API サーバー</option>
+                    <option value="http">🌐 HTTP Webサーバー</option>
+                    <option value="file">📂 ファイル共有サーバー</option>
+                    <option value="api">⚙️ APIデータサーバー</option>
                 </select>
+                <small style="color: #888; display: block; margin-top: 5px;">
+                    サーバーの用途を選択します。後から変更することも可能です。
+                    <a href="#" onclick="event.preventDefault(); showHelp('serverType')" style="color: #667eea;">詳しくはこちら</a>
+                </small>
             </div>
         </div>
 
         <button class="btn" id="helpBtn" onclick="showHelp()" style="background: linear-gradient(135deg, #28a745, #20c997); margin-bottom: 10px;">
-            📚 サーバー作成方法を詳しく見る
+            📚 サーバー作成ガイドを読む
         </button>
 
         <button class="btn" id="startBtn" onclick="toggleServer()">
-            サーバーを開始
+            <span id="startBtnText">サーバーを開始</span>
             <span id="loadingSpinner" class="loading" style="display: none;"></span>
         </button>
         
-        <button class="btn" id="stopBtn" onclick="stopServer()" style="display: none;">
+        <button class="btn" id="stopBtn" onclick="stopServer()" style="display: none; background: linear-gradient(135deg, #f44336, #da190b);">
             サーバーを停止
         </button>
 
         <div id="status" class="status"></div>
 
         <div id="serverInfo" class="server-info" style="display: none;">
-            <h3>📡 サーバー情報</h3>
+            <h3>📡 サーバー稼働情報</h3>
+            <p style="margin-bottom: 5px;">以下のURLからサーバーにアクセスできます！</p>
             <div class="server-url" id="serverUrl"></div>
-            <p><strong>接続数:</strong> <span id="connectionCount">0</span></p>
+            <p><strong>接続クライアント数:</strong> <span id="connectionCount">0</span></p>
             <p><strong>稼働時間:</strong> <span id="uptime">00:00:00</span></p>
         </div>
 
         <div id="fileUpload" class="file-upload" style="display: none;">
-            <h3>📁 ファイル管理</h3>
+            <h3>📁 ファイル管理 (ファイル共有サーバー)</h3>
+            <p style="color: #777; margin-bottom: 15px;">
+                ファイルをアップロードして、このサーバーを通じて共有できます。
+            </p>
             <label class="upload-label" for="fileInput">
                 📤 ファイルをアップロード
             </label>
@@ -535,17 +734,17 @@
             <div id="fileList" class="file-list"></div>
         </div>
 
-        <!-- ヘルプモーダル -->
-        <div id="helpModal" class="modal" style="display: none;">
+        <div id="helpModal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h2>🚀 サーバー作成の詳しい説明</h2>
+                    <h2>🚀 サーバー作成完全ガイド</h2>
                     <span class="close" onclick="closeHelp()">&times;</span>
                 </div>
                 <div class="modal-body">
-                    <div class="help-section">
-                        <h3>📖 サーバーとは？</h3>
-                        <p>サーバーとは、他のコンピューターからの要求（リクエスト）に対して、データやサービスを提供するコンピュータープログラムのことです。インターネット上でWebサイトを見たり、ファイルを共有したりするときに使われています。</p>
+                    <div class="help-section" id="server-what-is">
+                        <h3>📖 サーバーとは何か？ 基本の理解</h3>
+                        <p>サーバーとは、ネットワーク上で他のコンピューター（クライアント）からの「要求（リクエスト）」に応えて、データやサービスを提供する役割を持つコンピューターやプログラムのことです。Webサイトの表示、ファイルのダウンロード、オンラインゲームの実行など、インターネット上のあらゆるサービスはサーバーによって支えられています。</p>
+                        <p>このアプリは、実際のサーバー構築を簡単に体験できる「シミュレーター」です。複雑な設定なしに、サーバーがどのように動作するかを視覚的に理解するのに役立ちます。</p>
                     </div>
 
                     <div class="help-section">
@@ -553,157 +752,233 @@
                         <div class="step">
                             <div class="step-number">1</div>
                             <div class="step-content">
-                                <h4>サーバー名を設定</h4>
-                                <p>あなたのサーバーに分かりやすい名前をつけましょう。例：「マイホームサーバー」「ファイル共有サーバー」など</p>
+                                <h4>サーバー名を設定する</h4>
+                                <p>あなたのサーバーに、覚えやすく、かつ用途がわかるような名前をつけましょう。例えば、個人利用なら「MyHomeServer」、チーム用なら「ProjectXFileShare」など、自由に設定できます。この名前は、アプリ内でサーバーを識別するために使われます。</p>
                             </div>
                         </div>
-                        <div class="step">
+                        <div class="step" id="port">
                             <div class="step-number">2</div>
                             <div class="step-content">
-                                <h4>ポート番号を選択</h4>
-                                <p>ポートは、サーバーがデータを受け取る「入り口」のようなものです。1000〜65535の番号を使用できます。</p>
+                                <h4>ポート番号を選択する</h4>
+                                <p>ポート番号は、インターネット上の住所（IPアドレス）における「部屋番号」のようなものです。サーバーがどの「入り口」でデータを受け取るかを指定します。一般的に以下の番号がよく使われますが、ご自身の環境や用途に合わせて自由に設定してください（1024〜65535の範囲推奨）。</p>
                                 <ul>
-                                    <li><strong>3000〜8999:</strong> 開発用によく使われる</li>
-                                    <li><strong>8000:</strong> テスト用サーバーでよく使用</li>
-                                    <li><strong>3000:</strong> Node.jsアプリでよく使用</li>
+                                    <li><strong>20番/21番:</strong> FTP（ファイル転送プロトコル）</li>
+                                    <li><strong>80番:</strong> HTTP（一般的なWebサイト、暗号化なし）</li>
+                                    <li><strong>443番:</strong> HTTPS（暗号化されたWebサイト、SSL/TLS使用）</li>
+                                    <li><strong>3000番:</strong> Web開発で非常によく使われるポート（例: Node.js, React開発サーバー）</li>
+                                    <li><strong>8000番/8080番:</strong> 他のWebサーバーやテスト用サーバーでよく使われる</li>
+                                    <li><strong>27017番:</strong> MongoDBなどのデータベースで使われることも</li>
                                 </ul>
+                                <p><strong>ポイント:</strong> ローカル環境でのテストでは、他のアプリケーションと競合しない限り、どの番号でも問題ありません。ただし、1023番以下のポート（ウェルノウンポート）は特定のサービスに予約されていることが多く、使用には管理者権限が必要な場合があります。</p>
                             </div>
                         </div>
-                        <div class="step">
+                        <div class="step" id="serverType">
                             <div class="step-number">3</div>
                             <div class="step-content">
-                                <h4>サーバータイプを選択</h4>
-                                <p>用途に応じてサーバーのタイプを選びます：</p>
+                                <h4>サーバータイプを選択する</h4>
+                                <p>サーバーの主な用途を決定します。このシミュレーターでは、以下の3つのタイプを用意しました。</p>
                                 <ul>
-                                    <li><strong>HTTPサーバー:</strong> Webページを表示するサーバー</li>
-                                    <li><strong>ファイル共有サーバー:</strong> ファイルをアップロード・ダウンロードできるサーバー</li>
-                                    <li><strong>APIサーバー:</strong> アプリやプログラム間でデータをやり取りするサーバー</li>
+                                    <li><strong>🌐 HTTP Webサーバー:</strong>
+                                        <p>ウェブサイトのコンテンツ（HTML, CSS, JavaScript, 画像など）を配信するサーバーです。インターネットブラウザからのリクエストに応じてWebページを表示します。シンプルなWebサイトのホスティングを体験できます。</p>
+                                    </li>
+                                    <li><strong>📂 ファイル共有サーバー:</strong>
+                                        <p>ファイルをアップロードし、他のクライアントと共有するためのサーバーです。家庭内の写真共有や、小規模なグループでのドキュメント共有などに使われるイメージです。アップロードされたファイルはシミュレーター内で管理されます。</p>
+                                    </li>
+                                    <li><strong>⚙️ APIデータサーバー:</strong>
+                                        <p>アプリケーション間でデータをやり取りするための「API（Application Programming Interface）」を提供するサーバーです。スマートフォンのアプリが天気予報データや地図情報を取得する際などに利用されます。ここではデータの「受け渡し」の仕組みを簡略的に体験できます。</p>
+                                    </li>
                                 </ul>
                             </div>
                         </div>
                         <div class="step">
                             <div class="step-number">4</div>
                             <div class="step-content">
-                                <h4>サーバーを開始</h4>
-                                <p>「サーバーを開始」ボタンをクリックすると、設定した内容でサーバーが立ち上がります。しばらく待つとサーバーのURLが表示されます。</p>
+                                <h4>サーバーを開始・停止する</h4>
+                                <p>「サーバーを開始」ボタンをクリックすると、上記で設定した内容で仮想サーバーが立ち上がります。サーバーが起動すると、アクセスするためのURL（例: <code>http://localhost:3000</code>）が表示されます。</p>
+                                <p>サーバーの稼働状況や、シミュレーション上の接続数、稼働時間も確認できます。「サーバーを停止」ボタンでいつでも停止可能です。</p>
                             </div>
                         </div>
                     </div>
 
                     <div class="help-section">
-                        <h3>🌐 実際のサーバー作成について</h3>
+                        <h3>🌐 実際のサーバーを構築するには？ (より実践的な情報)</h3>
+                        <p>このシミュレーターは学習用ですが、実際にWebサイトを公開したり、大規模なサービスを提供するには、より高度な技術と環境が必要です。</p>
                         <div class="real-server-info">
-                            <h4>🖥️ 実際の環境でサーバーを作るには：</h4>
-                            <div class="code-example">
-                                <h5>Node.js + Express（JavaScript）:</h5>
-                                <pre><code>const express = require('express');
-const app = express();
-const port = 3000;
-
-app.get('/', (req, res) => {
-  res.send('Hello World!');
-});
-
-app.listen(port, () => {
-  console.log(`サーバーが http://localhost:${port} で開始されました`);
-});</code></pre>
-                            </div>
-                            <div class="code-example">
-                                <h5>Python + Flask:</h5>
-                                <pre><code>from flask import Flask
-app = Flask(__name__)
-
-@app.route('/')
-def hello():
-    return 'Hello World!'
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=3000)</code></pre>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="help-section">
-                        <h3>⚠️ 注意事項とセキュリティ</h3>
-                        <div class="warning-box">
+                            <h4>🖥️ 一般的なサーバー構築の選択肢：</h4>
                             <ul>
-                                <li>本物のサーバーを公開する際は、セキュリティ対策が必要です</li>
-                                <li>ファイアウォールの設定を確認しましょう</li>
-                                <li>不要なポートは開放しないようにしましょう</li>
-                                <li>定期的にサーバーのログを確認しましょう</li>
-                                <li>パスワードやSSL証明書の設定を忘れずに</li>
+                                <li><strong>自社サーバー（オンプレミス）:</strong> 自社で物理的なサーバーを設置・運用する方法。高度なカスタマイズ性がありますが、初期費用、運用・保守の手間、電力コストなどがかかります。</li>
+                                <li><strong>レンタルサーバー（共用・VPS・専用）:</strong> サーバー会社からサーバーのスペースやリソースを借りる方法。手軽に始められ、専門知識が少なくても運用可能です。
+                                    <ul>
+                                        <li><strong>共用サーバー:</strong> 複数のユーザーで1台のサーバーを共有。最も安価で手軽。</li>
+                                        <li><strong>VPS (Virtual Private Server):</strong> 1台の物理サーバー上に仮想的な専用サーバーを構築。共用より自由度が高く、専用より安価。</li>
+                                        <li><strong>専用サーバー:</strong> 1台の物理サーバーを単独で利用。最も自由度が高く、大規模なサービス向け。</li>
+                                    </ul>
+                                </li>
+                                <li><strong>クラウドサービス:</strong> Amazon Web Services (AWS), Google Cloud Platform (GCP), Microsoft Azureなどのクラウドプロバイダーが提供する仮想サーバーや各種サービスを利用。拡張性が高く、従量課金制で柔軟な運用が可能。
+                                    <p>主なサービス例:</p>
+                                    <ul>
+                                        <li>AWS EC2 (Elastic Compute Cloud)</li>
+                                        <li>Google Compute Engine</li>
+                                        <li>Azure Virtual Machines</li>
+                                        <li>AWS S3 (静的ファイルホスティング)</li>
+                                        <li>Firebase Hosting (Webホスティング)</li>
+                                    </ul>
+                                </li>
                             </ul>
+
+                            <h4>📝 実際のサーバー構築に必要な基本要素：</h4>
+                            <div class="code-example">
+                                <h5>1. ドメインとDNS:</h5>
+                                <pre><code>ドメイン名（例: example.com）は、インターネット上の「住所」です。
+DNS（Domain Name System）は、そのドメイン名をIPアドレス（例: 192.0.2.1）に変換するシステムで、これによりユーザーは分かりやすいドメイン名でサーバーにアクセスできます。</code></pre>
+                            </div>
+                            <div class="code-example">
+                                <h5>2. サーバーサイド言語とフレームワーク:</h5>
+                                <pre><code>WebサイトやAPIの処理を行うプログラムを記述するための言語と、それを効率的に開発するためのフレームワークです。
+- Node.js (JavaScript) + Express.js
+- Python + Django / Flask
+- PHP + Laravel / Symfony
+- Ruby + Ruby on Rails
+- Go + Gin / Echo
+- Java + Spring Boot
+（例: Node.jsでシンプルなHTTPサーバーを構築するコードは、このアプリのモーダル下部に記載されています）</code></pre>
+                            </div>
+                            <div class="code-example">
+                                <h5>3. データベース:</h5>
+                                <pre><code>ユーザー情報や商品情報など、永続的に保存したいデータを管理するためのシステムです。
+- リレーショナルデータベース: MySQL, PostgreSQL, SQLite
+- NoSQLデータベース: MongoDB, Redis, Cassandra</code></pre>
+                            </div>
+                            <div class="code-example">
+                                <h5>4. SSL/TLS証明書 (HTTPS):</h5>
+                                <pre><code>Webサイトとユーザー間の通信を暗号化し、データの盗聴や改ざんを防ぐためのものです。
+「https://」で始まるURLは、SSL/TLSによって保護されていることを示します。現代のWebサイトでは必須とされています。
+無料で取得できるLet's Encryptなどが有名です。</code></pre>
+                            </div>
                         </div>
                     </div>
 
                     <div class="help-section">
-                        <h3>🎯 サーバーの活用例</h3>
+                        <h3>⚠️ 重要: 注意事項とセキュリティ</h3>
+                        <div class="warning-box">
+                            <h4>🚨 サーバー公開における最重要事項: セキュリティ</h4>
+                            <p>インターネットにサーバーを公開するということは、世界中からのアクセスが可能になることを意味します。悪意のある第三者からの攻撃を防ぐため、以下のセキュリティ対策は絶対に行ってください。</p>
+                            <ul>
+                                <li><strong>ファイアウォール設定:</strong> 必要最低限のポート（Webサーバーなら80番/443番など）のみを開放し、不要な通信をブロックします。</li>
+                                <li><strong>ソフトウェアの最新化:</strong> OSやサーバーアプリケーション、使用しているライブラリは常に最新の状態に保ち、既知の脆弱性を解消します。</li>
+                                <li><strong>強力なパスワードとSSHキー:</strong> 管理者アカウントのパスワードは複雑にし、サーバーへのログインにはSSHキー認証を利用するなど、多層的な対策を講じます。</li>
+                                <li><strong>アクセスログの監視:</strong> サーバーへのアクセス記録を定期的に確認し、不審な挙動がないかをチェックします。</li>
+                                <li><strong>バックアップ:</strong> 定期的にサーバーのデータをバックアップし、万が一のデータ損失に備えます。</li>
+                                <li><strong>DDoS対策:</strong> 大量のトラフィックを送りつけるDoS/DDoS攻撃からサーバーを保護するための対策を検討します（クラウドサービスでは標準機能として提供されることもあります）。</li>
+                                <li><strong>SSL/TLSの利用:</strong> HTTP通信ではなく、HTTPS通信を常に使用し、データの暗号化を徹底します。</li>
+                            </ul>
+                            <p>これらの対策を怠ると、情報漏洩やサーバー乗っ取りなどの重大な被害につながる可能性があります。専門知識がない場合は、セキュリティ対策が充実したレンタルサーバーやクラウドサービスを利用することを強く推奨します。</p>
+                        </div>
+                    </div>
+
+                    <div class="help-section">
+                        <h3>🎯 サーバーの多様な活用例</h3>
+                        <p>サーバーは私たちのデジタルライフのあらゆる面で活用されています。このシミュレーターで体験できる基本的な機能以外にも、様々な用途があります。</p>
                         <div class="use-cases">
                             <div class="use-case">
-                                <h4>🏠 家庭内ファイル共有</h4>
-                                <p>家族間で写真や動画を共有</p>
+                                <span class="icon">🏠</span>
+                                <h4>家庭内ファイル共有/メディアサーバー</h4>
+                                <p>家族の写真や動画、音楽などを一元管理し、家中のデバイスからアクセスできるようにします。NAS（Network Attached Storage）も一種のファイルサーバーです。</p>
                             </div>
                             <div class="use-case">
-                                <h4>💼 小規模オフィス</h4>
-                                <p>チーム内でのドキュメント管理</p>
+                                <span class="icon">💻</span>
+                                <h4>開発・テスト環境</h4>
+                                <p>新しいWebサイトやアプリケーションを開発する際に、公開前に動作確認をするためのプライベートなサーバーとして利用します。</p>
                             </div>
                             <div class="use-case">
-                                <h4>🎮 ゲームサーバー</h4>
-                                <p>友達とのマルチプレイゲーム</p>
+                                <span class="icon">🎮</span>
+                                <h4>マルチプレイゲームサーバー</h4>
+                                <p>Minecraftのようなゲームで、友達と一緒にプレイするための自分だけの専用サーバーを立てます。</p>
                             </div>
                             <div class="use-case">
-                                <h4>📱 アプリ開発</h4>
-                                <p>テスト用のバックエンドサーバー</p>
+                                <span class="icon">💡</span>
+                                <h4>IoTデータ収集サーバー</h4>
+                                <p>スマートホームデバイスやセンサーから送られてくるデータを集めて分析したり、機器を制御するための中心的なハブとして機能させます。</p>
+                            </div>
+                            <div class="use-case">
+                                <span class="icon">🤖</span>
+                                <h4>AI/機械学習モデル配信サーバー</h4>
+                                <p>開発したAIモデルをAPIとして公開し、他のアプリケーションからそのAIの推論結果を利用できるようにします。</p>
+                            </div>
+                            <div class="use-case">
+                                <span class="icon">📊</span>
+                                <h4>データ分析/BIツールサーバー</h4>
+                                <p>ビジネスインテリジェンス（BI）ツールや、大量のデータを処理・分析するための環境を構築し、レポート生成や可視化を行います。</p>
                             </div>
                         </div>
+                    </div>
+
+                    <div class="help-section">
+                        <h3>❓ トラブルシューティングのヒント (シミュレーターの場合)</h3>
+                        <p>シミュレーターでは、実際のサーバーのような複雑な問題は発生しませんが、もし動作がおかしいと感じたら、以下の点を確認してみてください。</p>
+                        <ul>
+                            <li><strong>ポート番号が適切か？:</strong> 他のアプリ（例: 開発ツール、別のWebサーバー）が同じポートを使っていませんか？異なる番号に変更してみましょう。</li>
+                            <li><strong>ブラウザのキャッシュ:</strong> 稀にブラウザのキャッシュが原因で表示が更新されないことがあります。スーパーリロード（Ctrl+Shift+RまたはCmd+Shift+R）を試してみましょう。</li>
+                            <li><strong>JavaScriptが有効か:</strong> このアプリはJavaScriptで動作しています。ブラウザでJavaScriptが無効になっていないか確認してください。</li>
+                            <li><strong>サーバーを再起動:</strong> 一度「停止」してから「開始」し直すと、状態がリフレッシュされることがあります。</li>
+                        </ul>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn" onclick="closeHelp()">理解しました！</button>
+                    <button class="btn" onclick="closeHelp()">理解しました！サーバーを使ってみる</button>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        let server = null;
-        let serverStartTime = null;
-        let uptimeInterval = null;
-        let connectionCount = 0;
-        let uploadedFiles = [];
+        let server = null; // 仮想サーバーの状態を保持
+        let serverStartTime = null; // サーバー起動時刻
+        let uptimeInterval = null; // 稼働時間更新用のインターバルID
+        let connectionInterval = null; // 接続数シミュレーション用のインターバルID
+        let connectionCount = 0; // シミュレーション上の接続数
+        let uploadedFiles = []; // アップロードされたファイル一覧（シミュレーション）
 
+        // DOM要素の取得
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const startBtnText = document.getElementById('startBtnText');
+        const spinner = document.getElementById('loadingSpinner');
+        const statusEl = document.getElementById('status');
+        const serverInfoEl = document.getElementById('serverInfo');
+        const fileUploadEl = document.getElementById('fileUpload');
+        const fileListEl = document.getElementById('fileList');
+
+        // ステータスメッセージを表示する関数
         function showStatus(message, type) {
-            const status = document.getElementById('status');
-            status.textContent = message;
-            status.className = `status ${type} show`;
+            statusEl.textContent = message;
+            statusEl.className = `status ${type} show`;
         }
 
-        function hideStatus() {
-            const status = document.getElementById('status');
-            status.classList.remove('show');
-        }
-
+        // サーバーの開始/停止を切り替える主要関数
         function toggleServer() {
-            const startBtn = document.getElementById('startBtn');
-            const spinner = document.getElementById('loadingSpinner');
-            
             if (!server) {
+                startBtn.disabled = true;
+                spinner.style.display = 'inline-block';
+                startBtnText.textContent = '起動中...';
                 startServer();
             }
         }
 
+        // サーバーを開始するシミュレーション関数
         function startServer() {
             const serverName = document.getElementById('serverName').value || 'MyServer';
-            const port = document.getElementById('port').value || 3000;
+            const port = parseInt(document.getElementById('port').value, 10) || 3000;
             const serverType = document.getElementById('serverType').value;
+
+            if (port < 1024 || port > 65535 || isNaN(port)) {
+                showStatus('⚠️ ポート番号は1024〜65535の間で入力してください。', 'stopped');
+                startBtn.disabled = false;
+                spinner.style.display = 'none';
+                startBtnText.textContent = 'サーバーを開始';
+                return;
+            }
             
-            // ローディング開始
-            const startBtn = document.getElementById('startBtn');
-            const spinner = document.getElementById('loadingSpinner');
-            startBtn.disabled = true;
-            spinner.style.display = 'inline-block';
-            
-            // サーバー開始シミュレーション
             setTimeout(() => {
                 server = {
                     name: serverName,
@@ -714,65 +989,61 @@ if __name__ == '__main__':
                 
                 serverStartTime = new Date();
                 
-                // UI更新
                 startBtn.style.display = 'none';
-                document.getElementById('stopBtn').style.display = 'inline-block';
+                stopBtn.style.display = 'inline-block';
+                startBtn.disabled = false;
+                spinner.style.display = 'none';
                 
-                showStatus(`✅ ${serverName} が正常に開始されました！`, 'running');
+                showStatus(`✅ サーバー「${serverName}」が正常に開始されました！`, 'running');
                 
-                // サーバー情報表示
-                const serverInfo = document.getElementById('serverInfo');
-                const serverUrl = document.getElementById('serverUrl');
-                serverInfo.style.display = 'block';
-                serverUrl.textContent = `http://localhost:${port}`;
+                serverInfoEl.style.display = 'block';
+                document.getElementById('serverUrl').textContent = `http://localhost:${port}`;
                 
-                // ファイルアップロード表示（ファイル共有サーバーの場合）
                 if (serverType === 'file') {
-                    document.getElementById('fileUpload').style.display = 'block';
+                    fileUploadEl.style.display = 'block';
+                } else {
+                    fileUploadEl.style.display = 'none';
                 }
                 
-                // 稼働時間カウンター開始
                 startUptimeCounter();
-                
-                // 接続数シミュレーション
                 simulateConnections();
                 
-                spinner.style.display = 'none';
-                startBtn.disabled = false;
             }, 2000);
         }
 
+        // サーバーを停止するシミュレーション関数
         function stopServer() {
             if (server) {
                 server.running = false;
                 server = null;
                 
-                // UI更新
-                document.getElementById('startBtn').style.display = 'inline-block';
-                document.getElementById('startBtn').textContent = 'サーバーを開始';
-                document.getElementById('stopBtn').style.display = 'none';
-                document.getElementById('serverInfo').style.display = 'none';
-                document.getElementById('fileUpload').style.display = 'none';
+                startBtn.style.display = 'inline-block';
+                startBtnText.textContent = 'サーバーを開始';
+                stopBtn.style.display = 'none';
+                serverInfoEl.style.display = 'none';
+                fileUploadEl.style.display = 'none';
                 
                 showStatus('⏹️ サーバーが停止されました', 'stopped');
                 
-                // タイマー停止
-                if (uptimeInterval) {
-                    clearInterval(uptimeInterval);
-                    uptimeInterval = null;
-                }
+                if (uptimeInterval) clearInterval(uptimeInterval);
+                if (connectionInterval) clearInterval(connectionInterval);
+                uptimeInterval = null;
+                connectionInterval = null;
                 
                 connectionCount = 0;
                 uploadedFiles = [];
-                document.getElementById('fileList').innerHTML = '';
+                updateFileList();
             }
         }
 
+        // 稼働時間カウンターを開始する関数
         function startUptimeCounter() {
+            if (uptimeInterval) clearInterval(uptimeInterval);
             uptimeInterval = setInterval(() => {
                 if (serverStartTime && server && server.running) {
                     const now = new Date();
                     const diff = now - serverStartTime;
+                    
                     const hours = Math.floor(diff / 3600000);
                     const minutes = Math.floor((diff % 3600000) / 60000);
                     const seconds = Math.floor((diff % 60000) / 1000);
@@ -783,63 +1054,89 @@ if __name__ == '__main__':
             }, 1000);
         }
 
+        // 接続数をシミュレーションする関数
         function simulateConnections() {
-            if (server && server.running) {
-                // ランダムな接続数変動をシミュレート
-                setTimeout(() => {
-                    if (server && server.running) {
-                        connectionCount = Math.floor(Math.random() * 10) + 1;
-                        document.getElementById('connectionCount').textContent = connectionCount;
-                        simulateConnections();
-                    }
-                }, Math.random() * 5000 + 2000);
-            }
+            if (connectionInterval) clearInterval(connectionInterval);
+            const update = () => {
+                if (server && server.running) {
+                    const delta = Math.floor(Math.random() * 3) - 1;
+                    connectionCount = Math.max(0, connectionCount + delta);
+                    if (connectionCount < 3 && Math.random() > 0.5) connectionCount++;
+                    if (connectionCount > 8 && Math.random() > 0.5) connectionCount--;
+                    document.getElementById('connectionCount').textContent = connectionCount;
+                }
+            };
+            update(); // 初回実行
+            connectionInterval = setInterval(update, (Math.random() * 4000 + 2000));
         }
 
+        // HTML特殊文字をエスケープする関数
+        function escapeHTML(str) {
+            const p = document.createElement('p');
+            p.textContent = str;
+            return p.innerHTML;
+        }
+
+        // ファイルアップロード処理
         function handleFileUpload(event) {
             const files = event.target.files;
-            const fileList = document.getElementById('fileList');
+            if (files.length === 0) return;
+
+            Array.from(files).forEach(file => {
+                const existingIndex = uploadedFiles.findIndex(f => f.name === file.name);
+                if (existingIndex > -1) {
+                    uploadedFiles[existingIndex] = file;
+                } else {
+                    uploadedFiles.push(file);
+                }
+            });
             
-            for (let file of files) {
-                uploadedFiles.push(file);
-                
-                const fileItem = document.createElement('div');
-                fileItem.className = 'file-item';
-                fileItem.innerHTML = `
-                    <span>📄 ${file.name} (${formatFileSize(file.size)})</span>
-                    <button onclick="removeFile('${file.name}')" style="background: #f44336; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer;">削除</button>
-                `;
-                fileList.appendChild(fileItem);
-            }
-            
-            // ファイル入力をリセット
+            updateFileList();
             event.target.value = '';
         }
 
+        // ファイルを削除する関数
         function removeFile(fileName) {
             uploadedFiles = uploadedFiles.filter(file => file.name !== fileName);
             updateFileList();
         }
 
+        // ファイルリストの表示を更新する関数（バグ修正済み）
         function updateFileList() {
-            const fileList = document.getElementById('fileList');
-            fileList.innerHTML = '';
+            fileListEl.innerHTML = '';
             
+            if (uploadedFiles.length === 0) {
+                fileListEl.innerHTML = '<p style="text-align: center; color: #999;">まだファイルがアップロードされていません。</p>';
+                return;
+            }
+
             uploadedFiles.forEach(file => {
                 const fileItem = document.createElement('div');
                 fileItem.className = 'file-item';
+
+                // 安全な innerHTML の構築
                 fileItem.innerHTML = `
-                    <span>📄 ${file.name} (${formatFileSize(file.size)})</span>
-                    <button onclick="removeFile('${file.name}')" style="background: #f44336; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer;">削除</button>
+                    <span>📄 ${escapeHTML(file.name)} <span style="font-size: 0.9em; color: #888;">(${formatFileSize(file.size)})</span></span>
+                    <button class="remove-btn">削除</button>
                 `;
-                fileList.appendChild(fileItem);
+                
+                // innerHTML で要素を追加した後にイベントリスナーを設定
+                const removeButton = fileItem.querySelector('.remove-btn');
+                if(removeButton) {
+                    removeButton.addEventListener('click', () => {
+                        removeFile(file.name);
+                    });
+                }
+
+                fileListEl.appendChild(fileItem);
             });
         }
 
+        // ファイルサイズをフォーマットする関数
         function formatFileSize(bytes) {
             if (bytes === 0) return '0 Bytes';
             const k = 1024;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
@@ -851,43 +1148,51 @@ if __name__ == '__main__':
                 server.type = newType;
                 
                 if (newType === 'file') {
-                    document.getElementById('fileUpload').style.display = 'block';
+                    fileUploadEl.style.display = 'block';
+                    updateFileList();
                 } else {
-                    document.getElementById('fileUpload').style.display = 'none';
+                    fileUploadEl.style.display = 'none';
                 }
             }
         });
 
-        // 初期化時にランダムなポート番号を設定
-        document.getElementById('port').value = Math.floor(Math.random() * 8000) + 3000;
+        // 初期化処理
+        window.addEventListener('load', () => {
+            document.getElementById('port').value = Math.floor(Math.random() * (10000 - 3000)) + 3000;
+            updateFileList();
+        });
 
-        // ヘルプモーダル関数
-        function showHelp() {
-            const modal = document.getElementById('helpModal');
+        // ヘルプモーダル関連関数
+        const modal = document.getElementById('helpModal');
+        
+        function showHelp(sectionId = null) {
             modal.style.display = 'flex';
             setTimeout(() => {
                 modal.classList.add('show');
+                if (sectionId) {
+                    const section = document.getElementById(sectionId);
+                    if (section) {
+                       section.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
             }, 10);
         }
 
         function closeHelp() {
-            const modal = document.getElementById('helpModal');
             modal.classList.remove('show');
             setTimeout(() => {
                 modal.style.display = 'none';
-            }, 300);
+            }, 400);
         }
 
-        // モーダル外クリックで閉じる
-        document.getElementById('helpModal').addEventListener('click', function(e) {
+        modal.addEventListener('click', function(e) {
             if (e.target === this) {
                 closeHelp();
             }
         });
 
-        // ESCキーでモーダルを閉じる
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
+            if (e.key === 'Escape' && modal.classList.contains('show')) {
                 closeHelp();
             }
         });
