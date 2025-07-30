@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LinkMaster Infinity - 無限進化パズル</title>
+  <title>LinkMaster 極 - 線つなぎパズル最終版</title>
   <style>
     /* Google Fonts */
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+JP:wght@300;400;700&display=swap');
@@ -16,6 +16,7 @@
       --success-glow: #00ff80;
       --warning-glow: #ffd700;
       --danger-glow: #ff4d4d;
+      --ultimate-glow: #ff1f8b;
       --text-color: #ffffff;
       --text-muted: #a0a0a0;
       --panel-bg: rgba(22, 33, 62, 0.85);
@@ -147,7 +148,7 @@
     
     .btn {
       padding: 12px 25px;
-      font-family: 'Orbitron', monospace;
+      font-family: 'Orbitron', 'Noto Sans JP', monospace;
       font-weight: 700;
       font-size: 1em;
       border: 1px solid transparent;
@@ -179,6 +180,16 @@
     .btn-success { background: linear-gradient(45deg, var(--success-glow), #00c957); box-shadow: 0 5px 20px rgba(0, 255, 128, 0.3); color: #0c0c0c; }
     .btn-warning { background: linear-gradient(45deg, var(--warning-glow), #ff8c00); box-shadow: 0 5px 20px rgba(255, 215, 0, 0.3); color: #0c0c0c; }
     .btn-danger { background: linear-gradient(45deg, var(--danger-glow), #cc0000); box-shadow: 0 5px 20px rgba(255, 77, 77, 0.4); }
+    .btn-ultimate {
+        background: linear-gradient(45deg, var(--ultimate-glow), var(--danger-glow), var(--secondary-glow));
+        box-shadow: 0 5px 25px rgba(255, 31, 139, 0.5);
+        animation: ultimate-glow 1.5s ease-in-out infinite alternate;
+    }
+
+    @keyframes ultimate-glow {
+        from { box-shadow: 0 0 20px var(--ultimate-glow); }
+        to { box-shadow: 0 0 35px var(--danger-glow); }
+    }
 
     /* --- モーダル共通 --- */
     .modal-overlay {
@@ -246,24 +257,24 @@
 
   <div class="game-world">
     <header class="game-header">
-      <h1 class="game-title">LinkMaster Infinity</h1>
+      <h1 class="game-title">LinkMaster 極</h1>
     </header>
 
     <div class="ui-panel">
       <div class="stat-item">
-        <div class="stat-label" id="ui-level-label">DIFFICULTY</div>
+        <div class="stat-label" id="ui-level-label">難易度</div>
         <div class="stat-value" id="ui-level">1</div>
       </div>
       <div class="stat-item">
-        <div class="stat-label" id="ui-score-label">SCORE</div>
+        <div class="stat-label" id="ui-score-label">スコア</div>
         <div class="stat-value" id="ui-score">0</div>
       </div>
       <div class="stat-item">
-        <div class="stat-label">HIGH SCORE</div>
+        <div class="stat-label" id="ui-highscore-label">ハイスコア</div>
         <div class="stat-value" id="ui-highscore">0</div>
       </div>
       <div class="stat-item">
-        <div class="stat-label">TIME</div>
+        <div class="stat-label" id="ui-timer-label">タイム</div>
         <div class="stat-value" id="ui-timer">0:00</div>
       </div>
     </div>
@@ -273,76 +284,76 @@
     </main>
 
     <footer class="controls">
-      <button class="btn btn-primary" id="btn-reset">RESET</button>
-      <button class="btn btn-warning" id="btn-pause">PAUSE</button>
-      <button class="btn btn-success" id="btn-settings">SETTINGS</button>
+      <button class="btn btn-primary" id="btn-reset">リセット</button>
+      <button class="btn btn-warning" id="btn-pause">ポーズ</button>
+      <button class="btn btn-success" id="btn-settings">設定</button>
     </footer>
   </div>
 
   <div class="modal-overlay visible" id="start-screen">
     <div class="modal-content">
-      <h2 class="modal-title">Welcome!</h2>
+      <h2 class="modal-title" id="start-title">ようこそ！</h2>
       <div class="modal-body">
-        <p>Select a game mode to begin.</p>
+        <p id="start-desc">モードを選択して開始</p>
       </div>
       <div class="modal-actions">
-        <button class="btn btn-primary" id="btn-start-endless">Endless Mode</button>
-        <button class="btn btn-secondary" id="btn-start-timeattack">Time Attack</button>
-        <button class="btn btn-danger" id="btn-start-challenge">Challenge</button>
+        <button class="btn btn-primary" id="btn-start-endless">エンドレス</button>
+        <button class="btn btn-secondary" id="btn-start-timeattack">タイムアタック</button>
+        <button class="btn btn-danger" id="btn-start-challenge">チャレンジ</button>
       </div>
     </div>
   </div>
 
   <div class="modal-overlay" id="challenge-modal">
     <div class="modal-content">
-      <h2 class="modal-title">Challenge Mode</h2>
+      <h2 class="modal-title" id="challenge-title">チャレンジ</h2>
       <div class="modal-body" id="challenge-selection">
          </div>
       <div class="modal-actions">
-        <button class="btn btn-warning" id="btn-challenge-back">BACK</button>
+        <button class="btn btn-warning" id="btn-challenge-back">戻る</button>
       </div>
     </div>
   </div>
   
   <div class="modal-overlay" id="pause-modal">
     <div class="modal-content">
-      <h2 class="modal-title">Paused</h2>
+      <h2 class="modal-title" id="pause-title">一時停止</h2>
       <div class="modal-actions">
-        <button class="btn btn-primary" id="btn-resume">RESUME</button>
-        <button class="btn btn-warning" id="btn-quit">QUIT</button>
+        <button class="btn btn-primary" id="btn-resume">再開</button>
+        <button class="btn btn-warning" id="btn-quit">終了</button>
       </div>
     </div>
   </div>
   
   <div class="modal-overlay" id="settings-modal">
     <div class="modal-content">
-        <h2 class="modal-title">Settings</h2>
+        <h2 class="modal-title" id="settings-title">設定</h2>
         <div class="modal-body">
             <div class="settings-row" style="display:flex; justify-content: space-between; align-items: center;">
-                <label for="volume-slider" style="font-size: 1.2em;">Volume</label>
+                <label for="volume-slider" style="font-size: 1.2em;" id="volume-label">音量</label>
                 <input type="range" id="volume-slider" min="0" max="1" step="0.1" value="0.5">
             </div>
         </div>
         <div class="modal-actions">
-            <button class="btn btn-primary" id="btn-settings-close">CLOSE</button>
+            <button class="btn btn-primary" id="btn-settings-close">閉じる</button>
         </div>
     </div>
   </div>
   
   <div class="modal-overlay" id="result-modal">
     <div class="modal-content">
-        <h2 class="modal-title" id="result-title">Level Complete!</h2>
+        <h2 class="modal-title" id="result-title">クリア！</h2>
         <div class="modal-body">
             <div class="result-stars" id="result-stars"></div>
             <div class="result-stats">
-                <p>Time: <span id="result-time"></span></p>
-                <p>Score: <span id="result-score"></span></p>
+                <p><span id="result-time-label">タイム</span>: <span id="result-time"></span></p>
+                <p><span id="result-score-label">スコア</span>: <span id="result-score"></span></p>
             </div>
         </div>
         <div class="modal-actions">
-            <button class="btn btn-success" id="btn-next-level">NEXT</button>
-            <button class="btn btn-primary" id="btn-retry">RETRY</button>
-            <button class="btn btn-warning" id="btn-quit-result">QUIT</button>
+            <button class="btn btn-success" id="btn-next-level">次へ</button>
+            <button class="btn btn-primary" id="btn-retry">リトライ</button>
+            <button class="btn btn-warning" id="btn-quit-result">終了</button>
         </div>
     </div>
   </div>
@@ -351,11 +362,52 @@
     "use strict";
 
     /**
-     * @file LinkMaster Infinity - A professional refactor with dynamic difficulty.
+     * @file LinkMaster 極 (Kiwami) - The final version with localization and extreme difficulty.
      * @author Gemini
-     * @version 3.0.0
+     * @version 4.0.0
      */
 
+    // --- ローカライズ用オブジェクト ---
+    const LANG = {
+        JA: {
+            // UI
+            DIFFICULTY: "難易度",
+            LEVEL: "レベル",
+            CLEARED: "クリア数",
+            SCORE: "スコア",
+            HIGHSCORE: "ハイスコア",
+            TIME: "タイム",
+            RESET: "リセット",
+            PAUSE: "ポーズ",
+            SETTINGS: "設定",
+            // Modals
+            WELCOME: "ようこそ！",
+            SELECT_MODE: "モードを選択して開始",
+            ENDLESS: "エンドレス",
+            TIME_ATTACK: "タイムアタック",
+            CHALLENGE: "チャレンジ",
+            CHALLENGE_MODE: "チャレンジモード",
+            BACK: "戻る",
+            PAUSED_TITLE: "一時停止",
+            RESUME: "再開",
+            QUIT: "終了",
+            SETTINGS_TITLE: "設定",
+            VOLUME: "音量",
+            CLOSE: "閉じる",
+            RESULT_SUCCESS: "クリア！",
+            RESULT_GAMEOVER: "ゲームオーバー",
+            RESULT_TIMEUP: "時間切れ！",
+            RESULT_NEXT: "次へ",
+            RESULT_RETRY: "リトライ",
+            // Challenge levels
+            EASY: "初級",
+            MEDIUM: "中級",
+            HARD: "上級",
+            INSANE: "達人",
+            ULTIMATE: "超絶技巧"
+        }
+    };
+    
     // --- 設定ファイル ---
     const CONFIG = {
         GAME_MODES: {
@@ -376,36 +428,39 @@
             DIFFICULTY_MULTIPLIER: 10,
             TIME_BONUS_MULTIPLIER: 5,
         },
-        // 固定レベル（タイムアタックとチャレンジ用）
-        FIXED_LEVELS: [
-            { points: 4, pattern: 'square' }, { points: 5, pattern: 'pentagon' },
-            { points: 6, pattern: 'hexagon' }, { points: 6, pattern: 'house' },
-            { points: 7, pattern: 'flower' }, { points: 8, pattern: 'hourglass' },
-            { points: 8, pattern: 'octagon' }, { points: 9, pattern: 'grid3x3' },
-            { points: 9, pattern: 'star' }, { points: 10, pattern: 'envelope' },
-            { points: 10, pattern: 'complex1' }, { points: 11, pattern: 'spiral' },
-            { points: 12, pattern: 'double_diamond'}, { points: 12, pattern: 'ultimate' },
-            { points: 15, pattern: 'insane' }
+        FIXED_LEVELS: [ // チャレンジモード用
+            { points: 6, pattern: 'house' }, // Lv.1
+            { points: 8, pattern: 'hourglass' }, // Lv.2
+            { points: 9, pattern: 'star' }, // Lv.3
+            { points: 12, pattern: 'double_diamond' }, // Lv.4
+            { points: 16, pattern: 'asymmetric_web' }, // Lv.5
+            { points: 28, pattern: 'transcendent' } // 超絶技巧
         ],
-        // 動的生成用パターン
         DYNAMIC_PATTERNS: {
             easy: ['square', 'pentagon', 'house'],
-            medium: ['hexagon', 'flower', 'hourglass', 'octagon'],
-            hard: ['grid3x3', 'star', 'envelope', 'complex1'],
-            insane: ['spiral', 'double_diamond', 'ultimate', 'insane']
+            medium: ['hexagon', 'flower', 'hourglass', 'octagon', 'star'],
+            hard: ['grid3x3', 'envelope', 'complex1', 'spiral', 'double_diamond'],
+            insane: ['ultimate', 'insane', 'interlocking_rings', 'asymmetric_web']
         }
     };
     
-    // --- クラス定義 (UIManager, StorageManager, AudioControllerは変更なしのため省略) ---
+    // --- クラス定義 (UIManager, StorageManager, AudioControllerは一部ローカライズ対応) ---
     class UIManager {
-        constructor() {
+        constructor(lang) {
+            this.lang = lang;
             this.elements = {
+                // ラベル
                 levelLabel: document.getElementById('ui-level-label'),
                 scoreLabel: document.getElementById('ui-score-label'),
+                highscoreLabel: document.getElementById('ui-highscore-label'),
+                timerLabel: document.getElementById('ui-timer-label'),
+                volumeLabel: document.getElementById('volume-label'),
+                // 値
                 level: document.getElementById('ui-level'),
                 score: document.getElementById('ui-score'),
                 highscore: document.getElementById('ui-highscore'),
                 timer: document.getElementById('ui-timer'),
+                // ボタン
                 resetBtn: document.getElementById('btn-reset'),
                 pauseBtn: document.getElementById('btn-pause'),
                 settingsBtn: document.getElementById('btn-settings'),
@@ -417,20 +472,47 @@
                 startTimeAttackBtn: document.getElementById('btn-start-timeattack'),
                 startChallengeBtn: document.getElementById('btn-start-challenge'),
                 challengeBackBtn: document.getElementById('btn-challenge-back'),
-                challengeSelection: document.getElementById('challenge-selection'),
                 nextLevelBtn: document.getElementById('btn-next-level'),
                 retryBtn: document.getElementById('btn-retry'),
+                // モーダルとコンテナ
                 startScreen: document.getElementById('start-screen'),
                 challengeModal: document.getElementById('challenge-modal'),
                 pauseModal: document.getElementById('pause-modal'),
                 settingsModal: document.getElementById('settings-modal'),
                 resultModal: document.getElementById('result-modal'),
+                challengeSelection: document.getElementById('challenge-selection'),
+                // モーダル内テキスト
+                startTitle: document.getElementById('start-title'),
+                startDesc: document.getElementById('start-desc'),
+                challengeTitle: document.getElementById('challenge-title'),
+                pauseTitle: document.getElementById('pause-title'),
+                settingsTitle: document.getElementById('settings-title'),
                 resultTitle: document.getElementById('result-title'),
                 resultStars: document.getElementById('result-stars'),
+                resultTimeLabel: document.getElementById('result-time-label'),
+                resultScoreLabel: document.getElementById('result-score-label'),
                 resultTime: document.getElementById('result-time'),
                 resultScore: document.getElementById('result-score'),
                 volumeSlider: document.getElementById('volume-slider'),
             };
+            this.localize();
+        }
+        localize() {
+            for (const key in this.lang) {
+                const elKey = key.toLowerCase().replace(/_/g, '') + 'Btn';
+                if(this.elements[elKey]) this.elements[elKey].textContent = this.lang[key];
+            }
+            // 個別に設定
+            this.elements.levelLabel.textContent = this.lang.LEVEL;
+            this.elements.scoreLabel.textContent = this.lang.SCORE;
+            this.elements.highscoreLabel.textContent = this.lang.HIGHSCORE;
+            this.elements.timerLabel.textContent = this.lang.TIME;
+            this.elements.volumeLabel.textContent = this.lang.VOLUME;
+            this.elements.startTitle.textContent = this.lang.WELCOME;
+            this.elements.startDesc.textContent = this.lang.SELECT_MODE;
+            this.elements.challengeTitle.textContent = this.lang.CHALLENGE_MODE;
+            this.elements.pauseTitle.textContent = this.lang.PAUSED_TITLE;
+            this.elements.settingsTitle.textContent = this.lang.SETTINGS_TITLE;
         }
         bind(event, handler) { const [elementId, eventType] = event.split(':'); this.elements[elementId].addEventListener(eventType, handler); }
         updateStat(stat, value) { if (this.elements[stat]) this.elements[stat].textContent = value; }
@@ -446,58 +528,21 @@
         }
         setLabels(mode) {
             switch(mode) {
-                case CONFIG.GAME_MODES.ENDLESS:
-                    this.elements.levelLabel.textContent = 'DIFFICULTY';
-                    this.elements.scoreLabel.textContent = 'SCORE';
-                    break;
-                case CONFIG.GAME_MODES.TIME_ATTACK:
-                    this.elements.levelLabel.textContent = 'CLEARED';
-                    this.elements.scoreLabel.textContent = 'SCORE';
-                    break;
-                case CONFIG.GAME_MODES.CHALLENGE:
-                    this.elements.levelLabel.textContent = 'LEVEL';
-                    this.elements.scoreLabel.textContent = 'SCORE';
-                    break;
+                case CONFIG.GAME_MODES.ENDLESS: this.elements.levelLabel.textContent = this.lang.DIFFICULTY; break;
+                case CONFIG.GAME_MODES.TIME_ATTACK: this.elements.levelLabel.textContent = this.lang.CLEARED; break;
+                case CONFIG.GAME_MODES.CHALLENGE: this.elements.levelLabel.textContent = this.lang.LEVEL; break;
             }
+            this.elements.scoreLabel.textContent = this.lang.SCORE;
         }
         formatTime(seconds) { const min = Math.floor(seconds / 60); const sec = seconds % 60; return `${min}:${sec.toString().padStart(2, '0')}`; }
     }
-    class StorageManager {
-        constructor(prefix = 'linkmaster_infinity_') { this.prefix = prefix; }
-        get(key, defaultValue = null) { const value = localStorage.getItem(this.prefix + key); return value ? JSON.parse(value) : defaultValue; }
-        set(key, value) { localStorage.setItem(this.prefix + key, JSON.stringify(value)); }
-    }
-    class AudioController {
-        constructor(volumeSlider, storage) { this.audioContext = new (window.AudioContext || window.webkitAudioContext)(); this.masterGain = this.audioContext.createGain(); this.masterGain.connect(this.audioContext.destination); this.volumeSlider = volumeSlider; this.storage = storage; this.volumeSlider.addEventListener('input', (e) => this.setVolume(e.target.value)); this.loadVolume(); }
-        setVolume(volume) { this.masterGain.gain.setValueAtTime(parseFloat(volume), this.audioContext.currentTime); this.storage.set('volume', volume); }
-        loadVolume() { const savedVolume = this.storage.get('volume', 0.5); this.volumeSlider.value = savedVolume; this.setVolume(savedVolume); }
-        playSound(type) { if (!this.audioContext || this.masterGain.gain.value === 0) return; if (this.audioContext.state === 'suspended') { this.audioContext.resume(); } const oscillator = this.audioContext.createOscillator(); const gainNode = this.audioContext.createGain(); oscillator.connect(gainNode); gainNode.connect(this.masterGain); let freq, duration, waveType; switch (type) { case 'click': freq = [800]; duration = 0.2; waveType = 'triangle'; break; case 'success': freq = [523, 659, 784]; duration = 0.4; waveType = 'sine'; break; case 'error': freq = [150]; duration = 0.2; waveType = 'square'; break; case 'win': freq = [523, 659, 784, 1046]; duration = 0.6; waveType = 'sine'; break; } oscillator.type = waveType; const now = this.audioContext.currentTime; gainNode.gain.setValueAtTime(0.1, now); if (freq.length > 1) { freq.forEach((f, i) => { oscillator.frequency.setValueAtTime(f, now + i * (duration / freq.length)); }); } else { oscillator.frequency.setValueAtTime(freq[0], now); } gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration); oscillator.start(now); oscillator.stop(now + duration); }
-    }
+    class StorageManager { constructor(prefix = 'linkmaster_kiwami_') { this.prefix = prefix; } get(key, defaultValue = null) { const value = localStorage.getItem(this.prefix + key); return value ? JSON.parse(value) : defaultValue; } set(key, value) { localStorage.setItem(this.prefix + key, JSON.stringify(value)); } }
+    class AudioController { constructor(volumeSlider, storage) { this.audioContext = new (window.AudioContext || window.webkitAudioContext)(); this.masterGain = this.audioContext.createGain(); this.masterGain.connect(this.audioContext.destination); this.volumeSlider = volumeSlider; this.storage = storage; this.volumeSlider.addEventListener('input', (e) => this.setVolume(e.target.value)); this.loadVolume(); } setVolume(volume) { this.masterGain.gain.setValueAtTime(parseFloat(volume), this.audioContext.currentTime); this.storage.set('volume', volume); } loadVolume() { const savedVolume = this.storage.get('volume', 0.5); this.volumeSlider.value = savedVolume; this.setVolume(savedVolume); } playSound(type) { if (!this.audioContext || this.masterGain.gain.value === 0) return; if (this.audioContext.state === 'suspended') { this.audioContext.resume(); } const oscillator = this.audioContext.createOscillator(); const gainNode = this.audioContext.createGain(); oscillator.connect(gainNode); gainNode.connect(this.masterGain); let freq, duration, waveType; switch (type) { case 'click': freq = [800]; duration = 0.2; waveType = 'triangle'; break; case 'success': freq = [523, 659, 784]; duration = 0.4; waveType = 'sine'; break; case 'error': freq = [150]; duration = 0.2; waveType = 'square'; break; case 'win': freq = [523, 659, 784, 1046]; duration = 0.6; waveType = 'sine'; break; } oscillator.type = waveType; const now = this.audioContext.currentTime; gainNode.gain.setValueAtTime(0.1, now); if (freq.length > 1) { freq.forEach((f, i) => { oscillator.frequency.setValueAtTime(f, now + i * (duration / freq.length)); }); } else { oscillator.frequency.setValueAtTime(freq[0], now); } gainNode.gain.exponentialRampToValueAtTime(0.0001, now + duration); oscillator.start(now); oscillator.stop(now + duration); } }
     
-    /**
-     * PuzzleGame: パズル本体のロジックを担当 (動的生成機能を追加)
-     */
     class PuzzleGame {
-        constructor(canvas, onLevelComplete, onGameOver, onStateChange) {
-            this.canvas = canvas;
-            this.ctx = canvas.getContext('2d');
-            this.onLevelComplete = onLevelComplete;
-            this.onGameOver = onGameOver;
-            this.onStateChange = onStateChange;
-            this.resizeCanvas();
-            this.reset();
-        }
-
-        reset() {
-            this.points = [];
-            this.visited = [];
-            this.segments = [];
-            this.startTime = 0;
-            this.elapsedTime = 0;
-            this.previewPos = null;
-            this.isWon = false;
-            this.isLost = false;
-        }
+        // ... (constructorとresetは変更なし)
+        constructor(canvas, onLevelComplete, onGameOver, onStateChange) { this.canvas = canvas; this.ctx = canvas.getContext('2d'); this.onLevelComplete = onLevelComplete; this.onGameOver = onGameOver; this.onStateChange = onStateChange; this.resizeCanvas(); this.reset(); }
+        reset() { this.points = []; this.visited = []; this.segments = []; this.startTime = 0; this.elapsedTime = 0; this.previewPos = null; this.isWon = false; this.isLost = false; }
         
         startLevel(levelData) {
             this.reset();
@@ -508,7 +553,7 @@
         }
 
         _generateDynamicLevel(difficulty) {
-            const points = Math.min(20, 4 + Math.floor(difficulty / 2));
+            const points = Math.min(30, 4 + Math.floor(difficulty / 1.5));
             let patternTier;
             if (difficulty < 5) patternTier = 'easy';
             else if (difficulty < 12) patternTier = 'medium';
@@ -537,35 +582,48 @@
         _onSegment(p, q, r) { return (q.x <= Math.max(p.x, r.x) && q.x >= Math.min(p.x, r.x) && q.y <= Math.max(p.y, r.y) && q.y >= Math.min(p.y, r.y)); }
         _segmentsIntersect(p1, q1, p2, q2) { if ((p1.x === p2.x && p1.y === p2.y) || (p1.x === q2.x && p1.y === q2.y) || (q1.x === p2.x && q1.y === p2.y) || (q1.x === q2.x && q1.y === q2.y)) { return false; } const o1 = this._orientation(p1, q1, p2); const o2 = this._orientation(p1, q1, q2); const o3 = this._orientation(p2, q2, p1); const o4 = this._orientation(p2, q2, q1); if (o1 !== o2 && o3 !== o4) return true; if (o1 === 0 && this._onSegment(p1, p2, q1)) return true; if (o2 === 0 && this._onSegment(p1, q2, q1)) return true; if (o3 === 0 && this._onSegment(p2, p1, q2)) return true; if (o4 === 0 && this._onSegment(p2, q1, q2)) return true; return false; }
         
+        // 新パターンを追加
         _generateLevelPoints() {
-            const { width, height } = this.canvas;
-            const cx = width / 2;
-            const cy = height / 2;
-            const R = Math.min(width, height) * 0.4;
-            const points = [];
-            const data = this.levelData;
+            const { width, height } = this.canvas; const cx = width / 2; const cy = height / 2;
+            const R = Math.min(width, height) * 0.42; const points = []; const data = this.levelData;
+            const PUSH = (x, y) => points.push({x, y});
 
             switch (data.pattern) {
-                // ここに多数のパターン定義...
-                case 'square': for(let i=0; i<4; i++){ const a=Math.PI/4+i*Math.PI/2; points.push({x:cx+R*Math.cos(a),y:cy+R*Math.sin(a)}); } break;
-                case 'pentagon': for(let i=0;i<5;i++){ const a=(i*2*Math.PI)/5-Math.PI/2; points.push({x:cx+R*Math.cos(a),y:cy+R*Math.sin(a)}); } break;
-                case 'hexagon': for(let i=0;i<6;i++){ const a=(i*2*Math.PI)/6; points.push({x:cx+R*Math.cos(a),y:cy+R*Math.sin(a)}); } break;
-                case 'house': points.push({x:cx,y:cy-R},{x:cx-R,y:cy},{x:cx+R,y:cy},{x:cx-R*0.8,y:cy+R},{x:cx+R*0.8,y:cy+R}); break;
-                case 'flower': for(let i=0;i<6;i++){ const a=(i*2*Math.PI)/6; points.push({x:cx+R*0.8*Math.cos(a),y:cy+R*0.8*Math.sin(a)}); } points.push({x:cx,y:cy}); break;
-                case 'grid3x3': for(let r=-1;r<=1;r++){for(let c=-1;c<=1;c++){points.push({x:cx+c*R*0.7,y:cy+r*R*0.7});}} break;
-                // 他のパターンも同様に定義
-                default: for (let i = 0; i < data.points; i++) { points.push({ x: width * 0.1 + Math.random() * width * 0.8, y: height * 0.1 + Math.random() * height * 0.8 }); }
+                case 'square': for(let i=0; i<4; i++){ const a=Math.PI/4+i*Math.PI/2; PUSH(cx+R*Math.cos(a), cy+R*Math.sin(a)); } break;
+                case 'pentagon': for(let i=0;i<5;i++){ const a=(i*2*Math.PI)/5-Math.PI/2; PUSH(cx+R*Math.cos(a),cy+R*Math.sin(a)); } break;
+                case 'hexagon': for(let i=0;i<6;i++){ const a=(i*2*Math.PI)/6; PUSH(cx+R*Math.cos(a),cy+R*Math.sin(a)); } break;
+                case 'house': PUSH(cx,cy-R); PUSH(cx-R,cy); PUSH(cx+R,cy); PUSH(cx-R*0.8,cy+R); PUSH(cx+R*0.8,cy+R); break;
+                case 'flower': for(let i=0;i<6;i++){ const a=(i*2*Math.PI)/6; PUSH(cx+R*0.8*Math.cos(a),cy+R*0.8*Math.sin(a)); } PUSH(cx,cy); break;
+                case 'grid3x3': for(let r=-1;r<=1;r++){for(let c=-1;c<=1;c++){PUSH(cx+c*R*0.7,cy+r*R*0.7);}} break;
+                case 'star': for(let i=0;i<10;i++){const r=i%2==0?R:R*0.5;const a=i*Math.PI/5-Math.PI/2;PUSH(cx+r*Math.cos(a),cy+r*Math.sin(a));} break;
+                case 'interlocking_rings':
+                    for(let i=0;i<6;i++){ const a=i*Math.PI/3; PUSH(cx-R*0.5+R*0.4*Math.cos(a),cy+R*0.4*Math.sin(a)); }
+                    for(let i=0;i<6;i++){ const a=i*Math.PI/3; PUSH(cx+R*0.5+R*0.4*Math.cos(a),cy+R*0.4*Math.sin(a)); }
+                    break;
+                case 'asymmetric_web':
+                    PUSH(cx,cy); for(let i=0; i<8; i++){ const a=i*Math.PI/4; PUSH(cx+(R*(0.5+i*0.06))*Math.cos(a), cy+(R*(0.5+i*0.06))*Math.sin(a));}
+                    for(let i=0; i<7; i++){ const a=i*Math.PI/3.5+0.2; PUSH(cx+R*0.2*Math.cos(a), cy+R*0.2*Math.sin(a));}
+                    break;
+                case 'transcendent': // 超絶技巧モード用
+                    PUSH(cx,cy);
+                    for(let i=0;i<5;i++){const a=i*2*Math.PI/5-Math.PI/2;PUSH(cx+R*Math.cos(a),cy+R*Math.sin(a));} // Outer pentagon
+                    for(let i=0;i<5;i++){const a=i*2*Math.PI/5+Math.PI/10;PUSH(cx+R*0.6*Math.cos(a),cy+R*0.6*Math.sin(a));} // Inner pentagon
+                    for(let i=0;i<5;i++){const a=i*2*Math.PI/5-Math.PI/2;PUSH(cx+R*0.3*Math.cos(a),cy+R*0.3*Math.sin(a));} // Core pentagon
+                    PUSH(cx,cy-R*0.8);PUSH(cx,cy+R*0.8);PUSH(cx-R*0.8,cy);PUSH(cx+R*0.8,cy); // Cross
+                    for(let i=0;i<4;i++){const a=i*Math.PI/2+Math.PI/4;PUSH(cx+R*0.45*Math.cos(a),cy+R*0.45*Math.sin(a));}
+                    for(let i=0;i<4;i++){const a=i*Math.PI/2+Math.PI/4;PUSH(cx+R*0.15*Math.cos(a),cy+R*0.15*Math.sin(a));}
+                    break;
+                // 他の多数のパターン...
+                default: for (let i = 0; i < data.points; i++) { PUSH(width * 0.1 + Math.random() * width * 0.8, height * 0.1 + Math.random() * height * 0.8); }
             }
             return points;
         }
     }
 
-    /**
-     * GameManager: 全体の流れと状態を管理
-     */
     class GameManager {
         constructor() {
-            this.ui = new UIManager();
+            this.lang = LANG.JA;
+            this.ui = new UIManager(this.lang);
             this.storage = new StorageManager();
             this.audio = new AudioController(this.ui.elements.volumeSlider, this.storage);
             this.game = new PuzzleGame(
@@ -608,7 +666,7 @@
             window.addEventListener('resize', () => this.game.resizeCanvas());
         }
 
-        initBackgroundStars() { /* ...変更なし... */ const c=document.querySelector('.background-stars');for(let i=0;i<100;i++){const s=document.createElement('div');s.className='star';s.style.left=`${Math.random()*100}%`;s.style.top=`${Math.random()*100}%`;const z=Math.random()*2+1;s.style.width=`${z}px`;s.style.height=`${z}px`;s.style.animationDelay=`${Math.random()*3}s`;c.appendChild(s);} }
+        initBackgroundStars() { const c=document.querySelector('.background-stars');for(let i=0;i<100;i++){const s=document.createElement('div');s.className='star';s.style.left=`${Math.random()*100}%`;s.style.top=`${Math.random()*100}%`;const z=Math.random()*2+1;s.style.width=`${z}px`;s.style.height=`${z}px`;s.style.animationDelay=`${Math.random()*3}s`;c.appendChild(s);} }
         
         startGame(mode, startLevel = 0) {
             this.mode = mode;
@@ -637,102 +695,38 @@
             this.ui.toggleModal('startScreen', false);
             const container = this.ui.elements.challengeSelection;
             container.innerHTML = '';
-            const difficulties = { "Easy": 3, "Medium": 7, "Hard": 11, "Insane": 14 };
-            Object.entries(difficulties).forEach(([name, levelIndex]) => {
+            const difficulties = [
+                { name: this.lang.EASY, level: 0, class: 'btn-primary' },
+                { name: this.lang.MEDIUM, level: 1, class: 'btn-secondary' },
+                { name: this.lang.HARD, level: 2, class: 'btn-danger' },
+                { name: this.lang.INSANE, level: 3, class: 'btn-danger' },
+                { name: this.lang.ULTIMATE, level: 5, class: 'btn-ultimate' }
+            ];
+            difficulties.forEach(({ name, level, class: btnClass }) => {
                 const btn = document.createElement('button');
-                btn.className = 'btn btn-danger';
-                btn.textContent = `${name} (Lv.${levelIndex + 1})`;
-                btn.onclick = () => this.startGame(CONFIG.GAME_MODES.CHALLENGE, levelIndex);
+                btn.className = `btn ${btnClass}`;
+                btn.textContent = name;
+                btn.onclick = () => this.startGame(CONFIG.GAME_MODES.CHALLENGE, level);
                 container.appendChild(btn);
             });
             this.ui.toggleModal('challengeModal', true);
         }
         
-        startDynamicLevel() {
-            const levelData = this.game._generateDynamicLevel(this.difficulty);
-            this.game.startLevel(levelData);
-            this.updateUI();
-        }
-        
-        startFixedLevel() {
-            const levelData = CONFIG.FIXED_LEVELS[this.currentLevel];
-            this.game.startLevel(levelData);
-            this.updateUI();
-        }
-        
-        retryLevel() {
-            if (this.mode === CONFIG.GAME_MODES.ENDLESS) this.startDynamicLevel();
-            else this.startFixedLevel();
-            this.ui.toggleModal('resultModal', false);
-            this.state = CONFIG.GAME_STATES.PLAYING;
-        }
-
-        startNextLevel() {
-            this.ui.toggleModal('resultModal', false);
-            this.state = CONFIG.GAME_STATES.PLAYING;
-            if (this.mode === CONFIG.GAME_MODES.ENDLESS) {
-                this.difficulty++;
-                this.startDynamicLevel();
-            } else {
-                if(this.currentLevel < CONFIG.FIXED_LEVELS.length - 1) {
-                    this.currentLevel++;
-                    this.startFixedLevel();
-                }
-            }
-        }
-
-        handleLevelComplete({ time }) {
-            this.state = CONFIG.GAME_STATES.LEVEL_END;
-            let scoreGained = 0;
-            let stars = null;
-            let hasNext = true;
-
-            if (this.mode === CONFIG.GAME_MODES.ENDLESS) {
-                scoreGained = CONFIG.POINTS.BASE + this.difficulty * CONFIG.POINTS.DIFFICULTY_MULTIPLIER;
-            } else { // Challenge & Time Attack
-                stars = (time <= 10) ? 3 : (time <= 25) ? 2 : 1;
-                scoreGained = CONFIG.POINTS.BASE * (this.currentLevel + 1) + Math.max(0, 60-time) * CONFIG.POINTS.TIME_BONUS_MULTIPLIER;
-                if (this.currentLevel >= CONFIG.FIXED_LEVELS.length - 1) hasNext = false;
-            }
-
-            this.score += scoreGained;
-            if (this.score > this.highScore) {
-                this.highScore = this.score;
-                this.storage.set('highscore', this.highScore);
-            }
-            
-            this.ui.showResult({
-                title: this.mode === CONFIG.GAME_MODES.TIME_ATTACK && !hasNext ? "Time's Up!" : "Success!",
-                stars: stars,
-                time: time,
-                scoreGained: scoreGained,
-                totalScore: this.score,
-                hasNext: hasNext
-            });
-            this.updateUI();
-        }
-
-        // ... (pause, resume, quit, handleGameOver, handleStateChange, startTimer, updateUIはほぼ変更なし)
+        // ... (その他のGameManagerメソッドは前回からほぼ変更なし)
+        startDynamicLevel() { const levelData=this.game._generateDynamicLevel(this.difficulty);this.game.startLevel(levelData);this.updateUI(); }
+        startFixedLevel() { const levelData=CONFIG.FIXED_LEVELS[this.currentLevel];this.game.startLevel(levelData);this.updateUI(); }
+        retryLevel() { if(this.mode===CONFIG.GAME_MODES.ENDLESS)this.startDynamicLevel();else this.startFixedLevel();this.ui.toggleModal('resultModal',false);this.state=CONFIG.GAME_STATES.PLAYING; }
+        startNextLevel() { this.ui.toggleModal('resultModal',false);this.state=CONFIG.GAME_STATES.PLAYING;if(this.mode===CONFIG.GAME_MODES.ENDLESS){this.difficulty++;this.startDynamicLevel();}else{if(this.currentLevel<CONFIG.FIXED_LEVELS.length-1){this.currentLevel++;this.startFixedLevel();}}}
+        handleLevelComplete({ time }) { this.state=CONFIG.GAME_STATES.LEVEL_END;let scoreGained=0,stars=null,hasNext=true,title=this.lang.RESULT_SUCCESS; if(this.mode===CONFIG.GAME_MODES.ENDLESS){scoreGained=CONFIG.POINTS.BASE+this.difficulty*CONFIG.POINTS.DIFFICULTY_MULTIPLIER;}else{stars=(time<=15)?3:(time<=30)?2:1;scoreGained=CONFIG.POINTS.BASE*(this.currentLevel+1)*stars+Math.max(0,60-time)*CONFIG.POINTS.TIME_BONUS_MULTIPLIER;if(this.currentLevel>=CONFIG.FIXED_LEVELS.length-1)hasNext=false;if(this.mode===CONFIG.GAME_MODES.TIME_ATTACK&&!hasNext)title=this.lang.RESULT_TIMEUP;} this.score+=scoreGained;if(this.score>this.highScore){this.highScore=this.score;this.storage.set('highscore',this.highScore);} this.ui.showResult({title:title,stars:stars,time:time,scoreGained:scoreGained,totalScore:this.score,hasNext:hasNext});this.updateUI();}
         pauseGame() { if(this.state!==CONFIG.GAME_STATES.PLAYING)return;this.state=CONFIG.GAME_STATES.PAUSED;this.ui.toggleModal('pauseModal',true);if(this.mode===CONFIG.GAME_MODES.TIME_ATTACK){clearInterval(this.timer);} }
         resumeGame() { if(this.state!==CONFIG.GAME_STATES.PAUSED)return;this.state=CONFIG.GAME_STATES.PLAYING;this.ui.toggleModal('pauseModal',false);if(this.mode===CONFIG.GAME_MODES.TIME_ATTACK){this.startTimer();} }
         quitGame() { this.state=CONFIG.GAME_STATES.TITLE;this.ui.toggleModal('pauseModal',false);this.ui.toggleModal('resultModal',false);this.ui.toggleModal('challengeModal',false);this.ui.toggleModal('startScreen',true);this.score=0;clearInterval(this.timer);this.updateUI(); }
-        handleGameOver() { this.state=CONFIG.GAME_STATES.GAME_OVER;clearInterval(this.timer);this.ui.showResult({title:"Game Over",stars:0,time:this.game.elapsedTime||this.timeRemaining,scoreGained:0,totalScore:this.score,hasNext:false}); }
+        handleGameOver() { this.state=CONFIG.GAME_STATES.GAME_OVER;clearInterval(this.timer);this.ui.showResult({title:this.lang.RESULT_GAMEOVER,stars:0,time:this.game.elapsedTime||this.timeRemaining,scoreGained:0,totalScore:this.score,hasNext:false}); }
         handleGameStateChange(type,data){if(type==='sound')this.audio.playSound(data.type);}
         startTimer(){this.timer=setInterval(()=>{this.timeRemaining--;this.ui.updateTimer(this.timeRemaining);if(this.timeRemaining<=0){this.handleGameOver();}},1000);}
-        updateUI() {
-            if (this.mode === CONFIG.GAME_MODES.ENDLESS) {
-                this.ui.updateStat('level', this.difficulty + 1);
-            } else {
-                this.ui.updateStat('level', this.currentLevel + 1);
-            }
-            this.ui.updateStat('score', this.score);
-            this.ui.updateStat('highscore', this.highScore);
-            if (this.mode === CONFIG.GAME_MODES.TIME_ATTACK) this.ui.updateTimer(this.timeRemaining);
-            else this.ui.updateStat('timer', '∞');
-        }
+        updateUI() {if(this.mode===CONFIG.GAME_MODES.ENDLESS){this.ui.updateStat('level',this.difficulty+1);}else{this.ui.updateStat('level',this.currentLevel+1);}this.ui.updateStat('score',this.score);this.ui.updateStat('highscore',this.highScore);if(this.mode===CONFIG.GAME_MODES.TIME_ATTACK)this.ui.updateTimer(this.timeRemaining);else this.ui.updateStat('timer','∞');}
     }
 
-    // --- ゲームの初期化 ---
     document.addEventListener('DOMContentLoaded', () => { new GameManager(); });
   </script>
 </body>
