@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LinkMaster Ultimate - 線つなぎパズル大改造版</title>
+  <style>
+    /* Google Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+JP:wght@300;400;700&display=swap');
+
+    /* --- 基本設定とリセット --- */
+    :root {
+      --bg-gradient: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 25%, #16213e 50%, #0f3460 75%, #533483 100%);
+      --primary-glow: #00f5ff;
+      --secondary-glow: #ff00ff;
+      --success-glow: #00ff80;
+      --warning-glow: #ffd700;
+      --text-color: #ffffff;
+      --text-muted: #a0a0a0;
+      --panel-bg: rgba(22, 33, 62, 0.85);
+      --border-color: rgba(0, 245, 255, 0.3);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Noto Sans JP', 'Orbitron', monospace;
+      background: var(--bg-gradient);
+      color: var(--text-color);
+      min-height: 100vh;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+
+    /* --- 背景演出 --- */
+    .background-stars {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .star {
+      position: absolute;
+      background: var(--text-color);
+      border-radius: 50%;
+      animation: twinkle 3s infinite;
+    }
+
+    @keyframes twinkle {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+    
+    /* --- ゲーム全体コンテナ --- */
+    .game-world {
+        width: 100%;
+        height: 100vh;
+        max-width: 1200px;
+        max-height: 900px;
+        display: flex;
+        flex-direction: column;
+        padding: 20px;
+    }
+
+    /* --- ヘッダー --- */
+    .game-header {
+      margin-bottom: 15px;
+    }
+
+    .game-title {
+      font-family: 'Orbitron', monospace;
+      font-size: 3em;
+      font-weight: 900;
+      background: linear-gradient(45deg, var(--primary-glow), var(--secondary-glow), #ffff00);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 20px var(--primary-glow);
+      animation: glow 2s ease-in-out infinite alternate;
+    }
+
+    @keyframes glow {
+      from { filter: drop-shadow(0 0 15px var(--primary-glow)); }
+      to { filter: drop-shadow(0 0 30px var(--secondary-glow)); }
+    }
+
+    /* --- メインコンテンツエリア --- */
+    .main-content {
+        flex-grow: 1;
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    #gameCanvas {
+      border-radius: 20px;
+      background: rgba(0,0,0,0.2);
+      border: 2px solid var(--border-color);
+      box-shadow: 0 0 30px rgba(0, 245, 255, 0.2);
+      cursor: crosshair;
+      max-width: 100%;
+      max-height: 100%;
+      aspect-ratio: 4 / 3;
+    }
+
+    /* --- UIパネル --- */
+    .ui-panel {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+    }
+
+    .stat-item {
+      background: var(--panel-bg);
+      backdrop-filter: blur(5px);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 5px 15px;
+      flex-grow: 1;
+      min-width: 120px;
+    }
+    .stat-label { font-size: 0.9em; color: var(--text-muted); }
+    .stat-value { font-family: 'Orbitron', monospace; font-size: 1.6em; font-weight: 700; color: var(--primary-glow); }
+
+    /* --- コントロールボタン --- */
+    .controls {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .btn {
+      padding: 12px 25px;
+      font-family: 'Orbitron', monospace;
+      font-weight: 700;
+      font-size: 1em;
+      border: 1px solid transparent;
+      border-radius: 25px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      position: relative;
+      overflow: hidden;
+      color: var(--text-color);
+    }
+    .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%;
+      width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      transition: left 0.5s ease;
+    }
+    .btn:hover:not(:disabled)::before { left: 100%; }
+    .btn:hover:not(:disabled) { transform: translateY(-3px); }
+
+    .btn-primary { background: linear-gradient(45deg, #00A8FF, #0055FF); box-shadow: 0 5px 20px rgba(0, 168, 255, 0.3); }
+    .btn-secondary { background: linear-gradient(45deg, var(--secondary-glow), #8000ff); box-shadow: 0 5px 20px rgba(255, 0, 255, 0.3); }
+    .btn-success { background: linear-gradient(45deg, var(--success-glow), #00c957); box-shadow: 0 5px 20px rgba(0, 255, 128, 0.3); color: #0c0c0c; }
+    .btn-warning { background: linear-gradient(45deg, var(--warning-glow), #ff8c00); box-shadow: 0 5px 20px rgba(255, 215, 0, 0.3); color: #0c0c0c; }
+
+    /* --- モーダル共通 --- */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+    .modal-overlay.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+    .modal-content {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 30px 40px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 0 50px rgba(0, 245, 255, 0.3);
+      transform: scale(0.9);
+      transition: all 0.3s ease;
+    }
+    .modal-overlay.visible .modal-content {
+        transform: scale(1);
+    }
+    .modal-title { font-family: 'Orbitron', monospace; font-size: 2.2em; margin-bottom: 20px; color: var(--primary-glow); }
+    .modal-body { font-size: 1.1em; line-height: 1.6; margin-bottom: 30px; }
+    .modal-actions { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }
+    
+    /* --- スタート画面/リザルト画面の特有スタイル --- */
+    #start-screen .modal-body, #result-modal .modal-body {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+    .result-stats { font-size: 1.2em; }
+    .result-stars { font-size: 3em; color: var(--warning-glow); letter-spacing: 0.2em; text-shadow: 0 0 10px var(--warning-glow); }
+    
+    /* --- 設定モーダル --- */
+    .settings-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    .settings-row label { font-size: 1.2em; }
+    
+    /* --- チュートリアル --- */
+    .tutorial-overlay {
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 500;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s;
+    }
+    .tutorial-overlay.visible {
+        opacity: 1;
+        visibility: visible;
+    }
+    .tutorial-box {
+        background: var(--panel-bg);
+        padding: 20px;
+        border: 2px solid var(--warning-glow);
+        border-radius: 15px;
+        max-width: 80%;
+        color: var(--warning-glow);
+        font-size: 1.2em;
+        font-weight: bold;
+        box-shadow: 0 0 20px var(--warning-glow);
+    }
+    
+    /* --- レスポンシブ対応 --- */
+    @media (max-width: 768px) {
+      .game-world { padding: 10px; }
+      .game-title { font-size: 2em; }
+      .ui-panel { justify-content: center; }
+      .stat-item { padding: 5px 10px; min-width: 100px; }
+      .stat-label { font-size: 0.8em; }
+      .stat-value { font-size: 1.3em; }
+      .btn { padding: 10px 20px; font-size: 0.9em; }
+      .modal-content { padding: 20px; }
+      .modal-title { font-size: 1.8em; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="background-stars"></div>
+
+  <div class="game-world">
+    <header class="game-header">
+      <h1 class="game-title">LinkMaster Ultimate</h1>
+    </header>
+
+    <div class="ui-panel">
+      <div class="stat-item">
+        <div class="stat-label">LEVEL</div>
+        <div class="stat-value" id="ui-level">1</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">SCORE</div>
+        <div class="stat-value" id="ui-score">0</div>
+      </div>
+       <div class="stat-item">
+        <div class="stat-label">HIGH SCORE</div>
+        <div class="stat-value" id="ui-highscore">0</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">TIME</div>
+        <div class="stat-value" id="ui-timer">0:00</div>
+      </div>
+    </div>
+    
+    <main class="main-content">
+      <canvas id="gameCanvas"></canvas>
+      <div class="tutorial-overlay" id="tutorial-overlay">
+        <div class="tutorial-box" id="tutorial-box"></div>
+      </div>
+    </main>
+
+    <footer class="controls">
+      <button class="btn btn-primary" id="btn-reset">RESET</button>
+      <button class="btn btn-secondary" id="btn-hint">HINT (3)</button>
+      <button class="btn btn-warning" id="btn-pause">PAUSE</button>
+      <button class="btn btn-success" id="btn-settings">SETTINGS</button>
+    </footer>
+  </div>
+
+  <div class="modal-overlay visible" id="start-screen">
+    <div class="modal-content">
+      <h2 class="modal-title">Welcome!</h2>
+      <div class="modal-body">
+        <p>Select a game mode to begin.</p>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="btn-start-normal">Normal Mode</button>
+        <button class="btn btn-secondary" id="btn-start-timeattack">Time Attack</button>
+      </div>
+    </div>
+  </div>
+  
+  <div class="modal-overlay" id="pause-modal">
+    <div class="modal-content">
+      <h2 class="modal-title">Paused</h2>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="btn-resume">RESUME</button>
+        <button class="btn btn-warning" id="btn-quit">QUIT</button>
+      </div>
+    </div>
+  </div>
+  
+  <div class="modal-overlay" id="settings-modal">
+    <div class="modal-content">
+        <h2 class="modal-title">Settings</h2>
+        <div class="modal-body">
+            <div class="settings-row">
+                <label for="volume-slider">Volume</label>
+                <input type="range" id="volume-slider" min="0" max="1" step="0.1" value="0.5">
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-primary" id="btn-settings-close">CLOSE</button>
+        </div>
+    </div>
+  </div>
+  
+  <div class="modal-overlay" id="result-modal">
+    <div class="modal-content">
+        <h2 class="modal-title" id="result-title">Level Complete!</h2>
+        <div class="modal-body">
+            <div class="result-stars" id="result-stars"></div>
+            <div class="result-stats">
+                <p>Time: <span id="result-time"></span></p>
+                <p>Score: <span id="result-score"></span></p>
+            </div>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-success" id="btn-next-level">NEXT LEVEL</button>
+            <button class="btn btn-primary" id="btn-retry">RETRY</button>
+            <button class="btn btn-warning" id="btn-quit-result">QUIT</button>
+        </div>
+    </div>
+  </div>
+
+  <script>
+    // 厳格モード
+    "use strict";
+
+    /**
+     * @file LinkMaster Ultimate - A professional refactor of the line puzzle game.
+     * @author Gemini
+     * @version 2.0.0
+     */
+
+    // --- 設定ファイル ---
+    const CONFIG = {
+        GAME_MODES: {
+            NORMAL: 'normal',
+            TIME_ATTACK: 'time_attack'
+        },
+        GAME_STATES: {
+            TITLE: 'title',
+            PLAYING: 'playing',
+            PAUSED: 'paused',
+            LEVEL_END: 'level_end',
+            GAME_OVER: 'game_over'
+        },
+        TIME_ATTACK_DURATION: 120, // 120秒
+        POINTS: {
+            BASE: 100,
+            TIME_BONUS_MULTIPLIER: 5,
+            STAR_BONUS: [50, 100, 200] // 星1,2,3のボーナス
+        },
+        LEVELS: [
+            { points: 4, pattern: 'square' },        // 1
+            { points: 5, pattern: 'pentagon' },      // 2
+            { points: 6, pattern: 'hexagon' },       // 3
+            { points: 6, pattern: 'house' },         // 4
+            { points: 7, pattern: 'flower' },        // 5
+            { points: 8, pattern: 'hourglass' },     // 6
+            { points: 8, pattern: 'octagon' },       // 7
+            { points: 9, pattern: 'grid3x3' },       // 8
+            { points: 9, pattern: 'star' },          // 9
+            { points: 10, pattern: 'envelope' },     // 10
+            { points: 10, pattern: 'complex1' },     // 11
+            { points: 11, pattern: 'spiral' },       // 12
+            { points: 12, pattern: 'double_diamond'},// 13
+            { points: 12, pattern: 'ultimate' },     // 14
+            { points: 15, pattern: 'insane' }        // 15
+        ]
+    };
+    
+    /**
+     * UIManager: DOM要素の操作とUIの更新を担当
+     */
+    class UIManager {
+        constructor() {
+            this.elements = {
+                // UIパネル
+                level: document.getElementById('ui-level'),
+                score: document.getElementById('ui-score'),
+                highscore: document.getElementById('ui-highscore'),
+                timer: document.getElementById('ui-timer'),
+                // ボタン
+                resetBtn: document.getElementById('btn-reset'),
+                hintBtn: document.getElementById('btn-hint'),
+                pauseBtn: document.getElementById('btn-pause'),
+                settingsBtn: document.getElementById('btn-settings'),
+                resumeBtn: document.getElementById('btn-resume'),
+                quitBtn: document.getElementById('btn-quit'),
+                quitResultBtn: document.getElementById('btn-quit-result'),
+                settingsCloseBtn: document.getElementById('btn-settings-close'),
+                startNormalBtn: document.getElementById('btn-start-normal'),
+                startTimeAttackBtn: document.getElementById('btn-start-timeattack'),
+                nextLevelBtn: document.getElementById('btn-next-level'),
+                retryBtn: document.getElementById('btn-retry'),
+                // モーダル
+                startScreen: document.getElementById('start-screen'),
+                pauseModal: document.getElementById('pause-modal'),
+                settingsModal: document.getElementById('settings-modal'),
+                resultModal: document.getElementById('result-modal'),
+                // 結果表示
+                resultTitle: document.getElementById('result-title'),
+                resultStars: document.getElementById('result-stars'),
+                resultTime: document.getElementById('result-time'),
+                resultScore: document.getElementById('result-score'),
+                // チュートリアル
+                tutorialOverlay: document.getElementById('tutorial-overlay'),
+                tutorialBox: document.getElementById('tutorial-box'),
+                // その他
+                volumeSlider: document.getElementById('volume-slider'),
+            };
+        }
+
+        bind(event, handler) {
+            const [elementId, eventType] = event.split(':');
+            this.elements[elementId].addEventListener(eventType, handler);
+        }
+
+        updateStat(stat, value) {
+            if (this.elements[stat]) {
+                this.elements[stat].textContent = value;
+            }
+        }
+
+        updateTimer(time) {
+            const minutes = Math.floor(time / 60);
+            const seconds = time % 60;
+            this.updateStat('timer', `${minutes}:${seconds.toString().padStart(2, '0')}`);
+        }
+        
+        toggleModal(modalId, show) {
+            this.elements[modalId].classList.toggle('visible', show);
+        }
+
+        showResult(result) {
+            this.elements.resultTitle.textContent = result.title;
+            this.elements.resultStars.textContent = '⭐'.repeat(result.stars).padEnd(3, '☆');
+            this.elements.resultTime.textContent = this.formatTime(result.time);
+            this.elements.resultScore.textContent = `${result.scoreGained} (Total: ${result.totalScore})`;
+            this.elements.nextLevelBtn.style.display = result.isLastLevel ? 'none' : 'inline-flex';
+            this.toggleModal('resultModal', true);
+        }
+
+        showTutorial(message) {
+            if (message) {
+                this.elements.tutorialBox.textContent = message;
+                this.toggleTutorial(true);
+            } else {
+                this.toggleTutorial(false);
+            }
+        }
+
+        toggleTutorial(show) {
+            this.elements.tutorialOverlay.classList.toggle('visible', show);
+        }
+        
+        formatTime(seconds) {
+            const min = Math.floor(seconds / 60);
+            const sec = seconds % 60;
+            return `${min}:${sec.toString().padStart(2, '0')}`;
+        }
+    }
+
+    /**
+     * StorageManager: localStorageとのデータのやり取りを担当
+     */
+    class StorageManager {
+        constructor(prefix = 'linkmaster_ultimate_') {
+            this.prefix = prefix;
+        }
+
+        get(key, defaultValue = null) {
+            const value = localStorage.getItem(this.prefix + key);
+            return value ? JSON.parse(value) : defaultValue;
+        }
+
+        set(key, value) {
+            localStorage.setItem(this.prefix + key, JSON.stringify(value));
+        }
+    }
+    
+    /**
+     * AudioController: 音声の再生・管理を担当
+     */
+    class AudioController {
+        constructor(volumeSlider, storage) {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            this.masterGain = this.audioContext.createGain();
+            this.masterGain.connect(this.audioContext.destination);
+            
+            this.volumeSlider = volumeSlider;
+            this.storage = storage;
+
+            this.volumeSlider.addEventListener('input', (e) => this.setVolume(e.target.value));
+            this.loadVolume();
+        }
+
+        setVolume(volume) {
+            this.masterGain.gain.setValueAtTime(parseFloat(volume), this.audioContext.currentTime);
+            this.storage.set('volume', volume);
+        }
+        
+        loadVolume() {
+            const savedVolume = this.storage.get('volume', 0.5);
+            this.volumeSlider.value = savedVolume;
+            this.setVolume(savedVolume);
+        }
+        
+        playSound(type) {
+            if (!this.audioContext || this.masterGain.gain.value === 0) return;
+            // ユーザー操作の前にオーディオコンテキストを再開する必要がある場合
+            if (this.audioContext.state === 'suspended') {
+                this.audioContext.resume();
+            }
+
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(this.masterGain);
+
+            let freq, duration, waveType;
+            switch (type) {
+                case 'click':
+                    freq = [800]; duration = 0.2; waveType = 'triangle';
+                    break;
+                case 'success':
+                    freq = [523, 659, 784]; duration = 0.4; waveType = 'sine';
+                    break;
+                case 'error':
+                    freq = [150]; duration = 0.2; waveType = 'square';
+                    break;
+                case 'win':
+                    freq = [523, 659, 784, 1046]; duration = 0.6; waveType = 'sine';
+                    break;
+            }
+            
+            oscillator.type = waveType;
+            const now = this.audioContext.currentTime;
+            gainNode.gain.setValueAtTime(0.1, now);
+
+            if (freq.length > 1) {
+                freq.forEach((f, i) => {
+                    oscillator.frequency.setVal
