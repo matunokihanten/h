@@ -54,17 +54,20 @@
             min-height: 200px;
         }
 
-        .digit-container {
+        .digit-container, .operator-container {
             position: relative;
-            width: 80px;
+            width: 80px; /* 数字と演算子のコンテナの幅を統一 */
             height: 120px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
-        .operator-container {
-            position: relative;
-            width: 60px;
-            height: 120px;
+        /* 演算子を中央に配置するための調整 */
+        .operator-container .stick {
+            position: absolute;
         }
+
 
         .stick {
             position: absolute;
@@ -103,6 +106,17 @@
             width: 8px;
             height: 50px;
         }
+
+        /* 演算子の棒のサイズ調整 */
+        .operator-container .horizontal {
+            width: 50px;
+            height: 8px;
+        }
+        .operator-container .vertical {
+            width: 8px;
+            height: 50px;
+        }
+
 
         .controls {
             text-align: center;
@@ -159,6 +173,19 @@
             font-size: 1.1em;
             text-align: center;
         }
+
+        .answer-display {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px auto;
+            font-size: 1.3em;
+            text-align: center;
+            display: none; /* 初期状態では非表示 */
+            max-width: 500px;
+            color: #d4eaff;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -175,8 +202,7 @@
         </div>
 
         <div class="game-board" id="game-board">
-            <!-- ゲームのコンテンツがここに動的に生成されます -->
-        </div>
+            </div>
 
         <div class="message" id="message"></div>
 
@@ -184,9 +210,11 @@
             <button onclick="resetLevel()">リセット</button>
             <button id="next-btn" onclick="nextLevel()" disabled>次のレベル</button>
             <button onclick="showHint()">ヒント</button>
+            <button onclick="showAnswer()">答えを見る</button>
         </div>
 
         <div id="hint" class="hint" style="display: none;"></div>
+        <div id="answer-display" class="answer-display"></div>
     </div>
 
     <script>
@@ -196,17 +224,18 @@
         let movesLeft = 0;
         let draggedStick = null;
         let dragOffset = { x: 0, y: 0 };
+        let originalStickState = null; // 棒の元の位置と状態を保存
 
         // レベル定義
         const levels = [
-            { equation: "1+1=3", moves: 1, hint: "右の数字「3」を「2」に変えるため、3の右下の棒を取り除きましょう。" },
-            { equation: "2-1=2", moves: 1, hint: "「-」を「+」に変えるため、縦の棒を横に移動しましょう。" },
-            { equation: "3+3=8", moves: 1, hint: "右の「8」を「6」に変えるため、8の右上の縦棒を取り除きましょう。" },
-            { equation: "6-4=3", moves: 1, hint: "右の「3」を「2」に変えるため、3の右下の棒を取り除きましょう。" },
-            { equation: "8+1=6", moves: 2, hint: "「8」を「5」に変え、「6」を「9」に変える必要があります。" },
-            { equation: "5+5=9", moves: 1, hint: "右の「9」を「10」に変えるため、棒を移動させましょう。" },
-            { equation: "7-2=6", moves: 1, hint: "「7」を「9」に変えるため、棒を追加しましょう。" },
-            { equation: "4+4=7", moves: 1, hint: "右の「7」を「8」に変えるため、棒を追加しましょう。" }
+            { equation: "1+1=3", solution: "1+1=2", moves: 1, hint: "右の数字「3」を「2」に変えるため、3の右下の棒を取り除きましょう。", moves_description: "3の右下の棒を取り除き、空いた右上のスペースに移動させると、「2」になります。" },
+            { equation: "2-1=2", solution: "2+1=3", moves: 1, hint: "「-」を「+」に変えるため、縦の棒を横に移動しましょう。", moves_description: "「-」の横棒を中央に移動させ、「+」記号を形成します。そうすると、2+1=3という正しい式になります。" },
+            { equation: "3+3=8", solution: "3+3=6", moves: 1, hint: "右の「8」を「6」に変えるため、8の右上の縦棒を取り除きましょう。", moves_description: "右の「8」から右上の縦棒を取り除き、空いたスペースに移動させることで、「6」になります。" },
+            { equation: "6-4=3", solution: "5-4=1", moves: 1, hint: "左の「6」を「5」に変え、その棒で右の「3」を「1」に変えましょう。", moves_description: "左の「6」の左上の棒を取り除き「5」にし、その棒を「3」の真ん中の棒の右側に置くことで「1」になります。"},
+            { equation: "8+1=6", solution: "5+1=6", moves: 2, hint: "「8」を「5」に変えることと、棒を2本移動することを考える必要があります。", moves_description: "「8」から2本の棒を取り除き「5」にします。取り除いた棒のうち1本を「+」記号の横棒の右側に置くことで「6」になります。もう1本は使用しません。" },
+            { equation: "5+5=9", solution: "5+5=10", moves: 1, hint: "右の「9」を「10」に変えるため、棒を移動させましょう。", moves_description: "右の「9」の左下の棒を取り除き「0」にします。その棒を左の「5」の左側に置くことで「1」になり、「10」になります。" },
+            { equation: "7-2=6", solution: "9-2=7", moves: 1, hint: "「7」を「9」に変えるため、棒を追加しましょう。", moves_description: "「7」の下の棒を左下に移すことで「9」になります。"},
+            { equation: "4+4=7", solution: "4+4=8", moves: 1, hint: "右の「7」を「8」に変えるため、棒を追加しましょう。", moves_description: "右の「7」の中央上部に棒を追加し、「8」に変えます。" }
         ];
 
         // 7セグメント数字の定義
@@ -223,22 +252,30 @@
             '9': [1, 1, 1, 1, 0, 1, 1]
         };
 
-        // 棒の位置定義
+        // 棒の位置定義 (数字用)
         const stickPositions = [
-            { x: 15, y: 0, class: 'horizontal' },   // 上
-            { x: 60, y: 15, class: 'vertical' },    // 右上
-            { x: 60, y: 55, class: 'vertical' },    // 右下
-            { x: 15, y: 100, class: 'horizontal' }, // 下
-            { x: 0, y: 55, class: 'vertical' },     // 左下
-            { x: 0, y: 15, class: 'vertical' },     // 左上
-            { x: 15, y: 50, class: 'horizontal' }   // 中央
+            { x: 15, y: 0, class: 'horizontal' },   // 上 (0)
+            { x: 60, y: 15, class: 'vertical' },    // 右上 (1)
+            { x: 60, y: 55, class: 'vertical' },    // 右下 (2)
+            { x: 15, y: 100, class: 'horizontal' }, // 下 (3)
+            { x: 0, y: 55, class: 'vertical' },     // 左下 (4)
+            { x: 0, y: 15, class: 'vertical' },     // 左上 (5)
+            { x: 15, y: 50, class: 'horizontal' }   // 中央 (6)
         ];
 
         // 演算子の定義
         const operatorPatterns = {
-            '+': [[20, 35, 'horizontal'], [25, 20, 'vertical']],
-            '-': [[20, 50, 'horizontal']],
-            '=': [[15, 40, 'horizontal'], [15, 60, 'horizontal']]
+            '+': [
+                { x: 20, y: 50, class: 'horizontal' }, // 横棒
+                { x: 35, y: 30, class: 'vertical' }   // 縦棒 (修正：縦棒のY座標を調整して中央に)
+            ],
+            '-': [
+                { x: 20, y: 50, class: 'horizontal' }
+            ],
+            '=': [
+                { x: 15, y: 40, class: 'horizontal' },
+                { x: 15, y: 60, class: 'horizontal' }
+            ]
         };
 
         function initGame() {
@@ -249,6 +286,7 @@
             const levelData = levels[level - 1];
             if (!levelData) {
                 showMessage("🎉 全レベルクリア！おめでとうございます！", "success");
+                document.getElementById('next-btn').disabled = true;
                 return;
             }
 
@@ -257,6 +295,7 @@
             createGameBoard(levelData.equation);
             showMessage("");
             document.getElementById('next-btn').disabled = true;
+            document.getElementById('answer-display').style.display = 'none'; // 新しいレベルで答えを非表示にする
         }
 
         function createGameBoard(equation) {
@@ -271,26 +310,25 @@
                     board.appendChild(createOperator(char, i));
                 }
             }
+            saveOriginalStickState(); // ゲームボード作成時に元の状態を保存
         }
 
         function createDigit(digit, index) {
             const container = document.createElement('div');
             container.className = 'digit-container';
             container.dataset.index = index;
+            container.dataset.type = 'digit';
 
             const pattern = digitPatterns[digit];
             
             // アクティブな棒を作成
             pattern.forEach((active, stickIndex) => {
+                const pos = stickPositions[stickIndex];
                 if (active) {
-                    const stick = createStick(stickPositions[stickIndex], `${index}-${stickIndex}`, true);
+                    const stick = createStick(pos, `${index}-${stickIndex}`, true);
                     container.appendChild(stick);
-                }
-            });
-
-            // 空のスロットを作成
-            stickPositions.forEach((pos, stickIndex) => {
-                if (!pattern[stickIndex]) {
+                } else {
+                    // 非アクティブなスロットも作成
                     const slot = createEmptySlot(pos, `${index}-${stickIndex}`);
                     container.appendChild(slot);
                 }
@@ -303,19 +341,51 @@
             const container = document.createElement('div');
             container.className = 'operator-container';
             container.dataset.index = index;
+            container.dataset.type = 'operator';
 
             const pattern = operatorPatterns[operator];
             
+            // 演算子の棒を作成
             pattern.forEach((pos, stickIndex) => {
-                const stick = document.createElement('div');
-                stick.className = `stick ${pos[2]}`;
-                stick.style.left = pos[0] + 'px';
-                stick.style.top = pos[1] + 'px';
-                stick.dataset.id = `${index}-${stickIndex}`;
-                stick.dataset.active = 'true';
-                addStickEvents(stick);
+                const stick = createStick(pos, `${index}-${stickIndex}`, true);
                 container.appendChild(stick);
             });
+
+            // 演算子の空スロットを作成 (必要に応じて)
+            // 例えば '+' には縦横2本、'-' には横1本、'=' には横2本
+            // それ以外の場所は空スロットとみなすことができる
+            const allOperatorSlots = {
+                '+': [ // 横棒と縦棒
+                    { x: 20, y: 50, class: 'horizontal' },
+                    { x: 35, y: 30, class: 'vertical' }
+                ],
+                '-': [ // 横棒
+                    { x: 20, y: 50, class: 'horizontal' }
+                ],
+                '=': [ // 上段と下段の横棒
+                    { x: 15, y: 40, class: 'horizontal' },
+                    { x: 15, y: 60, class: 'horizontal' }
+                ]
+            };
+            const currentOperatorSlots = allOperatorSlots[operator] || [];
+
+            // すべての可能なスロットを定義し、アクティブな棒の位置を除外して空スロットを作成
+            // 例: オペレーターコンテナの中央付近を基準に空スロットを作成
+            const operatorEmptySlots = [
+                { x: 20, y: 50, class: 'horizontal' }, // - の位置、+ の横棒の位置
+                { x: 35, y: 30, class: 'vertical' },   // + の縦棒の位置
+                { x: 15, y: 40, class: 'horizontal' }, // = の上段の位置
+                { x: 15, y: 60, class: 'horizontal' }  // = の下段の位置
+            ];
+
+            operatorEmptySlots.forEach((slotPos, slotIndex) => {
+                const isOccupied = pattern.some(p => p.x === slotPos.x && p.y === slotPos.y && p.class === slotPos.class);
+                if (!isOccupied) {
+                    const slot = createEmptySlot(slotPos, `${index}-op-slot-${slotIndex}`);
+                    container.appendChild(slot);
+                }
+            });
+
 
             return container;
         }
@@ -327,7 +397,10 @@
             stick.style.top = position.y + 'px';
             stick.dataset.id = id;
             stick.dataset.active = active;
-            
+            stick.dataset.originalX = position.x;
+            stick.dataset.originalY = position.y;
+            stick.dataset.originalClass = position.class; // 元のクラスも保存
+
             if (active) {
                 addStickEvents(stick);
             }
@@ -341,6 +414,9 @@
             slot.style.left = position.x + 'px';
             slot.style.top = position.y + 'px';
             slot.dataset.id = id;
+            slot.dataset.x = position.x;
+            slot.dataset.y = position.y;
+            slot.dataset.class = position.class;
             
             slot.addEventListener('dragover', handleDragOver);
             slot.addEventListener('drop', handleDrop);
@@ -363,10 +439,31 @@
             draggedStick = e.target;
             e.target.classList.add('dragging');
             e.dataTransfer.effectAllowed = 'move';
+
+            // ドラッグ中の棒の元の情報を保存
+            draggedStick.dataset.originalParentId = draggedStick.parentNode.dataset.index;
+            draggedStick.dataset.originalSlotId = draggedStick.dataset.id;
+            
+            // ドラッグ開始時に、元の位置に仮の空スロットを作成
+            const sourceContainer = draggedStick.parentNode;
+            const sourcePos = {
+                x: parseInt(draggedStick.style.left),
+                y: parseInt(draggedStick.style.top),
+                class: draggedStick.classList.contains('horizontal') ? 'horizontal' : 'vertical'
+            };
+            const tempSlot = createEmptySlot(sourcePos, draggedStick.dataset.id);
+            tempSlot.dataset.temp = 'true'; // 仮のスロットであることを示す
+            sourceContainer.appendChild(tempSlot);
         }
 
         function handleDragEnd(e) {
             e.target.classList.remove('dragging');
+            
+            // ドラッグが完了したときに、元の位置の仮スロットを削除
+            const tempSlot = document.querySelector('.empty-slot[data-temp="true"]');
+            if (tempSlot) {
+                tempSlot.remove();
+            }
             draggedStick = null;
         }
 
@@ -383,25 +480,40 @@
             const targetSlot = e.target.closest('.empty-slot');
             if (!targetSlot) return;
 
-            // 棒を移動
+            // 移動先のスロットと棒のクラス（水平/垂直）が一致するか確認
+            if (draggedStick.classList.contains('horizontal') !== targetSlot.classList.contains('horizontal') ||
+                draggedStick.classList.contains('vertical') !== targetSlot.classList.contains('vertical')) {
+                // クラスが一致しない場合はドロップを無効にする
+                showMessage("棒の種類が合いません！", "error");
+                return;
+            }
+
             const sourceContainer = draggedStick.parentNode;
             const targetContainer = targetSlot.parentNode;
 
-            // 元の位置に空スロットを作成
+            // 元の位置の仮スロットを削除
+            const tempSlot = document.querySelector('.empty-slot[data-temp="true"]');
+            if (tempSlot) {
+                tempSlot.remove();
+            }
+
+            // 元の位置に新しい空スロットを作成
             const sourcePos = {
                 x: parseInt(draggedStick.style.left),
-                y: parseInt(draggedStick.style.top)
+                y: parseInt(draggedStick.style.top),
+                class: draggedStick.classList.contains('horizontal') ? 'horizontal' : 'vertical'
             };
-            const sourceSlot = createEmptySlot(sourcePos, draggedStick.dataset.id);
+            const sourceSlot = createEmptySlot(sourcePos, draggedStick.dataset.id); // 元の棒のIDを使用
             sourceContainer.appendChild(sourceSlot);
 
             // 棒を新しい位置に移動
             draggedStick.style.left = targetSlot.style.left;
             draggedStick.style.top = targetSlot.style.top;
+            // 新しい位置のIDを棒に設定
             draggedStick.dataset.id = targetSlot.dataset.id;
             
             targetContainer.appendChild(draggedStick);
-            targetSlot.remove();
+            targetSlot.remove(); // ドロップされたスロットを削除
 
             movesLeft--;
             updateDisplay();
@@ -411,8 +523,25 @@
             }
         }
 
+        function saveOriginalStickState() {
+            originalStickState = [];
+            document.querySelectorAll('.digit-container, .operator-container').forEach(container => {
+                const containerId = container.dataset.index;
+                container.querySelectorAll('.stick').forEach(stick => {
+                    originalStickState.push({
+                        id: stick.dataset.id,
+                        parentIndex: containerId,
+                        x: parseInt(stick.style.left),
+                        y: parseInt(stick.style.top),
+                        class: stick.classList.contains('horizontal') ? 'horizontal' : 'vertical'
+                    });
+                });
+            });
+        }
+
         function checkSolution() {
             const equation = getCurrentEquation();
+            const currentLevelData = levels[currentLevel - 1];
             
             try {
                 // 等号で分割
@@ -441,13 +570,16 @@
         function getCurrentEquation() {
             const containers = document.querySelectorAll('.digit-container, .operator-container');
             let equation = '';
+            
+            // コンテナのdata-index属性に基づいてソート
+            const sortedContainers = Array.from(containers).sort((a, b) => {
+                return parseInt(a.dataset.index) - parseInt(b.dataset.index);
+            });
 
-            containers.forEach(container => {
-                const index = parseInt(container.dataset.index);
-                
+            sortedContainers.forEach(container => {
                 if (container.classList.contains('digit-container')) {
                     equation += getDigitFromContainer(container);
-                } else {
+                } else if (container.classList.contains('operator-container')) {
                     equation += getOperatorFromContainer(container);
                 }
             });
@@ -457,8 +589,9 @@
 
         function getDigitFromContainer(container) {
             const activeSticks = Array.from(container.querySelectorAll('.stick')).map(stick => {
-                const id = stick.dataset.id.split('-')[1];
-                return parseInt(id);
+                const idPart = stick.dataset.id.split('-');
+                // IDの最後の部分が数字の棒のインデックスに対応
+                return parseInt(idPart[idPart.length - 1]);
             });
 
             // パターンマッチング
@@ -485,22 +618,37 @@
         }
 
         function getOperatorFromContainer(container) {
-            const sticks = container.querySelectorAll('.stick');
+            const activeSticks = Array.from(container.querySelectorAll('.stick'));
             
-            if (sticks.length === 1) {
-                return '-';
-            } else if (sticks.length === 2) {
-                // + か = かを判定
-                let hasVertical = false;
-                sticks.forEach(stick => {
-                    if (stick.classList.contains('vertical')) {
-                        hasVertical = true;
+            if (activeSticks.length === 1) {
+                const stick = activeSticks[0];
+                if (stick.classList.contains('horizontal')) {
+                    // '-'(マイナス)または'='の片方
+                    // オペレータコンテナのサイズと棒の位置に基づいて判断
+                    if (parseInt(stick.style.left) === 20 && parseInt(stick.style.top) === 50) {
+                        return '-'; // 通常のマイナスの位置
+                    }
+                }
+            } else if (activeSticks.length === 2) {
+                let hasHorizontal = 0;
+                let hasVertical = 0;
+                
+                activeSticks.forEach(stick => {
+                    if (stick.classList.contains('horizontal')) {
+                        hasHorizontal++;
+                    } else if (stick.classList.contains('vertical')) {
+                        hasVertical++;
                     }
                 });
-                return hasVertical ? '+' : '=';
+
+                if (hasHorizontal === 2 && hasVertical === 0) {
+                    return '=';
+                } else if (hasHorizontal === 1 && hasVertical === 1) {
+                    return '+';
+                }
             }
             
-            return '?';
+            return '?'; // 不明な演算子
         }
 
         function showSuccess() {
@@ -529,12 +677,14 @@
         function resetLevel() {
             loadLevel(currentLevel);
             document.getElementById('hint').style.display = 'none';
+            document.getElementById('answer-display').style.display = 'none';
         }
 
         function nextLevel() {
             currentLevel++;
             loadLevel(currentLevel);
             document.getElementById('hint').style.display = 'none';
+            document.getElementById('answer-display').style.display = 'none';
         }
 
         function showHint() {
@@ -543,6 +693,20 @@
                 const hintElement = document.getElementById('hint');
                 hintElement.textContent = `💡 ヒント: ${levelData.hint}`;
                 hintElement.style.display = 'block';
+                document.getElementById('answer-display').style.display = 'none'; // ヒント表示時は答えを非表示にする
+            }
+        }
+
+        function showAnswer() {
+            const levelData = levels[currentLevel - 1];
+            if (levelData) {
+                const answerElement = document.getElementById('answer-display');
+                answerElement.innerHTML = `
+                    <p>正解の式: <span style="color: #FFD700;">${levelData.solution}</span></p>
+                    <p>動かし方: ${levelData.moves_description}</p>
+                `;
+                answerElement.style.display = 'block';
+                document.getElementById('hint').style.display = 'none'; // 答え表示時はヒントを非表示にする
             }
         }
 
