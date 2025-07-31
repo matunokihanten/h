@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>棒移動パズルゲーム</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+
+        .game-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 30px;
+            font-size: 1.2em;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .game-board {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            margin: 40px 0;
+            min-height: 200px;
+        }
+
+        .digit-container {
+            position: relative;
+            width: 80px;
+            height: 120px;
+        }
+
+        .operator-container {
+            position: relative;
+            width: 60px;
+            height: 120px;
+        }
+
+        .stick {
+            position: absolute;
+            background: #ffd700;
+            border: 2px solid #ffed4e;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .stick:hover {
+            background: #ffed4e;
+            transform: scale(1.05);
+        }
+
+        .stick.dragging {
+            opacity: 0.6;
+            z-index: 1000;
+            transform: scale(1.1);
+        }
+
+        .empty-slot {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+        }
+
+        .horizontal {
+            width: 50px;
+            height: 8px;
+        }
+
+        .vertical {
+            width: 8px;
+            height: 50px;
+        }
+
+        .controls {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        button {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 0 10px;
+            border-radius: 25px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .message {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 1.3em;
+            font-weight: bold;
+            min-height: 30px;
+        }
+
+        .success {
+            color: #4CAF50;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .error {
+            color: #ff6b6b;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .hint {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-size: 1.1em;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>🧩 棒移動パズルゲーム</h1>
+            <p>棒を動かして正しい数式を作ろう！</p>
+        </div>
+
+        <div class="game-info">
+            <div>レベル: <span id="level">1</span></div>
+            <div>移動可能: <span id="moves-left">1</span>本</div>
+            <div>スコア: <span id="score">0</span></div>
+        </div>
+
+        <div class="game-board" id="game-board">
+            <!-- ゲームのコンテンツがここに動的に生成されます -->
+        </div>
+
+        <div class="message" id="message"></div>
+
+        <div class="controls">
+            <button onclick="resetLevel()">リセット</button>
+            <button id="next-btn" onclick="nextLevel()" disabled>次のレベル</button>
+            <button onclick="showHint()">ヒント</button>
+        </div>
+
+        <div id="hint" class="hint" style="display: none;"></div>
+    </div>
+
+    <script>
+        // ゲーム状態
+        let currentLevel = 1;
+        let score = 0;
+        let movesLeft = 0;
+        let draggedStick = null;
+        let dragOffset = { x: 0, y: 0 };
+
+        // レベル定義
+        const levels = [
+            { equation: "1+1=3", moves: 1, hint: "右の数字「3」を「2」に変えるため、3の右下の棒を取り除きましょう。" },
+            { equation: "2-1=2", moves: 1, hint: "「-」を「+」に変えるため、縦の棒を横に移動しましょう。" },
+            { equation: "3+3=8", moves: 1, hint: "右の「8」を「6」に変えるため、8の右上の縦棒を取り除きましょう。" },
+            { equation: "6-4=3", moves: 1, hint: "右の「3」を「2」に変えるため、3の右下の棒を取り除きましょう。" },
+            { equation: "8+1=6", moves: 2, hint: "「8」を「5」に変え、「6」を「9」に変える必要があります。" },
+            { equation: "5+5=9", moves: 1, hint: "右の「9」を「10」に変えるため、棒を移動させましょう。" },
+            { equation: "7-2=6", moves: 1, hint: "「7」を「9」に変えるため、棒を追加しましょう。" },
+            { equation: "4+4=7", moves: 1, hint: "右の「7」を「8」に変えるため、棒を追加しましょう。" }
+        ];
+
+        // 7セグメント数字の定義
+        const digitPatterns = {
+            '0': [1, 1, 1, 1, 1, 1, 0], // 上、右上、右下、下、左下、左上、中央
+            '1': [0, 1, 1, 0, 0, 0, 0],
+            '2': [1, 1, 0, 1, 1, 0, 1],
+            '3': [1, 1, 1, 1, 0, 0, 1],
+            '4': [0, 1, 1, 0, 0, 1, 1],
+            '5': [1, 0, 1, 1, 0, 1, 1],
+            '6': [1, 0, 1, 1, 1, 1, 1],
+            '7': [1, 1, 1, 0, 0, 0, 0],
+            '8': [1, 1, 1, 1, 1, 1, 1],
+            '9': [1, 1, 1, 1, 0, 1, 1]
+        };
+
+        // 棒の位置定義
+        const stickPositions = [
+            { x: 15, y: 0, class: 'horizontal' },   // 上
+            { x: 60, y: 15, class: 'vertical' },    // 右上
+            { x: 60, y: 55, class: 'vertical' },    // 右下
+            { x: 15, y: 100, class: 'horizontal' }, // 下
+            { x: 0, y: 55, class: 'vertical' },     // 左下
+            { x: 0, y: 15, class: 'vertical' },     // 左上
+            { x: 15, y: 50, class: 'horizontal' }   // 中央
+        ];
+
+        // 演算子の定義
+        const operatorPatterns = {
+            '+': [[20, 35, 'horizontal'], [25, 20, 'vertical']],
+            '-': [[20, 50, 'horizontal']],
+            '=': [[15, 40, 'horizontal'], [15, 60, 'horizontal']]
+        };
+
+        function initGame() {
+            loadLevel(currentLevel);
+        }
+
+        function loadLevel(level) {
+            const levelData = levels[level - 1];
+            if (!levelData) {
+                showMessage("🎉 全レベルクリア！おめでとうございます！", "success");
+                return;
+            }
+
+            movesLeft = levelData.moves;
+            updateDisplay();
+            createGameBoard(levelData.equation);
+            showMessage("");
+            document.getElementById('next-btn').disabled = true;
+        }
+
+        function createGameBoard(equation) {
+            const board = document.getElementById('game-board');
+            board.innerHTML = '';
+
+            for (let i = 0; i < equation.length; i++) {
+                const char = equation[i];
+                if (char >= '0' && char <= '9') {
+                    board.appendChild(createDigit(char, i));
+                } else if (char === '+' || char === '-' || char === '=') {
+                    board.appendChild(createOperator(char, i));
+                }
+            }
+        }
+
+        function createDigit(digit, index) {
+            const container = document.createElement('div');
+            container.className = 'digit-container';
+            container.dataset.index = index;
+
+            const pattern = digitPatterns[digit];
+            
+            // アクティブな棒を作成
+            pattern.forEach((active, stickIndex) => {
+                if (active) {
+                    const stick = createStick(stickPositions[stickIndex], `${index}-${stickIndex}`, true);
+                    container.appendChild(stick);
+                }
+            });
+
+            // 空のスロットを作成
+            stickPositions.forEach((pos, stickIndex) => {
+                if (!pattern[stickIndex]) {
+                    const slot = createEmptySlot(pos, `${index}-${stickIndex}`);
+                    container.appendChild(slot);
+                }
+            });
+
+            return container;
+        }
+
+        function createOperator(operator, index) {
+            const container = document.createElement('div');
+            container.className = 'operator-container';
+            container.dataset.index = index;
+
+            const pattern = operatorPatterns[operator];
+            
+            pattern.forEach((pos, stickIndex) => {
+                const stick = document.createElement('div');
+                stick.className = `stick ${pos[2]}`;
+                stick.style.left = pos[0] + 'px';
+                stick.style.top = pos[1] + 'px';
+                stick.dataset.id = `${index}-${stickIndex}`;
+                stick.dataset.active = 'true';
+                addStickEvents(stick);
+                container.appendChild(stick);
+            });
+
+            return container;
+        }
+
+        function createStick(position, id, active) {
+            const stick = document.createElement('div');
+            stick.className = `stick ${position.class}`;
+            stick.style.left = position.x + 'px';
+            stick.style.top = position.y + 'px';
+            stick.dataset.id = id;
+            stick.dataset.active = active;
+            
+            if (active) {
+                addStickEvents(stick);
+            }
+            
+            return stick;
+        }
+
+        function createEmptySlot(position, id) {
+            const slot = document.createElement('div');
+            slot.className = `empty-slot ${position.class}`;
+            slot.style.left = position.x + 'px';
+            slot.style.top = position.y + 'px';
+            slot.dataset.id = id;
+            
+            slot.addEventListener('dragover', handleDragOver);
+            slot.addEventListener('drop', handleDrop);
+            
+            return slot;
+        }
+
+        function addStickEvents(stick) {
+            stick.draggable = true;
+            stick.addEventListener('dragstart', handleDragStart);
+            stick.addEventListener('dragend', handleDragEnd);
+        }
+
+        function handleDragStart(e) {
+            if (movesLeft <= 0) {
+                e.preventDefault();
+                return;
+            }
+            
+            draggedStick = e.target;
+            e.target.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            draggedStick = null;
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            
+            if (!draggedStick || movesLeft <= 0) return;
+
+            const targetSlot = e.target.closest('.empty-slot');
+            if (!targetSlot) return;
+
+            // 棒を移動
+            const sourceContainer = draggedStick.parentNode;
+            const targetContainer = targetSlot.parentNode;
+
+            // 元の位置に空スロットを作成
+            const sourcePos = {
+                x: parseInt(draggedStick.style.left),
+                y: parseInt(draggedStick.style.top)
+            };
+            const sourceSlot = createEmptySlot(sourcePos, draggedStick.dataset.id);
+            sourceContainer.appendChild(sourceSlot);
+
+            // 棒を新しい位置に移動
+            draggedStick.style.left = targetSlot.style.left;
+            draggedStick.style.top = targetSlot.style.top;
+            draggedStick.dataset.id = targetSlot.dataset.id;
+            
+            targetContainer.appendChild(draggedStick);
+            targetSlot.remove();
+
+            movesLeft--;
+            updateDisplay();
+
+            if (movesLeft === 0) {
+                setTimeout(checkSolution, 100);
+            }
+        }
+
+        function checkSolution() {
+            const equation = getCurrentEquation();
+            
+            try {
+                // 等号で分割
+                const parts = equation.split('=');
+                if (parts.length !== 2) {
+                    showFailure();
+                    return;
+                }
+
+                const leftSide = parts[0].trim();
+                const rightSide = parseInt(parts[1].trim());
+
+                // 左辺を評価
+                const leftResult = eval(leftSide);
+                
+                if (leftResult === rightSide) {
+                    showSuccess();
+                } else {
+                    showFailure();
+                }
+            } catch (error) {
+                showFailure();
+            }
+        }
+
+        function getCurrentEquation() {
+            const containers = document.querySelectorAll('.digit-container, .operator-container');
+            let equation = '';
+
+            containers.forEach(container => {
+                const index = parseInt(container.dataset.index);
+                
+                if (container.classList.contains('digit-container')) {
+                    equation += getDigitFromContainer(container);
+                } else {
+                    equation += getOperatorFromContainer(container);
+                }
+            });
+
+            return equation;
+        }
+
+        function getDigitFromContainer(container) {
+            const activeSticks = Array.from(container.querySelectorAll('.stick')).map(stick => {
+                const id = stick.dataset.id.split('-')[1];
+                return parseInt(id);
+            });
+
+            // パターンマッチング
+            for (let digit in digitPatterns) {
+                const pattern = digitPatterns[digit];
+                let matches = true;
+                
+                for (let i = 0; i < 7; i++) {
+                    const shouldBeActive = pattern[i] === 1;
+                    const isActive = activeSticks.includes(i);
+                    
+                    if (shouldBeActive !== isActive) {
+                        matches = false;
+                        break;
+                    }
+                }
+                
+                if (matches) {
+                    return digit;
+                }
+            }
+            
+            return '?'; // 不明な数字
+        }
+
+        function getOperatorFromContainer(container) {
+            const sticks = container.querySelectorAll('.stick');
+            
+            if (sticks.length === 1) {
+                return '-';
+            } else if (sticks.length === 2) {
+                // + か = かを判定
+                let hasVertical = false;
+                sticks.forEach(stick => {
+                    if (stick.classList.contains('vertical')) {
+                        hasVertical = true;
+                    }
+                });
+                return hasVertical ? '+' : '=';
+            }
+            
+            return '?';
+        }
+
+        function showSuccess() {
+            score += currentLevel * 100;
+            showMessage("🎉 正解！おめでとうございます！", "success");
+            document.getElementById('next-btn').disabled = false;
+            updateDisplay();
+        }
+
+        function showFailure() {
+            showMessage("失敗！リセットして再挑戦しましょう。", "error");
+        }
+
+        function showMessage(text, className = "") {
+            const messageElement = document.getElementById('message');
+            messageElement.textContent = text;
+            messageElement.className = `message ${className}`;
+        }
+
+        function updateDisplay() {
+            document.getElementById('level').textContent = currentLevel;
+            document.getElementById('moves-left').textContent = movesLeft;
+            document.getElementById('score').textContent = score;
+        }
+
+        function resetLevel() {
+            loadLevel(currentLevel);
+            document.getElementById('hint').style.display = 'none';
+        }
+
+        function nextLevel() {
+            currentLevel++;
+            loadLevel(currentLevel);
+            document.getElementById('hint').style.display = 'none';
+        }
+
+        function showHint() {
+            const levelData = levels[currentLevel - 1];
+            if (levelData) {
+                const hintElement = document.getElementById('hint');
+                hintElement.textContent = `💡 ヒント: ${levelData.hint}`;
+                hintElement.style.display = 'block';
+            }
+        }
+
+        // ゲーム開始
+        initGame();
+    </script>
+</body>
+</html>
