@@ -1,0 +1,345 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D棒カウンティング脳トレゲーム</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            overflow-x: hidden;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        #game-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        #canvas-container {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        #gameCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        
+        .controls {
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        input {
+            padding: 8px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 80px;
+            text-align: center;
+        }
+        
+        button {
+            padding: 8px 15px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        .info {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 15px;
+        }
+        
+        .info div {
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            min-width: 100px;
+        }
+        
+        #message {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        
+        .success {
+            background-color: #dff0d8;
+            color: #3c763d;
+        }
+        
+        .error {
+            background-color: #f2dede;
+            color: #a94442;
+        }
+        
+        .neutral {
+            background-color: #d9edf7;
+            color: #31708f;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <h1>3D棒カウンティング脳トレゲーム</h1>
+        
+        <div id="canvas-container">
+            <div id="gameCanvas"></div>
+        </div>
+        
+        <div class="controls">
+            <label for="answer">棒の本数: </label>
+            <input type="number" id="answer" min="1" max="100">
+            <button id="submitBtn">回答する</button>
+            <button id="newGameBtn">新しいゲーム</button>
+        </div>
+        
+        <div class="info">
+            <div>スコア: <span id="score">0</span></div>
+            <div>残り時間: <span id="timer">30</span>秒</div>
+        </div>
+        
+        <div id="message" class="neutral">ゲームを開始してください！</div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Three.js変数
+            let scene, camera, renderer;
+            let sticks = [];
+            
+            // ゲーム変数
+            let stickCount = 0;
+            let score = 0;
+            let timeLeft = 30;
+            let timerInterval = null;
+            let gameActive = false;
+            
+            // DOM要素
+            const container = document.getElementById('gameCanvas');
+            const answerInput = document.getElementById('answer');
+            const submitBtn = document.getElementById('submitBtn');
+            const newGameBtn = document.getElementById('newGameBtn');
+            const scoreElement = document.getElementById('score');
+            const timerElement = document.getElementById('timer');
+            const messageElement = document.getElementById('message');
+            
+            // シーンの初期化
+            function initThreeJS() {
+                // シーンの作成
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0xf0f0f0);
+                
+                // カメラの作成
+                const aspect = container.clientWidth / container.clientHeight;
+                camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
+                camera.position.z = 15;
+                
+                // レンダラーの作成
+                renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(container.clientWidth, container.clientHeight);
+                container.appendChild(renderer.domElement);
+                
+                // 光源の追加
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+                scene.add(ambientLight);
+                
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(1, 1, 1);
+                scene.add(directionalLight);
+                
+                // ウィンドウサイズ変更時の処理
+                window.addEventListener('resize', onWindowResize);
+            }
+            
+            // ウィンドウサイズ変更時の処理
+            function onWindowResize() {
+                const aspect = container.clientWidth / container.clientHeight;
+                camera.aspect = aspect;
+                camera.updateProjectionMatrix();
+                renderer.setSize(container.clientWidth, container.clientHeight);
+            }
+            
+            // 棒を描画
+            function createSticks(count) {
+                // 既存の棒をクリア
+                sticks.forEach(stick => {
+                    scene.remove(stick);
+                });
+                sticks = [];
+                
+                // 新しい棒を作成
+                for (let i = 0; i < count; i++) {
+                    // ランダムな位置、長さ、角度、色
+                    const height = Math.random() * 3 + 2; // 2〜5の長さ
+                    const radius = Math.random() * 0.1 + 0.05; // 0.05〜0.15の太さ
+                    
+                    // 棒の形状と材質を作成
+                    const geometry = new THREE.CylinderGeometry(radius, radius, height, 8);
+                    const material = new THREE.MeshPhongMaterial({
+                        color: Math.random() * 0xffffff,
+                        shininess: 30
+                    });
+                    
+                    // 棒メッシュを作成
+                    const stick = new THREE.Mesh(geometry, material);
+                    
+                    // ランダムな位置と角度を設定
+                    stick.position.x = Math.random() * 20 - 10;
+                    stick.position.y = Math.random() * 10 - 5;
+                    stick.position.z = Math.random() * 10 - 5;
+                    
+                    // ランダムな傾き
+                    stick.rotation.x = Math.random() * Math.PI;
+                    stick.rotation.y = Math.random() * Math.PI;
+                    stick.rotation.z = Math.random() * Math.PI;
+                    
+                    // シーンに追加
+                    scene.add(stick);
+                    sticks.push(stick);
+                }
+            }
+            
+            // アニメーションループ
+            function animate() {
+                requestAnimationFrame(animate);
+                
+                // カメラをゆっくり回転
+                if (gameActive) {
+                    camera.position.x = 15 * Math.sin(Date.now() * 0.0005);
+                    camera.position.z = 15 * Math.cos(Date.now() * 0.0005);
+                    camera.lookAt(0, 0, 0);
+                }
+                
+                renderer.render(scene, camera);
+            }
+            
+            // 新しいゲームを開始
+            function startNewGame() {
+                // タイマーをクリア
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                }
+                
+                // 棒の本数をランダムに決定 (1〜100)
+                stickCount = Math.floor(Math.random() * 70) + 1; // 1〜70に制限（多すぎると処理が重くなるため）
+                
+                // 棒を描画
+                createSticks(stickCount);
+                
+                // 入力フィールドをクリア
+                answerInput.value = '';
+                answerInput.focus();
+                
+                // タイマーを設定
+                timeLeft = 30;
+                timerElement.textContent = timeLeft;
+                
+                // メッセージをリセット
+                messageElement.textContent = '画面に表示されている3D棒の本数を数えてください！';
+                messageElement.className = 'neutral';
+                
+                // ゲームをアクティブに
+                gameActive = true;
+                
+                // タイマーを開始
+                timerInterval = setInterval(function() {
+                    timeLeft--;
+                    timerElement.textContent = timeLeft;
+                    
+                    if (timeLeft <= 0) {
+                        clearInterval(timerInterval);
+                        gameActive = false;
+                        messageElement.textContent = `時間切れです！正解は ${stickCount} 本でした。`;
+                        messageElement.className = 'error';
+                    }
+                }, 1000);
+            }
+            
+            // 回答をチェック
+            function checkAnswer() {
+                if (!gameActive) {
+                    return;
+                }
+                
+                const userAnswer = parseInt(answerInput.value);
+                
+                if (isNaN(userAnswer)) {
+                    messageElement.textContent = '数値を入力してください。';
+                    messageElement.className = 'error';
+                    return;
+                }
+                
+                // タイマーを停止
+                clearInterval(timerInterval);
+                gameActive = false;
+                
+                // 正解かどうかをチェック
+                if (userAnswer === stickCount) {
+                    score += 10;
+                    scoreElement.textContent = score;
+                    messageElement.textContent = `正解です！棒の本数は ${stickCount} 本でした。`;
+                    messageElement.className = 'success';
+                } else {
+                    messageElement.textContent = `不正解です。棒の本数は ${stickCount} 本でした。`;
+                    messageElement.className = 'error';
+                }
+            }
+            
+            // イベントリスナーの設定
+            submitBtn.addEventListener('click', checkAnswer);
+            newGameBtn.addEventListener('click', startNewGame);
+            
+            // Enterキーで回答できるようにする
+            answerInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    checkAnswer();
+                }
+            });
+            
+            // Three.jsの初期化とアニメーションループの開始
+            initThreeJS();
+            animate();
+            
+            // 初期ゲームを開始
+            startNewGame();
+        });
+    </script>
+</body>
+</html>
