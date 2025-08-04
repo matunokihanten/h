@@ -120,9 +120,7 @@
         .game-grid {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
-            /* --- 修正箇所 --- */
             grid-auto-rows: 1fr;
-            /* ---------------- */
             gap: 8px;
             margin-bottom: 20px;
             aspect-ratio: 1;
@@ -160,7 +158,7 @@
         .cell.correct {
             background: linear-gradient(45deg, #10ac84, #00d2d3);
             border-color: #10ac84;
-            animation: correctPulse 0.5s ease;
+            animation: correctPulse 0.3s ease;
         }
 
         .cell.wrong {
@@ -354,14 +352,18 @@
             const number = gameState.numbers[index];
             
             if (number === gameState.currentNumber) {
+                // 正解の場合、アニメーションクラスを付与し、即座に次の数字へ更新
                 cell.classList.add('correct');
+                
+                // 次の数字を即座に更新することで、ゲームロジックの反応速度を向上
                 gameState.currentNumber++;
                 document.getElementById('nextNumber').textContent = gameState.currentNumber;
                 
-                setTimeout(() => {
-                    cell.style.visibility = 'hidden';
-                }, 300);
-                
+                // セルの数字を一時的に非表示にし、ゲームロジックから削除
+                gameState.numbers[index] = null;
+                cell.style.visibility = 'hidden';
+
+                // ゲームクリア判定を即座に行う
                 if (gameState.currentNumber > gameState.maxNumber) {
                     gameComplete();
                 }
