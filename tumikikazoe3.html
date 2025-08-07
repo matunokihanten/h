@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>積み木マスター - Ultimate Remastered (v1.9改)</title>
+  <title>積み木マスター - Ultimate Remastered (v2.1)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
     :root {
@@ -102,7 +102,7 @@
     
     .btn {
       padding: 8px 16px;
-      border: 2px solid transparent; /* 変更: 縁取りのためのスペースを確保 */
+      border: 2px solid transparent;
       border-radius: 20px;
       cursor: pointer;
       font-weight: bold;
@@ -131,7 +131,7 @@
     .difficulty-btn.active {
       transform: scale(1.1);
       box-shadow: 0 0 20px rgba(255, 255, 255, 0.6);
-      border-color: var(--glow-color); /* 追加: 縁取りの色 */
+      border-color: var(--glow-color);
     }
     .difficulty-btn.easy.active { background: var(--easy-color); }
     .difficulty-btn.medium.active { background: var(--medium-color); }
@@ -246,7 +246,6 @@
       100% { transform: scale(1); opacity: 1; }
     }
     
-    /* Overlays */
     .overlay {
       position: fixed;
       top: 0;
@@ -329,10 +328,9 @@
     #start-overlay .mode-select .btn.active {
         background: var(--easy-color);
         box-shadow: 0 0 20px rgba(76, 175, 80, 0.6);
-        border-color: var(--glow-color); /* 追加: 縁取りの色 */
+        border-color: var(--glow-color);
     }
 
-    /* === 縦画面（スマートフォン）対応のCSS === */
     @media (max-width: 768px) {
         #ui-top, #ui-bottom {
             max-width: 95%; 
@@ -358,7 +356,8 @@
     <div class="game-panel">
       <div id="game-info">
         <div id="timer">⏰ --</div>
-        <div id="score">💯 0</div> <div id="streak">🔥 0</div>
+        <div id="score">💯 0</div>
+        <div id="streak">🔥 0</div>
       </div>
     </div>
   </div>
@@ -413,7 +412,6 @@
   </div>
 
   <script>
-    // --- グローバル変数 ---
     let scene, camera, renderer, controls;
     let blocks = [];
     let correctBlockCount;
@@ -421,20 +419,15 @@
     let gameMode = 'time-attack';
     let currentDifficulty = 'easy';
 
-    // Stats
     let score = 0;
     let currentAnswerString = "";
     let currentStreak = 0;
     let bestStreak = 0;
-    let totalProblems = 0;
-    let correctAnswers = 0;
     let timeRemaining = 30;
     let gameTimer;
     
-    // Audio
     let audioCtx;
 
-    // --- 設定 ---
     const difficultySettings = {
       easy:   { min: 5,  max: 15,  time: 60, colors: ['#4CAF50', '#8BC34A'], specialBlockChance: 0.1 },
       medium: { min: 10, max: 50,  time: 45, colors: ['#FF9800', '#FFC107'], specialBlockChance: 0.2 },
@@ -442,12 +435,11 @@
       extreme:{ min: 50, max: 200, time: 20, colors: ['#9C27B0', '#673AB7'], specialBlockChance: 0.4 }
     };
 
-    // --- UI要素 ---
     const elements = {
       uiTop: document.getElementById('ui-top'),
       uiBottom: document.getElementById('ui-bottom'),
       result: document.getElementById("result"),
-      score: document.getElementById("score"), // 修正: これで正しく要素を取得できます
+      score: document.getElementById("score"),
       currentAnswerDisplay: document.getElementById("currentAnswerDisplay"),
       numpad: document.getElementById("numpad"),
       submitBtn: document.getElementById("submitBtn"),
@@ -460,8 +452,6 @@
       overlayStreak: document.getElementById('overlay-streak'),
     };
     
-    // --- ゲーム状態管理 ---
-
     function initApp() {
         initParticles();
         setupEventListeners();
@@ -472,15 +462,11 @@
         if (!audioCtx) {
             try {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            } catch (e) {
-                console.error("Web Audio API is not supported in this browser.");
-            }
+            } catch (e) { console.error("Web Audio API is not supported in this browser."); }
         }
-
         elements.startOverlay.classList.remove('visible');
         elements.uiTop.classList.add('visible');
         elements.uiBottom.classList.add('visible');
-        
         gameState = 'playing';
         resetStats();
         initThreeJS();
@@ -505,7 +491,6 @@
             elements.overlayScore.textContent = `スコア: ${score}`;
             elements.overlayStreak.textContent = `最高連続正解: ${bestStreak}`;
         }
-
         elements.gameOverlay.classList.add('visible');
         elements.uiTop.classList.remove('visible');
         elements.uiBottom.classList.remove('visible');
@@ -524,23 +509,16 @@
         score = 0;
         currentStreak = 0;
         bestStreak = 0;
-        totalProblems = 0;
-        correctAnswers = 0;
         currentAnswerString = "";
         updateUI();
     }
 
-    // --- Three.js & ビジュアル ---
-    
     function initThreeJS() {
         cleanUpThreeJS();
-      
         const container = document.getElementById("gameContainer");
         scene = new THREE.Scene();
-
         camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.set(5, 8, 12);
-
         renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
@@ -548,10 +526,8 @@
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         renderer.setClearColor(0x000000, 0);
         container.appendChild(renderer.domElement);
-
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
         scene.add(ambientLight);
-
         const dirLight = new THREE.DirectionalLight(0xffffff, 1);
         dirLight.position.set(5, 10, 7.5);
         dirLight.castShadow = true;
@@ -560,27 +536,26 @@
         dirLight.shadow.camera.near = 0.5;
         dirLight.shadow.camera.far = 50;
         scene.add(dirLight);
-
         controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.minDistance = 5;
         controls.maxDistance = 50;
         controls.maxPolarAngle = Math.PI / 2 - 0.05;
-
         animate();
     }
 
     function cleanUpThreeJS() {
         if (!scene) return;
-        // cancelAnimationFrame(animate); // This can cause issues, requestAnimationFrame stops when tab is inactive.
         scene.traverse(object => {
             if (object.isMesh || object.isLineSegments) {
-                object.geometry.dispose();
-                if (Array.isArray(object.material)) {
-                    object.material.forEach(material => material.dispose());
-                } else {
-                    object.material.dispose();
+                if(object.geometry) object.geometry.dispose();
+                if(object.material) {
+                  if (Array.isArray(object.material)) {
+                      object.material.forEach(material => material.dispose());
+                  } else {
+                      object.material.dispose();
+                  }
                 }
             }
         });
@@ -601,7 +576,6 @@
         
         const settings = difficultySettings[currentDifficulty];
         const totalBlockCount = Math.floor(Math.random() * (settings.max - settings.min + 1)) + settings.min;
-        
         const occupied = new Set();
         const queue = ['0,0,0']; 
         occupied.add('0,0,0');
@@ -610,30 +584,69 @@
         while(queue.length > 0 && created < totalBlockCount) {
             const current = queue.shift();
             if (!current) continue;
-
             const [x, y, z] = current.split(',').map(Number);
             
             let type = 'normal';
             if (Math.random() < settings.specialBlockChance) {
-                type = Math.random() < 0.3 ? 'bomb' : 'bonus';
+                type = 'bonus';
             }
             
             const blockGroup = createBlock(x, y, z, created, type);
             blocks.push(blockGroup);
             scene.add(blockGroup);
-            if(type !== 'bomb') correctBlockCount++;
+            correctBlockCount++;
             created++;
             
             const directions = [[1,0,0], [-1,0,0], [0,1,0], [0,0,1], [0,0,-1]].sort(() => Math.random() - 0.5);
             for(const [dx, dy, dz] of directions) {
                 const nx = x + dx, ny = y + dy, nz = z + dz;
                 const key = `${nx},${ny},${nz}`;
-                if (!occupied.has(key) && (ny === 0 || occupied.has(`${nx},${ny-1},${nz}`))) {
+                if (!occupied.has(key) && ny >= 0 && (ny === 0 || occupied.has(`${nx},${ny-1},${nz}`))) {
                     occupied.add(key);
                     queue.push(key);
                 }
             }
         }
+    }
+    
+    function adjustCameraToFitBlocks() {
+        if (!blocks || blocks.length === 0 || !controls) return;
+
+        const box = new THREE.Box3();
+        blocks.forEach(block => box.expandByObject(block));
+        
+        if (box.isEmpty()) return;
+
+        const center = new THREE.Vector3();
+        box.getCenter(center);
+
+        const size = new THREE.Vector3();
+        box.getSize(size);
+
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const fov = camera.fov * (Math.PI / 180);
+        let distance = Math.abs(maxDim / (2 * Math.tan(fov / 2)));
+        distance *= 1.4;
+
+        distance = Math.max(15, Math.min(50, distance));
+
+        const direction = new THREE.Vector3();
+        camera.position.sub(controls.target).normalize();
+        if (direction.length() === 0) {
+            direction.set(0.5, 0.5, 1).normalize();
+        }
+
+        const newPosition = new THREE.Vector3().copy(center).add(direction.multiplyScalar(distance));
+
+        gsap.to(controls.target, {
+            x: center.x, y: center.y, z: center.z,
+            duration: 1, ease: 'power3.inOut'
+        });
+
+        gsap.to(camera.position, {
+            x: newPosition.x, y: newPosition.y, z: newPosition.z,
+            duration: 1, ease: 'power3.inOut'
+        });
     }
 
     function createBlock(x, y, z, index, type) {
@@ -642,9 +655,6 @@
         const settings = difficultySettings[currentDifficulty];
         
         switch(type) {
-            case 'bomb':
-                material = new THREE.MeshStandardMaterial({ color: 0xff0000, metalness: 0.3, roughness: 0.5 });
-                break;
             case 'bonus':
                 material = new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xaa8800, metalness: 0.8, roughness: 0.2 });
                 break;
@@ -656,19 +666,18 @@
         const cube = new THREE.Mesh(geometry, material);
         cube.castShadow = true;
         cube.receiveShadow = true;
-
         const edges = new THREE.EdgesGeometry(geometry);
         const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 }));
-        
         const blockGroup = new THREE.Group();
         blockGroup.add(cube);
         blockGroup.add(line);
-        blockGroup.position.set(x, y + 0.5, z);
+        
+        // ★修正: Y座標に5を加えることで、全体の表示位置を上に移動
+        blockGroup.position.set(x, y + 5.5, z);
+        
         blockGroup.userData.type = type;
-
         blockGroup.scale.set(0,0,0);
         gsap.to(blockGroup.scale, { x: 1, y: 1, z: 1, duration: 0.5, delay: index * 0.01, ease: "back.out(1.7)" });
-        
         return blockGroup;
     }
 
@@ -679,13 +688,12 @@
       renderer.render(scene, camera);
     }
     
-    // --- ゲームロジック ---
-    
     function nextProblem() {
         gameState = 'playing';
         currentAnswerString = "";
         elements.result.textContent = "";
         generateBlocks();
+        adjustCameraToFitBlocks();
         if (gameMode === 'time-attack') {
             startTimer();
         }
@@ -696,7 +704,6 @@
         clearInterval(gameTimer);
         timeRemaining = difficultySettings[currentDifficulty].time;
         updateTimer();
-        
         gameTimer = setInterval(() => {
             if (gameState !== 'playing') return clearInterval(gameTimer);
             timeRemaining--;
@@ -709,20 +716,16 @@
 
     function onSubmitAnswer() {
         if (!elements.submitBtn.classList.contains('active') || gameState !== 'playing') return;
-        
         gameState = 'paused';
         const userAnswer = parseInt(currentAnswerString, 10);
-        totalProblems++;
         
         if (userAnswer === correctBlockCount) {
             const bonusPoints = blocks.filter(b => b.userData.type === 'bonus').length * 5;
             const streakBonus = currentStreak * 10;
             const points = 10 + bonusPoints + streakBonus;
             score += points;
-            correctAnswers++;
             currentStreak++;
             bestStreak = Math.max(bestStreak, currentStreak);
-            
             elements.result.textContent = `🎉 正解！ +${points}pts`;
             elements.result.style.color = "#4CAF50";
             playSound('correct');
@@ -734,7 +737,6 @@
             elements.result.style.color = "#F44336";
             playSound('incorrect');
             playIncorrectEffect();
-            
             if (gameMode === 'time-attack') {
                 timeRemaining = Math.max(0, timeRemaining - 5);
                 updateTimer();
@@ -744,32 +746,16 @@
         updateUI();
     }
     
-    // --- エフェクト & サウンド ---
-
     function playCorrectEffect() {
         blocks.forEach((block, i) => {
-            gsap.to(block.position, {
-                y: block.position.y + Math.random() * 5 + 5,
-                x: block.position.x + (Math.random() - 0.5) * 5,
-                z: block.position.z + (Math.random() - 0.5) * 5,
-                duration: 1, delay: i * 0.01, ease: "power2.in"
-            });
-            gsap.to(block.rotation, {
-                x: Math.random() * Math.PI * 2, y: Math.random() * Math.PI * 2,
-                duration: 1, delay: i * 0.01
-            });
+            gsap.to(block.position, { y: block.position.y + Math.random() * 5 + 5, x: block.position.x + (Math.random() - 0.5) * 5, z: block.position.z + (Math.random() - 0.5) * 5, duration: 1, delay: i * 0.01, ease: "power2.in" });
+            gsap.to(block.rotation, { x: Math.random() * Math.PI * 2, y: Math.random() * Math.PI * 2, duration: 1, delay: i * 0.01 });
             gsap.to(block.scale, { x: 0, y: 0, z: 0, duration: 1, delay: i * 0.01 });
         });
     }
 
     function playIncorrectEffect() {
         gsap.to(camera.position, { x: `+=${Math.random() * 0.5 - 0.25}`, y:`-=${Math.random() * 0.2}`, duration: 0.1, yoyo: true, repeat: 5 });
-        const bomb = blocks.find(b => b.userData.type === 'bomb');
-        if (bomb) {
-             gsap.to(bomb.scale, { x: 3, y: 3, z: 3, duration: 0.2, onComplete: () => {
-                gsap.to(bomb.scale, { x: 0, y: 0, z: 0, duration: 0.3});
-             }});
-        }
     }
 
     function playSound(type) {
@@ -779,7 +765,6 @@
         oscillator.connect(gainNode);
         gainNode.connect(audioCtx.destination);
         gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        
         switch(type) {
             case 'click':
                 oscillator.type = 'triangle';
@@ -809,15 +794,11 @@
         oscillator.stop(audioCtx.currentTime + 1.2);
     }
     
-    // --- UI 更新 ---
-    
     function updateUI() {
       elements.score.textContent = `💯 ${score}`;
       elements.streak.textContent = `🔥 ${currentStreak}`;
       updateAnswerDisplay();
       updateTimer();
-
-      // 修正: Zenモードではスコアとストリークを非表示にする
       elements.score.style.display = gameMode === 'zen' ? 'none' : 'block';
       elements.streak.style.display = gameMode === 'zen' ? 'none' : 'block';
     }
@@ -837,8 +818,6 @@
         elements.submitBtn.classList.toggle('active', currentAnswerString !== "");
     }
 
-    // --- イベントハンドラ ---
-
     function setupEventListeners() {
         document.querySelector('#start-overlay .mode-select').addEventListener('click', e => {
             if(e.target.tagName !== 'BUTTON') return;
@@ -846,14 +825,12 @@
             document.querySelectorAll('#start-overlay .mode-select .btn').forEach(b => b.classList.remove('active'));
             e.target.classList.add('active');
         });
-        
         document.querySelector('#start-overlay .difficulty-select').addEventListener('click', e => {
             if(e.target.tagName !== 'BUTTON') return;
             currentDifficulty = e.target.dataset.level;
             document.querySelectorAll('#start-overlay .difficulty-select .btn').forEach(b => b.classList.remove('active'));
             e.target.classList.add('active');
         });
-        
         document.querySelector('#start-overlay .start-game').addEventListener('click', startGame);
         document.querySelector('#game-overlay .restart').addEventListener('click', startGame);
         document.querySelector('#game-overlay .menu').addEventListener('click', showStartScreen);
@@ -893,32 +870,24 @@
       }
       const particlesCanvas = document.getElementById('particles-bg');
       if (particlesCanvas) {
-        const ctx = particlesCanvas.getContext('2d');
         particlesCanvas.width = window.innerWidth;
         particlesCanvas.height = window.innerHeight;
       }
     }
     
-    // --- 背景パーティクル ---
     function initParticles() {
       const canvas = document.getElementById('particles-bg');
       const ctx = canvas.getContext('2d');
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       const particles = [];
-      let animationFrameId;
-
-      function createParticles() {
-          particles.length = 0; // 配列をクリア
-          for (let i = 0; i < 80; i++) {
-            particles.push({
-              x: Math.random() * canvas.width, y: Math.random() * canvas.height,
-              vx: (Math.random() - 0.5) * 0.5, vy: (Math.random() - 0.5) * 0.5,
-              size: Math.random() * 2 + 1, alpha: Math.random() * 0.5 + 0.1
-            });
-          }
+      for (let i = 0; i < 80; i++) {
+        particles.push({
+          x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+          vx: (Math.random() - 0.5) * 0.5, vy: (Math.random() - 0.5) * 0.5,
+          size: Math.random() * 2 + 1, alpha: Math.random() * 0.5 + 0.1
+        });
       }
-
       function animateParticles() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         particles.forEach(p => {
@@ -930,16 +899,9 @@
           ctx.fillStyle = `rgba(255, 255, 255, ${p.alpha})`;
           ctx.fill();
         });
-        animationFrameId = requestAnimationFrame(animateParticles);
+        requestAnimationFrame(animateParticles);
       }
-      createParticles();
       animateParticles();
-
-      window.addEventListener('resize', () => {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        createParticles();
-      });
     }
 
     document.addEventListener("DOMContentLoaded", initApp);
