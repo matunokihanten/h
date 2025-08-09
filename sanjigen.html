@@ -12,7 +12,7 @@
         }
 
         body {
-            background: linear-gradient(135deg, #0a0a2e, #16213e, #0f3460);
+            background: #000;
             color: #fff;
             font-family: 'Arial', sans-serif;
             min-height: 100vh;
@@ -62,11 +62,12 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 2rem;
+            font-size: 3rem;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.3s ease;
             box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+            text-shadow: 0 0 10px;
         }
 
         .cell:hover {
@@ -234,7 +235,7 @@
             .cell {
                 width: 80px;
                 height: 80px;
-                font-size: 1.5rem;
+                font-size: 2.5rem;
             }
 
             .title {
@@ -251,8 +252,8 @@
         <div class="difficulty-selector">
             <label for="difficulty">難易度 (N値):</label>
             <select id="difficulty">
-                <option value="1">1</option>
-                <option value="2" selected>2</option>
+                <option value="1" selected>1</option>
+                <option value="2">2</option>
                 <option value="3">3</option>
                 <option value="4">4</option>
                 <option value="5">5</option>
@@ -307,7 +308,7 @@
     <script>
         class NBackGame {
             constructor() {
-                this.difficulty = 2;
+                this.difficulty = 1;
                 this.currentTurn = 0;
                 this.score = 0;
                 this.streak = 0;
@@ -316,8 +317,8 @@
                 this.isPlaying = false;
                 this.correctAnswers = 0;
                 this.totalAnswers = 0;
-                this.letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-                this.colors = ['#ff0080', '#00ff80', '#8000ff', '#ff8000', '#0080ff', '#80ff00', '#ff0040', '#40ff00'];
+                this.letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
+                this.colors = ['#ff6347', '#ffda63', '#63ffda', '#6347ff', '#ff63da', '#47ff63', '#da63ff', '#47ffda'];
                 this.currentStimulus = null;
                 this.waitingForAnswer = false;
                 
@@ -364,6 +365,7 @@
                 this.letterBtn.disabled = false;
                 this.colorBtn.disabled = false;
                 this.difficultySelect.disabled = true;
+                this.difficulty = parseInt(this.difficultySelect.value); // 選択された難易度を反映
 
                 this.showMessage('ゲーム開始！注意深く観察してください。', 'neutral');
                 this.updateDisplay();
@@ -382,7 +384,6 @@
                 this.currentTurn++;
                 this.waitingForAnswer = false;
                 
-                // 新しい刺激を生成
                 const stimulus = {
                     position: Math.floor(Math.random() * 9),
                     letter: this.letters[Math.floor(Math.random() * this.letters.length)],
@@ -392,26 +393,22 @@
                 this.sequence.push(stimulus);
                 this.currentStimulus = stimulus;
                 
-                // 刺激を表示
                 this.displayStimulus(stimulus);
                 
                 this.updateDisplay();
                 
-                // 一定時間後に刺激を隠し、回答を受け付ける
                 setTimeout(() => {
                     this.hideStimulus();
                     if (this.currentTurn > this.difficulty) {
                         this.waitingForAnswer = true;
-                        this.showMessage(`${this.difficulty}回前と一致する要素をクリックしてください（複数可）`, 'neutral');
+                        this.showMessage(`${this.difficulty}回前と一致する要素があれば、ボタンをクリックしてください。`, 'neutral');
                         
-                        // 自動的に次のターンに進む（5秒後）
                         setTimeout(() => {
                             if (this.waitingForAnswer) {
                                 this.checkAnswer('none');
                             }
                         }, 5000);
                     } else {
-                        // 最初の数ターンは回答不要
                         setTimeout(() => {
                             this.nextTurn();
                         }, 1000);
@@ -423,8 +420,7 @@
                 this.clearBoard();
                 const cell = this.cells[stimulus.position];
                 cell.textContent = stimulus.letter;
-                cell.style.backgroundColor = stimulus.color;
-                cell.style.color = this.getContrastColor(stimulus.color);
+                cell.style.color = stimulus.color;
                 cell.classList.add('active');
             }
 
@@ -435,7 +431,6 @@
             clearBoard() {
                 this.cells.forEach(cell => {
                     cell.textContent = '';
-                    cell.style.backgroundColor = '';
                     cell.style.color = '';
                     cell.classList.remove('active');
                 });
@@ -460,10 +455,8 @@
                 let isCorrect = false;
                 
                 if (type === 'none') {
-                    // 何も押さなかった場合
                     isCorrect = correctMatches.length === 0;
                 } else {
-                    // 特定のボタンを押した場合
                     isCorrect = correctMatches.includes(type);
                 }
 
