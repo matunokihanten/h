@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3次元Nバック - 脳トレゲーム</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0a0a2e, #16213e, #0f3460);
+            color: #fff;
+            font-family: 'Arial', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 600px;
+            padding: 20px;
+        }
+
+        .title {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            color: #00ffff;
+            opacity: 0.8;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
+            gap: 10px;
+            justify-content: center;
+            margin: 30px auto;
+        }
+
+        .cell {
+            width: 100px;
+            height: 100px;
+            border: 2px solid #00ffff;
+            border-radius: 10px;
+            background: rgba(0, 255, 255, 0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+        }
+
+        .cell:hover {
+            background: rgba(0, 255, 255, 0.2);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+            transform: scale(1.05);
+        }
+
+        .cell.active {
+            animation: glow 0.5s ease-in-out;
+        }
+
+        @keyframes glow {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); box-shadow: 0 0 30px rgba(255, 255, 255, 0.8); }
+            100% { transform: scale(1); }
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: 2px solid #00ffff;
+            background: rgba(0, 255, 255, 0.1);
+            color: #00ffff;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            min-width: 120px;
+        }
+
+        .btn:hover {
+            background: rgba(0, 255, 255, 0.3);
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+        }
+
+        .btn.primary {
+            background: linear-gradient(45deg, #00ffff, #ff00ff);
+            border: none;
+            color: #000;
+            font-weight: bold;
+        }
+
+        .btn.primary:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 10px;
+            border-radius: 10px;
+            background: rgba(0, 255, 255, 0.1);
+            min-width: 100px;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #00ffff;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .difficulty-selector {
+            margin: 20px 0;
+        }
+
+        .difficulty-selector label {
+            margin-right: 10px;
+            color: #00ffff;
+        }
+
+        .difficulty-selector select {
+            padding: 8px 16px;
+            border-radius: 5px;
+            border: 2px solid #00ffff;
+            background: rgba(0, 255, 255, 0.1);
+            color: #fff;
+            font-size: 1rem;
+        }
+
+        .message {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .message.correct {
+            background: rgba(0, 255, 0, 0.2);
+            border: 2px solid #00ff00;
+            color: #00ff00;
+        }
+
+        .message.incorrect {
+            background: rgba(255, 0, 0, 0.2);
+            border: 2px solid #ff0000;
+            color: #ff0000;
+        }
+
+        .message.neutral {
+            background: rgba(0, 255, 255, 0.1);
+            border: 2px solid #00ffff;
+            color: #00ffff;
+        }
+
+        .history {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .history-item {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .history-item.correct {
+            background: #00ff00;
+            color: #000;
+        }
+
+        .history-item.incorrect {
+            background: #ff0000;
+            color: #fff;
+        }
+
+        @media (max-width: 600px) {
+            .game-board {
+                grid-template-columns: repeat(3, 80px);
+                grid-template-rows: repeat(3, 80px);
+            }
+
+            .cell {
+                width: 80px;
+                height: 80px;
+                font-size: 1.5rem;
+            }
+
+            .title {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">3次元Nバック</h1>
+        <p class="subtitle">科学的に効果が実証された脳トレゲーム</p>
+
+        <div class="difficulty-selector">
+            <label for="difficulty">難易度 (N値):</label>
+            <select id="difficulty">
+                <option value="1">1</option>
+                <option value="2" selected>2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+            </select>
+        </div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="currentTurn">0</div>
+                <div class="stat-label">ターン</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="score">0</div>
+                <div class="stat-label">スコア</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="streak">0</div>
+                <div class="stat-label">連続正解</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="accuracy">0%</div>
+                <div class="stat-label">正解率</div>
+            </div>
+        </div>
+
+        <div class="game-board" id="gameBoard">
+            <div class="cell" data-index="0"></div>
+            <div class="cell" data-index="1"></div>
+            <div class="cell" data-index="2"></div>
+            <div class="cell" data-index="3"></div>
+            <div class="cell" data-index="4"></div>
+            <div class="cell" data-index="5"></div>
+            <div class="cell" data-index="6"></div>
+            <div class="cell" data-index="7"></div>
+            <div class="cell" data-index="8"></div>
+        </div>
+
+        <div class="controls">
+            <button class="btn primary" id="startBtn">ゲーム開始</button>
+            <button class="btn" id="positionBtn" disabled>位置一致</button>
+            <button class="btn" id="letterBtn" disabled>文字一致</button>
+            <button class="btn" id="colorBtn" disabled>色一致</button>
+        </div>
+
+        <div class="message neutral" id="message">
+            ゲームを開始してください。位置・文字・色がN回前と同じかどうかを判断します。
+        </div>
+
+        <div class="history" id="history"></div>
+    </div>
+
+    <script>
+        class NBackGame {
+            constructor() {
+                this.difficulty = 2;
+                this.currentTurn = 0;
+                this.score = 0;
+                this.streak = 0;
+                this.totalTurns = 20;
+                this.sequence = [];
+                this.isPlaying = false;
+                this.correctAnswers = 0;
+                this.totalAnswers = 0;
+                this.letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+                this.colors = ['#ff0080', '#00ff80', '#8000ff', '#ff8000', '#0080ff', '#80ff00', '#ff0040', '#40ff00'];
+                this.currentStimulus = null;
+                this.waitingForAnswer = false;
+                
+                this.initializeElements();
+                this.bindEvents();
+                this.updateDisplay();
+            }
+
+            initializeElements() {
+                this.board = document.getElementById('gameBoard');
+                this.startBtn = document.getElementById('startBtn');
+                this.positionBtn = document.getElementById('positionBtn');
+                this.letterBtn = document.getElementById('letterBtn');
+                this.colorBtn = document.getElementById('colorBtn');
+                this.message = document.getElementById('message');
+                this.difficultySelect = document.getElementById('difficulty');
+                this.history = document.getElementById('history');
+                
+                this.cells = Array.from(this.board.children);
+            }
+
+            bindEvents() {
+                this.startBtn.addEventListener('click', () => this.startGame());
+                this.positionBtn.addEventListener('click', () => this.checkAnswer('position'));
+                this.letterBtn.addEventListener('click', () => this.checkAnswer('letter'));
+                this.colorBtn.addEventListener('click', () => this.checkAnswer('color'));
+                this.difficultySelect.addEventListener('change', (e) => {
+                    this.difficulty = parseInt(e.target.value);
+                });
+            }
+
+            startGame() {
+                this.isPlaying = true;
+                this.currentTurn = 0;
+                this.score = 0;
+                this.streak = 0;
+                this.sequence = [];
+                this.correctAnswers = 0;
+                this.totalAnswers = 0;
+                this.history.innerHTML = '';
+                
+                this.startBtn.disabled = true;
+                this.positionBtn.disabled = false;
+                this.letterBtn.disabled = false;
+                this.colorBtn.disabled = false;
+                this.difficultySelect.disabled = true;
+
+                this.showMessage('ゲーム開始！注意深く観察してください。', 'neutral');
+                this.updateDisplay();
+                
+                setTimeout(() => {
+                    this.nextTurn();
+                }, 1000);
+            }
+
+            nextTurn() {
+                if (this.currentTurn >= this.totalTurns) {
+                    this.endGame();
+                    return;
+                }
+
+                this.currentTurn++;
+                this.waitingForAnswer = false;
+                
+                // 新しい刺激を生成
+                const stimulus = {
+                    position: Math.floor(Math.random() * 9),
+                    letter: this.letters[Math.floor(Math.random() * this.letters.length)],
+                    color: this.colors[Math.floor(Math.random() * this.colors.length)]
+                };
+                
+                this.sequence.push(stimulus);
+                this.currentStimulus = stimulus;
+                
+                // 刺激を表示
+                this.displayStimulus(stimulus);
+                
+                this.updateDisplay();
+                
+                // 一定時間後に刺激を隠し、回答を受け付ける
+                setTimeout(() => {
+                    this.hideStimulus();
+                    if (this.currentTurn > this.difficulty) {
+                        this.waitingForAnswer = true;
+                        this.showMessage(`${this.difficulty}回前と一致する要素をクリックしてください（複数可）`, 'neutral');
+                        
+                        // 自動的に次のターンに進む（5秒後）
+                        setTimeout(() => {
+                            if (this.waitingForAnswer) {
+                                this.checkAnswer('none');
+                            }
+                        }, 5000);
+                    } else {
+                        // 最初の数ターンは回答不要
+                        setTimeout(() => {
+                            this.nextTurn();
+                        }, 1000);
+                    }
+                }, 1500);
+            }
+
+            displayStimulus(stimulus) {
+                this.clearBoard();
+                const cell = this.cells[stimulus.position];
+                cell.textContent = stimulus.letter;
+                cell.style.backgroundColor = stimulus.color;
+                cell.style.color = this.getContrastColor(stimulus.color);
+                cell.classList.add('active');
+            }
+
+            hideStimulus() {
+                this.clearBoard();
+            }
+
+            clearBoard() {
+                this.cells.forEach(cell => {
+                    cell.textContent = '';
+                    cell.style.backgroundColor = '';
+                    cell.style.color = '';
+                    cell.classList.remove('active');
+                });
+            }
+
+            checkAnswer(type) {
+                if (!this.waitingForAnswer || this.currentTurn <= this.difficulty) {
+                    return;
+                }
+
+                this.waitingForAnswer = false;
+                this.totalAnswers++;
+
+                const nBack = this.sequence[this.currentTurn - 1 - this.difficulty];
+                const current = this.sequence[this.currentTurn - 1];
+                
+                let correctMatches = [];
+                if (nBack.position === current.position) correctMatches.push('position');
+                if (nBack.letter === current.letter) correctMatches.push('letter');
+                if (nBack.color === current.color) correctMatches.push('color');
+
+                let isCorrect = false;
+                
+                if (type === 'none') {
+                    // 何も押さなかった場合
+                    isCorrect = correctMatches.length === 0;
+                } else {
+                    // 特定のボタンを押した場合
+                    isCorrect = correctMatches.includes(type);
+                }
+
+                if (isCorrect) {
+                    this.correctAnswers++;
+                    this.streak++;
+                    this.score += 10 + (this.streak * 2);
+                    this.showMessage('正解！', 'correct');
+                    this.addHistoryItem(true);
+                } else {
+                    this.streak = 0;
+                    this.showMessage(`不正解。正解は: ${correctMatches.length === 0 ? 'なし' : correctMatches.join(', ')}`, 'incorrect');
+                    this.addHistoryItem(false);
+                }
+
+                this.updateDisplay();
+                
+                setTimeout(() => {
+                    this.nextTurn();
+                }, 2000);
+            }
+
+            addHistoryItem(isCorrect) {
+                const item = document.createElement('div');
+                item.className = `history-item ${isCorrect ? 'correct' : 'incorrect'}`;
+                item.textContent = this.currentTurn - this.difficulty;
+                this.history.appendChild(item);
+            }
+
+            endGame() {
+                this.isPlaying = false;
+                this.startBtn.disabled = false;
+                this.positionBtn.disabled = true;
+                this.letterBtn.disabled = true;
+                this.colorBtn.disabled = true;
+                this.difficultySelect.disabled = false;
+
+                const accuracy = this.totalAnswers > 0 ? Math.round((this.correctAnswers / this.totalAnswers) * 100) : 0;
+                this.showMessage(`ゲーム終了！最終スコア: ${this.score} (正解率: ${accuracy}%)`, 'neutral');
+                
+                this.clearBoard();
+            }
+
+            showMessage(text, type) {
+                this.message.textContent = text;
+                this.message.className = `message ${type}`;
+            }
+
+            updateDisplay() {
+                document.getElementById('currentTurn').textContent = this.currentTurn;
+                document.getElementById('score').textContent = this.score;
+                document.getElementById('streak').textContent = this.streak;
+                
+                const accuracy = this.totalAnswers > 0 ? Math.round((this.correctAnswers / this.totalAnswers) * 100) : 0;
+                document.getElementById('accuracy').textContent = accuracy + '%';
+            }
+
+            getContrastColor(hexColor) {
+                const r = parseInt(hexColor.substr(1, 2), 16);
+                const g = parseInt(hexColor.substr(3, 2), 16);
+                const b = parseInt(hexColor.substr(5, 2), 16);
+                const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+                return brightness > 128 ? '#000000' : '#ffffff';
+            }
+        }
+
+        // ゲーム開始
+        document.addEventListener('DOMContentLoaded', () => {
+            new NBackGame();
+        });
+    </script>
+</body>
+</html>
