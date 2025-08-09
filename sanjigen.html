@@ -329,7 +329,12 @@
                 this.colors = ['#FF0000', '#0000FF', '#FFFF00', '#008000', '#FFA500']; // 赤, 青, 黄, 緑, オレンジ
                 this.currentStimulus = null;
                 this.waitingForAnswer = false;
+                this.answerTimeout = null;
                 
+                // ★★★ 変更点: 複数回答を管理するためのプロパティ ★★★
+                this.userAnswers = []; // ユーザーが押したボタンを格納
+                this.partialAnswerTimeout = null; // 1つ目のボタンが押された後の時間制限タイマー
+
                 this.initializeElements();
                 this.bindEvents();
                 this.updateDisplay();
@@ -401,20 +406,57 @@
                     return;
                 }
 
+                if (this.answerTimeout) clearTimeout(this.answerTimeout);
+                if (this.partialAnswerTimeout) clearTimeout(this.partialAnswerTimeout);
+
                 this.currentTurn++;
                 this.waitingForAnswer = false;
-                
-                const stimulus = {
-                    position: Math.floor(Math.random() * 9),
-                    letter: this.letters[Math.floor(Math.random() * this.letters.length)],
-                    color: this.colors[Math.floor(Math.random() * this.colors.length)]
-                };
+                this.userAnswers = []; // 回答をリセット
+
+                let stimulus;
+                if (this.currentTurn > this.difficulty) {
+                    const nBack = this.sequence[this.currentTurn - 1 - this.difficulty];
+                    stimulus = {
+                        position: nBack.position,
+                        letter: nBack.letter,
+                        color: nBack.color
+                    };
+
+                    const shouldMatchTwo = Math.random() < 0.25;
+
+                    if (shouldMatchTwo) {
+                        const matchPair = ['pos_let', 'pos_col', 'let_col'][Math.floor(Math.random() * 3)];
+                        if (matchPair === 'pos_let') {
+                            while (stimulus.color === nBack.color) { stimulus.color = this.colors[Math.floor(Math.random() * this.colors.length)]; }
+                        } else if (matchPair === 'pos_col') {
+                            while (stimulus.letter === nBack.letter) { stimulus.letter = this.letters[Math.floor(Math.random() * this.letters.length)]; }
+                        } else {
+                            while (stimulus.position === nBack.position) { stimulus.position = Math.floor(Math.random() * 9); }
+                        }
+                    } else {
+                        const matchType = ['position', 'letter', 'color'][Math.floor(Math.random() * 3)];
+                        if (matchType === 'position') {
+                            while (stimulus.letter === nBack.letter) { stimulus.letter = this.letters[Math.floor(Math.random() * this.letters.length)]; }
+                            while (stimulus.color === nBack.color) { stimulus.color = this.colors[Math.floor(Math.random() * this.colors.length)]; }
+                        } else if (matchType === 'letter') {
+                            while (stimulus.position === nBack.position) { stimulus.position = Math.floor(Math.random() * 9); }
+                            while (stimulus.color === nBack.color) { stimulus.color = this.colors[Math.floor(Math.random() * this.colors.length)]; }
+                        } else {
+                            while (stimulus.position === nBack.position) { stimulus.position = Math.floor(Math.random() * 9); }
+                            while (stimulus.letter === nBack.letter) { stimulus.letter = this.letters[Math.floor(Math.random() * this.letters.length)]; }
+                        }
+                    }
+                } else {
+                    stimulus = {
+                        position: Math.floor(Math.random() * 9),
+                        letter: this.letters[Math.floor(Math.random() * this.letters.length)],
+                        color: this.colors[Math.floor(Math.random() * this.colors.length)]
+                    };
+                }
                 
                 this.sequence.push(stimulus);
                 this.currentStimulus = stimulus;
-                
                 this.displayStimulus(stimulus);
-                
                 this.updateDisplay();
                 
                 setTimeout(() => {
@@ -422,16 +464,13 @@
                     if (this.currentTurn > this.difficulty) {
                         this.waitingForAnswer = true;
                         this.showMessage(`${this.difficulty}回前と一致する要素があれば、ボタンをクリックしてください。`, 'neutral');
-                        
-                        setTimeout(() => {
+                        this.answerTimeout = setTimeout(() => {
                             if (this.waitingForAnswer) {
-                                this.checkAnswer('none');
+                                this.checkAnswer('none_timeout');
                             }
                         }, 5000);
                     } else {
-                        setTimeout(() => {
-                            this.nextTurn();
-                        }, 1000);
+                        setTimeout(() => this.nextTurn(), 1000);
                     }
                 }, 1500);
             }
@@ -456,34 +495,72 @@
                 });
             }
 
+            // ★★★ 変更点: 複数回答に対応した新しい回答判定ロジック ★★★
             checkAnswer(type) {
-                if (!this.waitingForAnswer || this.currentTurn <= this.difficulty) {
-                    return;
+                if (!this.waitingForAnswer || this.userAnswers.includes(type)) {
+                    return; // 回答時間外、または同じボタンの重複押しは無視
                 }
 
-                this.waitingForAnswer = false;
-                this.totalAnswers++;
+                // メインのタイムアウトと部分回答のタイムアウトをクリア
+                if (this.answerTimeout) clearTimeout(this.answerTimeout);
+                if (this.partialAnswerTimeout) clearTimeout(this.partialAnswerTimeout);
 
                 const nBack = this.sequence[this.currentTurn - 1 - this.difficulty];
                 const current = this.sequence[this.currentTurn - 1];
                 
                 let correctMatches = [];
-                if (nBack.position === current.position) correctMatches.push('位置');
-                if (nBack.letter === current.letter) correctMatches.push('文字');
-                if (nBack.color === current.color) correctMatches.push('色');
+                if (nBack.position === current.position) correctMatches.push('position');
+                if (nBack.letter === current.letter) correctMatches.push('letter');
+                if (nBack.color === current.color) correctMatches.push('color');
 
-                let isCorrect = false;
-                
-                if (type === 'none') {
-                    isCorrect = correctMatches.length === 0;
-                } else {
-                    const typeMap = {
-                        'position': '位置',
-                        'letter': '文字',
-                        'color': '色'
-                    };
-                    isCorrect = correctMatches.includes(typeMap[type]);
+                // --- タイムアウトによる判定 ---
+                if (type === 'none_timeout') {
+                    const sortedUser = [...this.userAnswers].sort();
+                    const sortedCorrect = [...correctMatches].sort();
+                    const isCorrect = JSON.stringify(sortedUser) === JSON.stringify(sortedCorrect);
+                    this.finalizeAnswer(isCorrect, correctMatches);
+                    return;
                 }
+                
+                // --- ボタンクリックによる判定 ---
+                this.userAnswers.push(type);
+
+                // 1. 押されたボタンが不正解の場合、即座に「不正解」
+                if (!correctMatches.includes(type)) {
+                    this.finalizeAnswer(false, correctMatches);
+                    return;
+                }
+
+                // 2. 正解のボタンが押された場合
+                const sortedUser = [...this.userAnswers].sort();
+                const sortedCorrect = [...correctMatches].sort();
+
+                // 2a. ユーザーの回答が正解と完全に一致した場合、「正解」
+                if (JSON.stringify(sortedUser) === JSON.stringify(sortedCorrect)) {
+                    this.finalizeAnswer(true, correctMatches);
+                    return;
+                }
+
+                // 2b. まだ回答が足りない場合（正解が2つで1つしか押していない）、次の入力を待つ
+                if (this.userAnswers.length < correctMatches.length) {
+                    this.showMessage('もう一つの答えを入力してください...', 'neutral');
+                    // 短い時間制限を設けて、次のボタン入力を待つ
+                    this.partialAnswerTimeout = setTimeout(() => {
+                        this.finalizeAnswer(false, correctMatches); // 時間内に次の入力がなければ不正解
+                    }, 2500); // 2.5秒以内に次のボタンを押す
+                    return;
+                }
+            }
+
+            // ★★★ 変更点: 判定後の共通処理をまとめたメソッド ★★★
+            finalizeAnswer(isCorrect, correctMatches) {
+                if (!this.waitingForAnswer) return; // すでに判定済みの場合は何もしない
+
+                this.waitingForAnswer = false;
+                this.totalAnswers++;
+
+                if (this.answerTimeout) clearTimeout(this.answerTimeout);
+                if (this.partialAnswerTimeout) clearTimeout(this.partialAnswerTimeout);
 
                 if (isCorrect) {
                     this.correctAnswers++;
@@ -493,7 +570,11 @@
                     this.addHistoryItem(true);
                 } else {
                     this.streak = 0;
-                    this.showMessage(`不正解。正解は: ${correctMatches.length === 0 ? 'なし' : correctMatches.join(', ')}`, 'incorrect');
+                    const matchJpMap = { 'position': '位置', 'letter': '文字', 'color': '色' };
+                    const correctJpMatches = correctMatches.map(match => matchJpMap[match]);
+                    // 不正解メッセージの助詞を「と」に変更
+                    const answerText = correctJpMatches.length > 0 ? correctJpMatches.join(' と ') : 'なし';
+                    this.showMessage(`不正解。正解は: ${answerText}`, 'incorrect');
                     this.addHistoryItem(false);
                 }
 
@@ -503,6 +584,7 @@
                     this.nextTurn();
                 }, 2000);
             }
+
 
             addHistoryItem(isCorrect) {
                 const item = document.createElement('div');
