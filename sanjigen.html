@@ -19,7 +19,6 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            /* 縦画面でもスクロールしないように調整 */
             overflow: hidden;
         }
 
@@ -28,13 +27,12 @@
             max-width: 600px;
             width: 100%;
             padding: 20px;
-            /* 縦画面で要素がはみ出さないように、高さを動的に調整 */
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            overflow-y: auto; /* コンテンツが多すぎる場合のみスクロールを許可 */
+            overflow-y: auto;
         }
 
         .title {
@@ -252,7 +250,6 @@
 
             .container {
                 padding: 15px 10px;
-                /* 縦画面では高さを100vhに固定 */
                 height: 100vh;
                 overflow-y: auto;
             }
@@ -329,6 +326,72 @@
                 height: 25px;
             }
         }
+
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .popup-content {
+            background-color: #1a1a1a;
+            border: 2px solid #00ffff;
+            border-radius: 10px;
+            padding: 30px;
+            width: 90%;
+            max-width: 400px;
+            text-align: left;
+            position: relative;
+            box-shadow: 0 0 25px rgba(0, 255, 255, 0.5);
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        .popup-content h2 {
+            text-align: center;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: #ff00ff;
+            text-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
+        }
+
+        .popup-content p {
+            font-size: 1.1rem;
+            margin: 10px 0;
+            color: #ccc;
+        }
+
+        .popup-content p strong {
+            color: #fff;
+            text-shadow: 0 0 5px #fff;
+        }
+
+        .popup-content .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: #ff00ff;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .popup-content .close-btn:hover {
+            transform: scale(1.2);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
     </style>
 </head>
 <body>
@@ -394,6 +457,17 @@
         </div>
 
         <div class="history" id="history"></div>
+    </div>
+
+    <div class="popup-overlay" id="resultPopup">
+        <div class="popup-content">
+            <button class="close-btn" onclick="document.getElementById('resultPopup').style.display='none';">&times;</button>
+            <h2 id="popupTitle">ゲーム結果</h2>
+            <p>N値: <strong id="popupDifficulty"></strong></p>
+            <p>スコア: <strong id="popupScore"></strong></p>
+            <p>正答率: <strong id="popupAccuracy"></strong></p>
+            <p>最高連続正解: <strong id="popupMaxStreak"></strong></p>
+        </div>
     </div>
 
     <script>
@@ -674,20 +748,18 @@
 
                 if (showResult) {
                     const accuracy = this.totalAnswers > 0 ? Math.round((this.correctAnswers / this.totalAnswers) * 100) : 0;
-                    
-                    this.message.innerHTML = `
-                        <div style="font-weight: bold; margin-bottom: 8px; font-size: 1.2em;">ゲーム結果</div>
-                        <div style="text-align: left; display: inline-block;">
-                            <p style="margin: 4px 0;">N値: ${this.difficulty}</p>
-                            <p style="margin: 4px 0;">スコア: ${this.score}</p>
-                            <p style="margin: 4px 0;">正答率: ${accuracy}%</p>
-                            <p style="margin: 4px 0;">最高連続正解: ${this.maxStreak}</p>
-                        </div>
-                    `;
-                    this.message.className = 'message neutral';
+                    this.showResultPopup(this.difficulty, this.score, accuracy, this.maxStreak);
                 }
                 
                 this.clearBoard();
+            }
+
+            showResultPopup(difficulty, score, accuracy, maxStreak) {
+                document.getElementById('popupDifficulty').textContent = difficulty;
+                document.getElementById('popupScore').textContent = score;
+                document.getElementById('popupAccuracy').textContent = accuracy + '%';
+                document.getElementById('popupMaxStreak').textContent = maxStreak;
+                document.getElementById('resultPopup').style.display = 'flex';
             }
 
             showMessage(text, type) {
