@@ -6,48 +6,51 @@
     <title>新・漢数字脳トレ</title>
     <style>
         body {
-            font-family: 'Arial', 'Hiragino Sans', sans-serif;
+            font-family: 'Arial', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
             background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%);
             margin: 0;
-            padding: 10px; /* スマートフォン対応のためpaddingを減らす */
+            padding: 1rem;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            box-sizing: border-box; /* paddingを含めて要素のサイズを計算 */
+            box-sizing: border-box;
         }
 
         .game-container {
             background: #ffffff;
-            padding: 20px; /* スマートフォン対応のためpaddingを減らす */
+            padding: 1.5rem;
             border-radius: 20px;
             box-shadow: 0 15px 35px rgba(0,0,0,0.1);
             text-align: center;
-            width: 100%; /* 幅を100%にする */
-            max-width: 420px; /* 最大幅を設定 */
+            width: 100%;
+            max-width: 420px;
             box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
 
         .title {
             color: #333;
-            font-size: 24px;
+            font-size: 1.8rem; /* スマートフォン向けに少し小さく */
             font-weight: bold;
-            margin-bottom: 20px;
+            margin-bottom: 1rem;
         }
 
         .stats-bar {
             display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            font-size: 18px;
+            justify-content: space-around;
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
             color: #555;
-            flex-wrap: wrap; /* 要素が折り返すように設定 */
-            justify-content: center; /* 中央寄せ */
-            gap: 5px 15px; /* 行と列の隙間 */
+            flex-wrap: wrap;
+            gap: 5px 10px;
         }
         
         .stats-bar > div {
-            flex-shrink: 0; /* 縮小させない */
+            flex-shrink: 0;
+            white-space: nowrap;
         }
 
         .stats-bar .score.hot-streak {
@@ -59,43 +62,42 @@
         .kanji-display {
             background: #f0f0f0;
             color: #333;
-            font-size: 100px;
+            font-size: 5rem; /* 画面サイズに合わせて調整 */
             font-weight: bold;
-            padding: 30px 10px; /* スマートフォン対応のためpaddingを減らす */
-            margin-bottom: 15px;
+            padding: 1rem 0.5rem;
+            margin-bottom: 0.75rem;
             border-radius: 10px;
-            min-height: 120px; /* スマートフォン対応のため最小高さを減らす */
+            min-height: 120px;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: background-color 0.2s, transform 0.1s;
-            word-break: keep-all; /* 単語の途中で改行しない */
-            overflow-wrap: break-word; /* 長い単語は改行 */
+            word-break: keep-all;
+            overflow-wrap: break-word;
         }
         
-        /* キーボード入力時のフィードバック */
         .kanji-display.flash-correct {
-            background-color: #d4edda; /* 薄い緑 */
-            box-shadow: 0 0 15px rgba(40, 167, 69, 0.5); /* 緑の光 */
+            background-color: #d4edda;
+            box-shadow: 0 0 15px rgba(40, 167, 69, 0.5);
             transform: scale(1.02);
         }
 
         .kanji-display.flash-wrong {
-            background-color: #f8d7da; /* 薄い赤 */
-            box-shadow: 0 0 15px rgba(220, 53, 69, 0.5); /* 赤の光 */
+            background-color: #f8d7da;
+            box-shadow: 0 0 15px rgba(220, 53, 69, 0.5);
             transform: scale(0.98);
         }
 
         .kanji-display.hard-mode {
-            font-size: 60px; /* 大字が入ることを想定して少し小さく */
+            font-size: 3rem;
         }
 
         .combo-display {
-            font-size: 22px; /* スマートフォン対応のため少し小さく */
+            font-size: 1.2rem;
             font-weight: bold;
             color: #3498db;
             height: 30px;
-            margin-bottom: 15px;
+            margin-bottom: 0.75rem;
             transition: transform 0.2s ease;
         }
         
@@ -106,16 +108,16 @@
         .buttons {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 10px; /* スマートフォン対応のためgapを減らす */
-            margin-bottom: 20px;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
         }
 
         .btn {
             width: 100%;
-            height: 60px; /* スマートフォン対応のため高さを減らす */
+            height: 60px;
             border: none;
             border-radius: 10px;
-            font-size: 26px; /* スマートフォン対応のためフォントサイズを減らす */
+            font-size: 1.5rem;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.2s;
@@ -142,13 +144,13 @@
             background: #27ae60;
             color: white;
             border: none;
-            padding: 12px 25px; /* スマートフォン対応のためpaddingを減らす */
+            padding: 0.75rem 1.5rem;
             border-radius: 10px;
             cursor: pointer;
-            font-size: 18px; /* スマートフォン対応のためフォントサイズを減らす */
+            font-size: 1rem;
             width: 100%;
             transition: background-color 0.2s;
-            margin-bottom: 10px;
+            margin-bottom: 0.5rem;
         }
         
         .control-btn:hover {
@@ -158,25 +160,32 @@
         .control-btn.hidden {
             display: none;
         }
+        
+        .control-btn.exit-game-btn {
+            background: #e74c3c;
+        }
+        .control-btn.exit-game-btn:hover {
+            background: #c0392b;
+        }
 
         .mode-selection {
             display: flex;
-            justify-content: space-around;
-            margin-top: 15px; /* スマートフォン対応のためmarginを減らす */
-            gap: 8px; /* スマートフォン対応のためgapを減らす */
-            flex-wrap: wrap; /* モード選択ボタンも折り返すように設定 */
+            justify-content: space-between;
+            margin-top: 0.75rem;
+            gap: 0.5rem;
+            flex-wrap: wrap;
         }
 
         .mode-btn {
             background: #f39c12;
             color: white;
             border: none;
-            padding: 8px 15px; /* スマートフォン対応のためpaddingを減らす */
+            padding: 0.5rem 1rem;
             border-radius: 10px;
             cursor: pointer;
-            font-size: 14px; /* スマートフォン対応のためフォントサイズを減らす */
+            font-size: 0.8rem;
             flex: 1;
-            min-width: 90px; /* ボタンの最小幅 */
+            min-width: 80px;
             transition: background-color 0.2s;
         }
         
@@ -190,23 +199,13 @@
             border: 2px solid #e67e22;
         }
         
-        /* 終了ボタン */
-        .control-btn.exit-game-btn {
-            background: #e74c3c; /* 赤系の色 */
-        }
-        .control-btn.exit-game-btn:hover {
-            background: #c0392b;
-        }
-
-        /* 画面初期表示の状態 */
         .game-state-initial .start-game-only {
-            display: block; /* スタートボタン */
+            display: block;
         }
         .game-state-initial .in-game-only {
-            display: none; /* ゲーム中のボタンは隠す */
+            display: none;
         }
 
-        /* ゲーム中の状態 */
         .game-state-playing .start-game-only {
             display: none;
         }
@@ -263,8 +262,8 @@
                     '陸': 6, '漆': 7, '捌': 8, '玖': 9
                 };
 
-                this.currentMode = 'normal'; // normal, hard, or relax
-                this.kanjiKeys = Object.keys(this.KANJI_NUMBERS); // デフォルトは漢数字
+                this.currentMode = 'normal';
+                this.kanjiKeys = Object.keys(this.KANJI_NUMBERS);
 
                 this.highScore = 0;
                 this.combo = 0;
@@ -278,7 +277,7 @@
                 this.bindEvents();
                 this.renderButtons();
                 this.loadHighScore();
-                this.setInitialUIState(); // 初期UI状態を設定
+                this.setInitialUIState();
             }
 
             initializeDOMElements() {
@@ -304,7 +303,6 @@
                 this.hardModeBtn.addEventListener('click', () => this.setMode('hard'));
                 this.relaxModeBtn.addEventListener('click', () => this.setMode('relax'));
                 this.exitGameBtn.addEventListener('click', () => this.exitGame()); 
-                // キーボードイベントリスナーを追加
                 document.addEventListener('keydown', (event) => this.handleKeyboardInput(event));
             }
 
@@ -338,46 +336,45 @@
             }
 
             setInitialUIState() {
-                // 初期のUI状態を設定
                 this.gameContainer.classList.add('game-state-initial');
                 this.gameContainer.classList.remove('game-state-playing');
                 this.normalModeBtn.classList.add('selected');
                 this.hardModeBtn.classList.remove('selected');
                 this.relaxModeBtn.classList.remove('selected');
-                this.timerDisplayContainer.style.display = 'flex'; // ノーマルモードはタイマー表示
+                this.timerDisplayContainer.style.display = 'flex';
                 this.kanjiDisplay.classList.remove('hard-mode');
-                this.kanjiDisplay.textContent = '待機中'; // 初期表示
+                this.kanjiDisplay.textContent = '待機中';
                 this.score = 0;
                 this.combo = 0;
                 this.timeLeft = this.GAME_DURATION;
                 this.scoreDisplay.textContent = this.score;
                 this.timerDisplay.textContent = this.timeLeft;
                 this.comboDisplay.textContent = '';
+                this.loadHighScore();
             }
 
             setMode(mode) {
-                if (this.isPlaying) return; // ゲーム中はモード変更不可
+                if (this.isPlaying) return;
 
                 this.currentMode = mode;
-                this.loadHighScore(); // モード変更時にハイスコアを更新
-                this.resetGame(); // モード変更時にゲーム状態をリセット
+                this.loadHighScore();
+                this.resetGame();
 
-                // モードボタンの選択状態を更新
                 this.normalModeBtn.classList.remove('selected');
                 this.hardModeBtn.classList.remove('selected');
                 this.relaxModeBtn.classList.remove('selected');
                 if (this.currentMode === 'normal') {
                     this.normalModeBtn.classList.add('selected');
                     this.kanjiDisplay.classList.remove('hard-mode');
-                    this.timerDisplayContainer.style.display = 'flex'; // ノーマルモードはタイマー表示
+                    this.timerDisplayContainer.style.display = 'flex';
                 } else if (this.currentMode === 'hard') {
                     this.hardModeBtn.classList.add('selected');
                     this.kanjiDisplay.classList.add('hard-mode');
-                    this.timerDisplayContainer.style.display = 'flex'; // 難しいモードはタイマー表示
+                    this.timerDisplayContainer.style.display = 'flex';
                 } else if (this.currentMode === 'relax') {
                     this.relaxModeBtn.classList.add('selected');
-                    this.kanjiDisplay.classList.add('hard-mode'); // リラックスモードも難しい文字を使用
-                    this.timerDisplayContainer.style.display = 'none'; // リラックスモードはタイマー非表示
+                    this.kanjiDisplay.classList.add('hard-mode');
+                    this.timerDisplayContainer.style.display = 'none';
                 }
             }
 
@@ -390,11 +387,11 @@
                 this.scoreDisplay.textContent = this.score;
                 this.timerDisplay.textContent = this.timeLeft;
                 this.comboDisplay.textContent = '';
-                this.kanjiDisplay.textContent = '待機中'; // リセット時の表示
+                this.kanjiDisplay.textContent = '待機中';
 
                 this.gameContainer.classList.remove('game-state-playing');
-                this.gameContainer.classList.add('game-state-initial'); // 初期状態に戻す
-                this.startBtn.textContent = 'スタート'; // ボタンテキストをリセット
+                this.gameContainer.classList.add('game-state-initial');
+                this.startBtn.textContent = 'スタート';
             }
 
             startGame() {
@@ -406,13 +403,12 @@
                 this.timeLeft = this.GAME_DURATION;
                 
                 this.scoreDisplay.textContent = this.score;
-                this.timerDisplay.textContent = this.timeLeft;
                 this.updateComboDisplay();
                 
                 this.gameContainer.classList.remove('game-state-initial');
-                this.gameContainer.classList.add('game-state-playing'); // ゲーム中状態にする
+                this.gameContainer.classList.add('game-state-playing');
 
-                if (this.currentMode !== 'relax') { // リラックスモードでなければタイマーを開始
+                if (this.currentMode !== 'relax') {
                     this.timerDisplayContainer.style.display = 'flex';
                     this.timerId = setInterval(() => {
                         this.timeLeft--;
@@ -422,7 +418,7 @@
                         }
                     }, 1000);
                 } else {
-                    this.timerDisplayContainer.style.display = 'none'; // リラックスモードはタイマー非表示
+                    this.timerDisplayContainer.style.display = 'none';
                 }
 
                 this.nextProblem();
@@ -436,18 +432,17 @@
                 this.comboDisplay.textContent = `ハイスコア: ${this.highScore}`;
 
                 this.gameContainer.classList.remove('game-state-playing');
-                this.gameContainer.classList.add('game-state-initial'); // 初期状態に戻す
-                this.startBtn.textContent = 'もう一度挑戦'; // ボタンテキストを変更
-                this.timerDisplayContainer.style.display = 'flex'; // タイマー表示を元に戻す（終了時も表示）
+                this.gameContainer.classList.add('game-state-initial');
+                this.startBtn.textContent = 'もう一度挑戦';
+                this.timerDisplayContainer.style.display = 'flex';
             }
 
-            // ゲームを終了し、初期状態に戻るメソッド
             exitGame() {
                 clearInterval(this.timerId);
                 this.isPlaying = false;
-                this.saveHighScore(); // スコアを保存
-                this.setInitialUIState(); // UIを初期状態にリセット
-                this.loadHighScore(); // ハイスコアを再読み込み
+                this.saveHighScore();
+                this.setInitialUIState();
+                this.loadHighScore();
             }
 
             nextProblem() {
@@ -455,15 +450,13 @@
 
                 let problemValue;
                 let problemType;
-                const number = Math.floor(Math.random() * 10); // 0から9までの数字をランダムに生成
+                const number = Math.floor(Math.random() * 10);
 
                 if (this.currentMode === 'normal') {
-                    // ノーマルモードでは漢数字のみ
                     const kanjiMap = Object.entries(this.KANJI_NUMBERS).find(([key, val]) => val === number);
                     problemValue = kanjiMap ? kanjiMap[0] : '';
                     problemType = 'KANJI';
                 } else {
-                    // 難しいモードとリラックスモードでは4種類の表記をランダムに選択
                     const types = ['KANJI', 'HIRAGANA', 'KATAKANA', 'DAIJI'];
                     problemType = types[Math.floor(Math.random() * types.length)];
 
@@ -530,17 +523,14 @@
                 setTimeout(() => this.kanjiDisplay.classList.remove(className), 400);
             }
 
-            // キーボード入力ハンドラーを追加
             handleKeyboardInput(event) {
                 if (!this.isPlaying) {
-                    // ゲーム中でない場合は、'Enter'キーでゲームを開始できるようにする
                     if (event.key === 'Enter') {
                         this.startGame();
                     }
                     return;
                 }
 
-                // 数字キーが押されたか確認
                 const guessedNumber = parseInt(event.key, 10);
                 if (!isNaN(guessedNumber) && guessedNumber >= 0 && guessedNumber <= 9) {
                     this.handleGuess(guessedNumber);
