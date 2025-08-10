@@ -18,13 +18,15 @@
             min-height: 100vh;
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: center; /* 基本は中央揃え */
             overflow-x: hidden;
+            padding: 10px 0; /* 上下に少しパディング */
         }
 
         .container {
             text-align: center;
             max-width: 600px;
+            width: 100%;
             padding: 20px;
         }
 
@@ -179,6 +181,7 @@
             font-size: 1.1rem;
             min-height: 50px;
             display: flex;
+            flex-direction: column; /* 複数行コンテンツのために縦並びにする */
             align-items: center;
             justify-content: center;
         }
@@ -230,20 +233,87 @@
             color: #fff;
         }
 
+        /* スマートフォン向け縦画面レイアウト調整 */
         @media (max-width: 600px) {
-            .game-board {
-                grid-template-columns: repeat(3, 80px);
-                grid-template-rows: repeat(3, 80px);
+            body {
+                /* 小画面では上から詰める */
+                align-items: flex-start;
             }
 
-            .cell {
-                width: 80px;
-                height: 80px;
-                font-size: 4rem;
+            .container {
+                padding: 15px 10px;
             }
 
             .title {
-                font-size: 2rem;
+                font-size: 1.8rem;
+                margin-bottom: 5px;
+            }
+
+            .subtitle {
+                font-size: 0.95rem;
+                margin-bottom: 15px;
+            }
+
+            .difficulty-selector {
+                margin: 10px 0;
+            }
+
+            .stats {
+                margin: 15px 0;
+                gap: 5px;
+            }
+            .stat-item {
+                padding: 5px;
+                min-width: 70px;
+            }
+            .stat-value {
+                font-size: 1.2rem;
+            }
+            .stat-label {
+                font-size: 0.75rem;
+            }
+
+            .game-board {
+                grid-template-columns: repeat(3, 75px);
+                grid-template-rows: repeat(3, 75px);
+                gap: 5px;
+                margin: 15px auto;
+            }
+
+            .cell {
+                width: 75px;
+                height: 75px;
+                font-size: 3.5rem;
+            }
+
+            .controls {
+                gap: 8px;
+                margin: 15px 0;
+                flex-wrap: wrap;
+            }
+            .btn {
+                padding: 10px 18px;
+                font-size: 0.9rem;
+            }
+
+            .restart-control {
+                margin-top: 10px;
+            }
+
+            .message {
+                margin: 15px 0;
+                padding: 12px;
+                font-size: 1rem;
+                min-height: 44px;
+            }
+            
+            .history {
+                margin: 10px 0;
+                gap: 5px;
+            }
+            .history-item {
+                width: 25px;
+                height: 25px;
             }
         }
     </style>
@@ -320,6 +390,7 @@
                 this.currentTurn = 0;
                 this.score = 0;
                 this.streak = 0;
+                this.maxStreak = 0; // ★★★ 追加: 最高連続正解数を記録
                 this.totalTurns = 20;
                 this.sequence = [];
                 this.isPlaying = false;
@@ -331,9 +402,8 @@
                 this.waitingForAnswer = false;
                 this.answerTimeout = null;
                 
-                // ★★★ 変更点: 複数回答を管理するためのプロパティ ★★★
-                this.userAnswers = []; // ユーザーが押したボタンを格納
-                this.partialAnswerTimeout = null; // 1つ目のボタンが押された後の時間制限タイマー
+                this.userAnswers = []; 
+                this.partialAnswerTimeout = null;
 
                 this.initializeElements();
                 this.bindEvents();
@@ -366,7 +436,7 @@
             }
             
             restartGame() {
-                this.endGame();
+                this.endGame(false); // 結果を表示せずに終了処理
                 this.startBtn.disabled = false;
                 this.restartBtn.disabled = true;
                 this.difficultySelect.disabled = false;
@@ -379,6 +449,7 @@
                 this.currentTurn = 0;
                 this.score = 0;
                 this.streak = 0;
+                this.maxStreak = 0; // ★★★ リセット
                 this.sequence = [];
                 this.correctAnswers = 0;
                 this.totalAnswers = 0;
@@ -411,7 +482,7 @@
 
                 this.currentTurn++;
                 this.waitingForAnswer = false;
-                this.userAnswers = []; // 回答をリセット
+                this.userAnswers = []; 
 
                 let stimulus;
                 if (this.currentTurn > this.difficulty) {
@@ -495,13 +566,11 @@
                 });
             }
 
-            // ★★★ 変更点: 複数回答に対応した新しい回答判定ロジック ★★★
             checkAnswer(type) {
                 if (!this.waitingForAnswer || this.userAnswers.includes(type)) {
-                    return; // 回答時間外、または同じボタンの重複押しは無視
+                    return;
                 }
 
-                // メインのタイムアウトと部分回答のタイムアウトをクリア
                 if (this.answerTimeout) clearTimeout(this.answerTimeout);
                 if (this.partialAnswerTimeout) clearTimeout(this.partialAnswerTimeout);
 
@@ -513,7 +582,6 @@
                 if (nBack.letter === current.letter) correctMatches.push('letter');
                 if (nBack.color === current.color) correctMatches.push('color');
 
-                // --- タイムアウトによる判定 ---
                 if (type === 'none_timeout') {
                     const sortedUser = [...this.userAnswers].sort();
                     const sortedCorrect = [...correctMatches].sort();
@@ -522,39 +590,32 @@
                     return;
                 }
                 
-                // --- ボタンクリックによる判定 ---
                 this.userAnswers.push(type);
 
-                // 1. 押されたボタンが不正解の場合、即座に「不正解」
                 if (!correctMatches.includes(type)) {
                     this.finalizeAnswer(false, correctMatches);
                     return;
                 }
 
-                // 2. 正解のボタンが押された場合
                 const sortedUser = [...this.userAnswers].sort();
                 const sortedCorrect = [...correctMatches].sort();
 
-                // 2a. ユーザーの回答が正解と完全に一致した場合、「正解」
                 if (JSON.stringify(sortedUser) === JSON.stringify(sortedCorrect)) {
                     this.finalizeAnswer(true, correctMatches);
                     return;
                 }
 
-                // 2b. まだ回答が足りない場合（正解が2つで1つしか押していない）、次の入力を待つ
                 if (this.userAnswers.length < correctMatches.length) {
                     this.showMessage('もう一つの答えを入力してください...', 'neutral');
-                    // 短い時間制限を設けて、次のボタン入力を待つ
                     this.partialAnswerTimeout = setTimeout(() => {
-                        this.finalizeAnswer(false, correctMatches); // 時間内に次の入力がなければ不正解
-                    }, 2500); // 2.5秒以内に次のボタンを押す
+                        this.finalizeAnswer(false, correctMatches);
+                    }, 2500);
                     return;
                 }
             }
 
-            // ★★★ 変更点: 判定後の共通処理をまとめたメソッド ★★★
             finalizeAnswer(isCorrect, correctMatches) {
-                if (!this.waitingForAnswer) return; // すでに判定済みの場合は何もしない
+                if (!this.waitingForAnswer) return;
 
                 this.waitingForAnswer = false;
                 this.totalAnswers++;
@@ -565,6 +626,10 @@
                 if (isCorrect) {
                     this.correctAnswers++;
                     this.streak++;
+                    // ★★★ 最高連続正解数を更新
+                    if (this.streak > this.maxStreak) {
+                        this.maxStreak = this.streak;
+                    }
                     this.score += 10 + (this.streak * 2);
                     this.showMessage('正解！', 'correct');
                     this.addHistoryItem(true);
@@ -572,7 +637,6 @@
                     this.streak = 0;
                     const matchJpMap = { 'position': '位置', 'letter': '文字', 'color': '色' };
                     const correctJpMatches = correctMatches.map(match => matchJpMap[match]);
-                    // 不正解メッセージの助詞を「と」に変更
                     const answerText = correctJpMatches.length > 0 ? correctJpMatches.join(' と ') : 'なし';
                     this.showMessage(`不正解。正解は: ${answerText}`, 'incorrect');
                     this.addHistoryItem(false);
@@ -593,7 +657,8 @@
                 this.history.appendChild(item);
             }
 
-            endGame() {
+            // ★★★ 変更点: 結果表示ロジックの変更 ★★★
+            endGame(showResult = true) {
                 this.isPlaying = false;
                 this.startBtn.disabled = false;
                 this.restartBtn.disabled = true;
@@ -602,14 +667,26 @@
                 this.colorBtn.disabled = true;
                 this.difficultySelect.disabled = false;
 
-                const accuracy = this.totalAnswers > 0 ? Math.round((this.correctAnswers / this.totalAnswers) * 100) : 0;
-                this.showMessage(`ゲーム終了！最終スコア: ${this.score} (正解率: ${accuracy}%)`, 'neutral');
+                if (showResult) {
+                    const accuracy = this.totalAnswers > 0 ? Math.round((this.correctAnswers / this.totalAnswers) * 100) : 0;
+                    
+                    this.message.innerHTML = `
+                        <div style="font-weight: bold; margin-bottom: 8px; font-size: 1.2em;">ゲーム結果</div>
+                        <div style="text-align: left; display: inline-block;">
+                            <p style="margin: 4px 0;">N値: ${this.difficulty}</p>
+                            <p style="margin: 4px 0;">スコア: ${this.score}</p>
+                            <p style="margin: 4px 0;">正答率: ${accuracy}%</p>
+                            <p style="margin: 4px 0;">最高連続正解: ${this.maxStreak}</p>
+                        </div>
+                    `;
+                    this.message.className = 'message neutral';
+                }
                 
                 this.clearBoard();
             }
 
             showMessage(text, type) {
-                this.message.textContent = text;
+                this.message.innerHTML = `<span>${text}</span>`;
                 this.message.className = `message ${type}`;
             }
 
