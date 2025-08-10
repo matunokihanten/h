@@ -257,9 +257,9 @@
                 type: "self_honesty"
             },
             {
-                question: "今朝、朝食を食べましたか？",
-                trueAnswer: "はい、食べました。",
-                falseAnswer: "いいえ、食べていません。",
+                question: "嘘つきは誰ですか？",
+                trueAnswer: "私が嘘つきです。",
+                falseAnswer: "私は嘘つきではありません。",
                 type: "general_random"
             },
             {
@@ -376,7 +376,9 @@
                     actualTruthValue = char.isHonest;
                     charactersPerspectiveAnswer = actualTruthValue ? currentQuestionData.trueAnswer : currentQuestionData.falseAnswer;
                 } else if (currentQuestionData.type === "general_random") {
-                    // 「今朝、朝食を食べましたか？」
+                    // 「嘘つきは誰ですか？」
+                    // この質問は、ゲームロジック上「私は嘘つきです」と「私は嘘つきではありません」を
+                    // ランダムに真実とすることにしました。
                     actualTruthValue = Math.random() < 0.5; // ランダムな真実
                     charactersPerspectiveAnswer = actualTruthValue ? currentQuestionData.trueAnswer : currentQuestionData.falseAnswer;
                 } else if (currentQuestionData.type === "general_fact") {
