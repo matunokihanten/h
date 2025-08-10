@@ -478,8 +478,6 @@
                 this.answerWaitTime = 5000;
                 this.turnInterval = 1500;
 
-                this.nBackStats = {};
-
                 this.initializeElements();
                 this.bindEvents();
                 this.updateDisplay();
@@ -568,7 +566,6 @@
                 this.sequence = [];
                 this.correctAnswers = 0;
                 this.totalAnswers = 0;
-                this.nBackStats = {};
                 this.history.innerHTML = '';
 
                 this.startBtn.disabled = true;
@@ -602,7 +599,7 @@
 
             nextTurn() {
                 if (this.mode === 'challenge' && this.currentTurn >= this.totalTurns) {
-                    this.endGame();
+                    this.endGame(true);
                     return;
                 }
 
@@ -695,9 +692,11 @@
             }
 
             checkAnswer(type) {
-                if (!this.waitingForAnswer || (this.mode === 'challenge' && this.userAnswers.includes(type))) {
+                if (!this.waitingForAnswer || (this.userAnswers.includes(type))) {
                     return;
                 }
+                
+                this.userAnswers.push(type);
 
                 if (this.answerTimeout) clearTimeout(this.answerTimeout);
                 if (this.partialAnswerTimeout) clearTimeout(this.partialAnswerTimeout);
@@ -710,34 +709,29 @@
                 if (nBack.letter === current.letter) correctMatches.push('letter');
                 if (nBack.color === current.color) correctMatches.push('color');
 
-                if (type === 'timeout') {
-                    const sortedUser = [...this.userAnswers].sort();
-                    const sortedCorrect = [...correctMatches].sort();
-                    const isCorrect = JSON.stringify(sortedUser) === JSON.stringify(sortedCorrect);
+                // ユーザーの回答が正解と完全に一致するかチェック
+                const sortedUser = [...this.userAnswers].sort();
+                const sortedCorrect = [...correctMatches].sort();
+                const isCorrect = JSON.stringify(sortedUser) === JSON.stringify(sortedCorrect);
+
+                // もし、不正解なボタンを押した場合、または全正解を達成した場合
+                if (!isCorrect && !correctMatches.includes(type) || isCorrect) {
                     this.finalizeAnswer(isCorrect, correctMatches);
                     return;
                 }
-                
-                this.userAnswers.push(type);
 
-                if (!correctMatches.includes(type)) {
-                    this.finalizeAnswer(false, correctMatches);
-                    return;
-                }
-
-                const sortedUser = [...this.userAnswers].sort();
-                const sortedCorrect = [...correctMatches].sort();
-
-                if (JSON.stringify(sortedUser) === JSON.stringify(sortedCorrect)) {
-                    this.finalizeAnswer(true, correctMatches);
-                    return;
-                }
-
+                // 部分的に正解していて、まだ回答すべきボタンがある場合
                 if (this.userAnswers.length < correctMatches.length) {
                     this.showMessage('もう一つの答えを入力してください...', 'neutral');
                     this.partialAnswerTimeout = setTimeout(() => {
                         this.finalizeAnswer(false, correctMatches);
                     }, 2500);
+                    return;
+                }
+
+                // タイムアウトの場合
+                if (type === 'timeout') {
+                    this.finalizeAnswer(isCorrect, correctMatches);
                     return;
                 }
             }
@@ -748,18 +742,11 @@
                 this.waitingForAnswer = false;
                 this.totalAnswers++;
 
-                const currentN = this.difficulty;
-                if (!this.nBackStats[currentN]) {
-                    this.nBackStats[currentN] = { correct: 0, total: 0 };
-                }
-                this.nBackStats[currentN].total++;
-
                 if (this.answerTimeout) clearTimeout(this.answerTimeout);
                 if (this.partialAnswerTimeout) clearTimeout(this.partialAnswerTimeout);
 
                 if (isCorrect) {
                     this.correctAnswers++;
-                    this.nBackStats[currentN].correct++;
                     this.streak++;
                     if (this.streak > this.maxStreak) {
                         this.maxStreak = this.streak;
@@ -771,7 +758,7 @@
                     this.streak = 0;
                     const matchJpMap = { 'position': '位置', 'letter': '文字', 'color': '色' };
                     const correctJpMatches = correctMatches.map(match => matchJpMap[match]);
-                    const answerText = correctJpMatches.join(' と ');
+                    const answerText = correctJpMatches.length > 0 ? correctJpMatches.join(' と ') : 'なし';
                     this.showMessage(`不正解。正解は: ${answerText}`, 'incorrect');
                     this.addHistoryItem(false);
                 }
@@ -782,8 +769,6 @@
                     this.nextTurn();
                 }, this.turnInterval);
             }
-
-
 
             addHistoryItem(isCorrect) {
                 const item = document.createElement('div');
@@ -805,6 +790,9 @@
 
                 if (showResult) {
                     const accuracy = this.totalAnswers > 0 ? Math.round((this.correctAnswers / this.totalAnswers) * 100) : 0;
+
+                    // チャレンジモードで非表示になっていたstatsDisplayを再表示
+                    this.statsDisplay.style.display = 'flex';
 
                     this.message.innerHTML = `
                         <div style="font-weight: bold; margin-bottom: 8px; font-size: 1.2em;">ゲーム結果</div>
@@ -828,7 +816,8 @@
             }
 
             updateDisplay() {
-                if (this.mode === 'challenge') {
+                // リラックスモードの場合でも、ゲーム終了時には統計情報が計算されるように修正
+                if (this.mode === 'challenge' || !this.isPlaying) {
                     document.getElementById('currentTurn').textContent = this.currentTurn;
                     document.getElementById('score').textContent = this.score;
                     document.getElementById('streak').textContent = this.streak;
