@@ -18,9 +18,9 @@
             min-height: 100vh;
             display: flex;
             justify-content: center;
-            align-items: center; /* 基本は中央揃え */
+            align-items: center;
             overflow-x: hidden;
-            padding: 10px 0; /* 上下に少しパディング */
+            padding: 10px 0;
         }
 
         .container {
@@ -95,8 +95,12 @@
             margin: 20px 0;
             flex-wrap: wrap;
         }
-        
+
         .restart-control {
+            margin-top: 20px;
+        }
+        
+        .relax-control {
             margin-top: 20px;
         }
 
@@ -137,6 +141,10 @@
             gap: 10px;
         }
 
+        .stats.hidden {
+            display: none;
+        }
+
         .stat-item {
             text-align: center;
             padding: 10px;
@@ -156,13 +164,24 @@
             opacity: 0.8;
         }
 
-        .difficulty-selector {
+        .difficulty-selector, .mode-selector {
             margin: 20px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
         }
 
-        .difficulty-selector label {
-            margin-right: 10px;
+        .difficulty-selector label, .mode-selector label {
             color: #00ffff;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+        }
+
+        .mode-selector input[type="radio"] {
+            margin-right: 5px;
         }
 
         .difficulty-selector select {
@@ -181,7 +200,7 @@
             font-size: 1.1rem;
             min-height: 50px;
             display: flex;
-            flex-direction: column; /* 複数行コンテンツのために縦並びにする */
+            flex-direction: column;
             align-items: center;
             justify-content: center;
         }
@@ -232,11 +251,30 @@
             background: #ff0000;
             color: #fff;
         }
+        
+        .analysis-results {
+            text-align: left;
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            background: rgba(0, 255, 255, 0.1);
+            border: 2px solid #00ffff;
+            color: #00ffff;
+        }
+        
+        .analysis-results h3 {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            color: #00ffff;
+            text-align: center;
+        }
+        
+        .analysis-results p {
+            margin: 5px 0;
+        }
 
-        /* スマートフォン向け縦画面レイアウト調整 */
         @media (max-width: 600px) {
             body {
-                /* 小画面では上から詰める */
                 align-items: flex-start;
             }
 
@@ -254,8 +292,9 @@
                 margin-bottom: 15px;
             }
 
-            .difficulty-selector {
+            .difficulty-selector, .mode-selector {
                 margin: 10px 0;
+                gap: 10px;
             }
 
             .stats {
@@ -296,7 +335,7 @@
                 font-size: 0.9rem;
             }
 
-            .restart-control {
+            .restart-control, .relax-control {
                 margin-top: 10px;
             }
 
@@ -306,7 +345,7 @@
                 font-size: 1rem;
                 min-height: 44px;
             }
-            
+
             .history {
                 margin: 10px 0;
                 gap: 5px;
@@ -323,6 +362,11 @@
         <h1 class="title">3次元Nバック</h1>
         <p class="subtitle">科学的に効果が実証された脳トレゲーム</p>
 
+        <div class="mode-selector">
+            <label><input type="radio" name="mode" value="challenge" id="challengeMode" checked>チャレンジモード</label>
+            <label><input type="radio" name="mode" value="relax" id="relaxMode">リラックスモード</label>
+        </div>
+
         <div class="difficulty-selector">
             <label for="difficulty">難易度 (N値):</label>
             <select id="difficulty">
@@ -334,7 +378,7 @@
             </select>
         </div>
 
-        <div class="stats">
+        <div class="stats" id="statsDisplay">
             <div class="stat-item">
                 <div class="stat-value" id="currentTurn">0</div>
                 <div class="stat-label">ターン</div>
@@ -371,6 +415,10 @@
             <button class="btn" id="letterBtn" disabled>文字一致</button>
             <button class="btn" id="colorBtn" disabled>色一致</button>
         </div>
+
+        <div class="relax-control">
+            <button class="btn" id="endRelaxBtn" style="display:none;">ゲーム終了</button>
+        </div>
         
         <div class="restart-control">
             <button class="btn" id="restartBtn" disabled>初めからやり直す</button>
@@ -386,24 +434,29 @@
     <script>
         class NBackGame {
             constructor() {
+                this.mode = 'challenge';
                 this.difficulty = 1;
                 this.currentTurn = 0;
                 this.score = 0;
                 this.streak = 0;
-                this.maxStreak = 0; // ★★★ 追加: 最高連続正解数を記録
+                this.maxStreak = 0;
                 this.totalTurns = 20;
                 this.sequence = [];
                 this.isPlaying = false;
                 this.correctAnswers = 0;
                 this.totalAnswers = 0;
                 this.letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
-                this.colors = ['#FF0000', '#0000FF', '#FFFF00', '#008000', '#FFA500']; // 赤, 青, 黄, 緑, オレンジ
+                this.colors = ['#FF0000', '#0000FF', '#FFFF00', '#008000', '#FFA500'];
                 this.currentStimulus = null;
                 this.waitingForAnswer = false;
                 this.answerTimeout = null;
                 
-                this.userAnswers = []; 
+                this.userAnswers = [];
                 this.partialAnswerTimeout = null;
+                this.answerWaitTime = 5000;
+                this.turnInterval = 1500;
+                
+                this.nBackStats = {};
 
                 this.initializeElements();
                 this.bindEvents();
@@ -414,34 +467,63 @@
                 this.board = document.getElementById('gameBoard');
                 this.startBtn = document.getElementById('startBtn');
                 this.restartBtn = document.getElementById('restartBtn');
+                this.endRelaxBtn = document.getElementById('endRelaxBtn');
                 this.positionBtn = document.getElementById('positionBtn');
                 this.letterBtn = document.getElementById('letterBtn');
                 this.colorBtn = document.getElementById('colorBtn');
                 this.message = document.getElementById('message');
                 this.difficultySelect = document.getElementById('difficulty');
                 this.history = document.getElementById('history');
-                
+                this.modeSelectors = document.querySelectorAll('input[name="mode"]');
+                this.statsDisplay = document.getElementById('statsDisplay');
+                this.difficultySelector = document.querySelector('.difficulty-selector');
+
                 this.cells = Array.from(this.board.children);
             }
 
             bindEvents() {
                 this.startBtn.addEventListener('click', () => this.startGame());
                 this.restartBtn.addEventListener('click', () => this.restartGame());
+                this.endRelaxBtn.addEventListener('click', () => this.endGame(true));
                 this.positionBtn.addEventListener('click', () => this.checkAnswer('position'));
                 this.letterBtn.addEventListener('click', () => this.checkAnswer('letter'));
                 this.colorBtn.addEventListener('click', () => this.checkAnswer('color'));
                 this.difficultySelect.addEventListener('change', (e) => {
                     this.difficulty = parseInt(e.target.value);
                 });
+                this.modeSelectors.forEach(selector => {
+                    selector.addEventListener('change', (e) => {
+                        this.mode = e.target.value;
+                        this.updateModeUI();
+                    });
+                });
             }
-            
+
+            updateModeUI() {
+                if (this.mode === 'relax') {
+                    this.statsDisplay.classList.add('hidden');
+                    this.difficultySelector.style.display = 'flex';
+                    this.startBtn.textContent = 'リラックスモード開始';
+                    this.endRelaxBtn.style.display = 'none';
+                    this.showMessage('時間制限なしで無限にプレイできます。', 'neutral');
+                } else {
+                    this.statsDisplay.classList.remove('hidden');
+                    this.difficultySelector.style.display = 'flex';
+                    this.startBtn.textContent = 'ゲーム開始';
+                    this.endRelaxBtn.style.display = 'none';
+                    this.showMessage('ゲームを開始してください。位置・文字・色がN回前と同じかどうかを判断します。', 'neutral');
+                }
+            }
+
             restartGame() {
-                this.endGame(false); // 結果を表示せずに終了処理
+                this.endGame(false);
                 this.startBtn.disabled = false;
                 this.restartBtn.disabled = true;
                 this.difficultySelect.disabled = false;
+                this.modeSelectors.forEach(s => s.disabled = false);
                 this.showMessage('ゲームを最初からやり直します。', 'neutral');
                 this.updateDisplay();
+                this.updateModeUI();
             }
 
             startGame() {
@@ -449,30 +531,44 @@
                 this.currentTurn = 0;
                 this.score = 0;
                 this.streak = 0;
-                this.maxStreak = 0; // ★★★ リセット
+                this.maxStreak = 0;
                 this.sequence = [];
                 this.correctAnswers = 0;
                 this.totalAnswers = 0;
+                this.nBackStats = {};
                 this.history.innerHTML = '';
-                
+
                 this.startBtn.disabled = true;
                 this.restartBtn.disabled = false;
                 this.positionBtn.disabled = false;
                 this.letterBtn.disabled = false;
                 this.colorBtn.disabled = false;
                 this.difficultySelect.disabled = true;
+                this.modeSelectors.forEach(s => s.disabled = true);
+                
                 this.difficulty = parseInt(this.difficultySelect.value);
 
-                this.showMessage('ゲーム開始！注意深く観察してください。', 'neutral');
+                if (this.mode === 'relax') {
+                    this.statsDisplay.classList.add('hidden');
+                    this.difficultySelector.style.display = 'flex';
+                    this.endRelaxBtn.style.display = 'block';
+                    this.showMessage(`リラックスモード(N=${this.difficulty})開始！時間制限はありません。`, 'neutral');
+                } else {
+                    this.endRelaxBtn.style.display = 'none';
+                    this.statsDisplay.classList.remove('hidden');
+                    this.difficultySelector.style.display = 'flex';
+                    this.showMessage('ゲーム開始！注意深く観察してください。', 'neutral');
+                }
+
                 this.updateDisplay();
-                
+
                 setTimeout(() => {
                     this.nextTurn();
                 }, 1000);
             }
 
             nextTurn() {
-                if (this.currentTurn >= this.totalTurns) {
+                if (this.mode === 'challenge' && this.currentTurn >= this.totalTurns) {
                     this.endGame();
                     return;
                 }
@@ -482,7 +578,7 @@
 
                 this.currentTurn++;
                 this.waitingForAnswer = false;
-                this.userAnswers = []; 
+                this.userAnswers = [];
 
                 let stimulus;
                 if (this.currentTurn > this.difficulty) {
@@ -524,26 +620,28 @@
                         color: this.colors[Math.floor(Math.random() * this.colors.length)]
                     };
                 }
-                
+
                 this.sequence.push(stimulus);
                 this.currentStimulus = stimulus;
                 this.displayStimulus(stimulus);
                 this.updateDisplay();
-                
+
                 setTimeout(() => {
                     this.hideStimulus();
                     if (this.currentTurn > this.difficulty) {
                         this.waitingForAnswer = true;
                         this.showMessage(`${this.difficulty}回前と一致する要素があれば、ボタンをクリックしてください。`, 'neutral');
-                        this.answerTimeout = setTimeout(() => {
-                            if (this.waitingForAnswer) {
-                                this.checkAnswer('none_timeout');
-                            }
-                        }, 5000);
+                        if (this.mode === 'challenge') {
+                            this.answerTimeout = setTimeout(() => {
+                                if (this.waitingForAnswer) {
+                                    this.checkAnswer('none_timeout');
+                                }
+                            }, this.answerWaitTime);
+                        }
                     } else {
-                        setTimeout(() => this.nextTurn(), 1000);
+                        setTimeout(() => this.nextTurn(), this.turnInterval);
                     }
-                }, 1500);
+                }, this.turnInterval);
             }
 
             displayStimulus(stimulus) {
@@ -567,7 +665,7 @@
             }
 
             checkAnswer(type) {
-                if (!this.waitingForAnswer || this.userAnswers.includes(type)) {
+                if (!this.waitingForAnswer || (this.mode === 'challenge' && this.userAnswers.includes(type))) {
                     return;
                 }
 
@@ -576,7 +674,7 @@
 
                 const nBack = this.sequence[this.currentTurn - 1 - this.difficulty];
                 const current = this.sequence[this.currentTurn - 1];
-                
+
                 let correctMatches = [];
                 if (nBack.position === current.position) correctMatches.push('position');
                 if (nBack.letter === current.letter) correctMatches.push('letter');
@@ -589,7 +687,7 @@
                     this.finalizeAnswer(isCorrect, correctMatches);
                     return;
                 }
-                
+
                 this.userAnswers.push(type);
 
                 if (!correctMatches.includes(type)) {
@@ -619,14 +717,20 @@
 
                 this.waitingForAnswer = false;
                 this.totalAnswers++;
+                
+                const currentN = this.difficulty;
+                if (!this.nBackStats[currentN]) {
+                    this.nBackStats[currentN] = { correct: 0, total: 0 };
+                }
+                this.nBackStats[currentN].total++;
 
                 if (this.answerTimeout) clearTimeout(this.answerTimeout);
                 if (this.partialAnswerTimeout) clearTimeout(this.partialAnswerTimeout);
 
                 if (isCorrect) {
                     this.correctAnswers++;
+                    this.nBackStats[currentN].correct++;
                     this.streak++;
-                    // ★★★ 最高連続正解数を更新
                     if (this.streak > this.maxStreak) {
                         this.maxStreak = this.streak;
                     }
@@ -643,12 +747,11 @@
                 }
 
                 this.updateDisplay();
-                
+
                 setTimeout(() => {
                     this.nextTurn();
-                }, 2000);
+                }, this.turnInterval);
             }
-
 
             addHistoryItem(isCorrect) {
                 const item = document.createElement('div');
@@ -657,7 +760,6 @@
                 this.history.appendChild(item);
             }
 
-            // ★★★ 変更点: 結果表示ロジックの変更 ★★★
             endGame(showResult = true) {
                 this.isPlaying = false;
                 this.startBtn.disabled = false;
@@ -666,10 +768,22 @@
                 this.letterBtn.disabled = true;
                 this.colorBtn.disabled = true;
                 this.difficultySelect.disabled = false;
+                this.modeSelectors.forEach(s => s.disabled = false);
+                this.endRelaxBtn.style.display = 'none';
 
                 if (showResult) {
                     const accuracy = this.totalAnswers > 0 ? Math.round((this.correctAnswers / this.totalAnswers) * 100) : 0;
+                    let analysisHTML = '';
                     
+                    if (this.mode === 'relax' && Object.keys(this.nBackStats).length > 0) {
+                        analysisHTML = '<h3>N値ごとの分析</h3>';
+                        for (const n in this.nBackStats) {
+                            const stats = this.nBackStats[n];
+                            const nAccuracy = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0;
+                            analysisHTML += `<p>N=${n}: 正解数 ${stats.correct} / ${stats.total}, 正答率 ${nAccuracy}%</p>`;
+                        }
+                    }
+
                     this.message.innerHTML = `
                         <div style="font-weight: bold; margin-bottom: 8px; font-size: 1.2em;">ゲーム結果</div>
                         <div style="text-align: left; display: inline-block;">
@@ -678,11 +792,13 @@
                             <p style="margin: 4px 0;">正答率: ${accuracy}%</p>
                             <p style="margin: 4px 0;">最高連続正解: ${this.maxStreak}</p>
                         </div>
+                        ${analysisHTML ? `<div class="analysis-results">${analysisHTML}</div>` : ''}
                     `;
                     this.message.className = 'message neutral';
                 }
-                
+
                 this.clearBoard();
+                this.updateModeUI();
             }
 
             showMessage(text, type) {
@@ -694,7 +810,7 @@
                 document.getElementById('currentTurn').textContent = this.currentTurn;
                 document.getElementById('score').textContent = this.score;
                 document.getElementById('streak').textContent = this.streak;
-                
+
                 const accuracy = this.totalAnswers > 0 ? Math.round((this.correctAnswers / this.totalAnswers) * 100) : 0;
                 document.getElementById('accuracy').textContent = accuracy + '%';
             }
