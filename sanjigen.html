@@ -19,8 +19,8 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            overflow-x: hidden;
-            padding: 10px 0;
+            /* 縦画面でもスクロールしないように調整 */
+            overflow: hidden;
         }
 
         .container {
@@ -28,6 +28,13 @@
             max-width: 600px;
             width: 100%;
             padding: 20px;
+            /* 縦画面で要素がはみ出さないように、高さを動的に調整 */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow-y: auto; /* コンテンツが多すぎる場合のみスクロールを許可 */
         }
 
         .title {
@@ -245,6 +252,9 @@
 
             .container {
                 padding: 15px 10px;
+                /* 縦画面では高さを100vhに固定 */
+                height: 100vh;
+                overflow-y: auto;
             }
 
             .title {
@@ -496,7 +506,7 @@
                         color: nBack.color
                     };
 
-                    const shouldMatchTwo = Math.random() < 0.20; // 20%の確率で2つ一致
+                    const shouldMatchTwo = Math.random() < 0.20;
                     let matchTypes = [];
                     if (shouldMatchTwo) {
                         const allTypes = ['position', 'letter', 'color'];
