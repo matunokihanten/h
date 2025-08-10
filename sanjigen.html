@@ -18,9 +18,9 @@
             min-height: 100vh;
             display: flex;
             justify-content: center;
-            align-items: center; /* 基本は中央揃え */
+            align-items: center;
             overflow-x: hidden;
-            padding: 10px 0; /* 上下に少しパディング */
+            padding: 10px 0;
         }
 
         .container {
@@ -185,7 +185,7 @@
             font-size: 1.1rem;
             min-height: 50px;
             display: flex;
-            flex-direction: column; /* 複数行コンテンツのために縦並びにする */
+            flex-direction: column;
             align-items: center;
             justify-content: center;
         }
@@ -240,7 +240,6 @@
         /* スマートフォン向け縦画面レイアウト調整 */
         @media (max-width: 600px) {
             body {
-                /* 小画面では上から詰める */
                 align-items: flex-start;
             }
 
@@ -497,30 +496,27 @@
                         color: nBack.color
                     };
 
-                    const shouldMatchTwo = Math.random() < 0.25;
-
+                    const shouldMatchTwo = Math.random() < 0.20; // 20%の確率で2つ一致
+                    let matchTypes = [];
                     if (shouldMatchTwo) {
-                        const matchPair = ['pos_let', 'pos_col', 'let_col'][Math.floor(Math.random() * 3)];
-                        if (matchPair === 'pos_let') {
-                            while (stimulus.color === nBack.color) { stimulus.color = this.colors[Math.floor(Math.random() * this.colors.length)]; }
-                        } else if (matchPair === 'pos_col') {
-                            while (stimulus.letter === nBack.letter) { stimulus.letter = this.letters[Math.floor(Math.random() * this.letters.length)]; }
-                        } else {
-                            while (stimulus.position === nBack.position) { stimulus.position = Math.floor(Math.random() * 9); }
-                        }
+                        const allTypes = ['position', 'letter', 'color'];
+                        const match1 = allTypes.splice(Math.floor(Math.random() * allTypes.length), 1)[0];
+                        const match2 = allTypes.splice(Math.floor(Math.random() * allTypes.length), 1)[0];
+                        matchTypes.push(match1, match2);
                     } else {
-                        const matchType = ['position', 'letter', 'color'][Math.floor(Math.random() * 3)];
-                        if (matchType === 'position') {
-                            while (stimulus.letter === nBack.letter) { stimulus.letter = this.letters[Math.floor(Math.random() * this.letters.length)]; }
-                            while (stimulus.color === nBack.color) { stimulus.color = this.colors[Math.floor(Math.random() * this.colors.length)]; }
-                        } else if (matchType === 'letter') {
-                            while (stimulus.position === nBack.position) { stimulus.position = Math.floor(Math.random() * 9); }
-                            while (stimulus.color === nBack.color) { stimulus.color = this.colors[Math.floor(Math.random() * this.colors.length)]; }
-                        } else {
-                            while (stimulus.position === nBack.position) { stimulus.position = Math.floor(Math.random() * 9); }
-                            while (stimulus.letter === nBack.letter) { stimulus.letter = this.letters[Math.floor(Math.random() * this.letters.length)]; }
-                        }
+                        matchTypes.push(['position', 'letter', 'color'][Math.floor(Math.random() * 3)]);
                     }
+                    
+                    if (!matchTypes.includes('position')) {
+                        while (stimulus.position === nBack.position) { stimulus.position = Math.floor(Math.random() * 9); }
+                    }
+                    if (!matchTypes.includes('letter')) {
+                        while (stimulus.letter === nBack.letter) { stimulus.letter = this.letters[Math.floor(Math.random() * this.letters.length)]; }
+                    }
+                    if (!matchTypes.includes('color')) {
+                        while (stimulus.color === nBack.color) { stimulus.color = this.colors[Math.floor(Math.random() * this.colors.length)]; }
+                    }
+
                 } else {
                     stimulus = {
                         position: Math.floor(Math.random() * 9),
@@ -539,15 +535,21 @@
                     if (this.currentTurn > this.difficulty) {
                         this.waitingForAnswer = true;
                         this.showMessage(`${this.difficulty}回前と一致する要素があれば、ボタンをクリックしてください。`, 'neutral');
-                        this.answerTimeout = setTimeout(() => {
-                            if (this.waitingForAnswer) {
-                                this.checkAnswer('none_timeout');
-                            }
-                        }, 5000);
+                        // 答えを考える時間を無制限にするため、timeoutは設定しない
                     } else {
                         setTimeout(() => this.nextTurn(), 1000);
                     }
                 }, 1500);
+            }
+            
+            getCorrectMatches() {
+                const nBack = this.sequence[this.currentTurn - 1 - this.difficulty];
+                const current = this.sequence[this.currentTurn - 1];
+                let correctMatches = [];
+                if (nBack.position === current.position) correctMatches.push('position');
+                if (nBack.letter === current.letter) correctMatches.push('letter');
+                if (nBack.color === current.color) correctMatches.push('color');
+                return correctMatches;
             }
 
             displayStimulus(stimulus) {
@@ -575,24 +577,9 @@
                     return;
                 }
 
-                if (this.answerTimeout) clearTimeout(this.answerTimeout);
                 if (this.partialAnswerTimeout) clearTimeout(this.partialAnswerTimeout);
 
-                const nBack = this.sequence[this.currentTurn - 1 - this.difficulty];
-                const current = this.sequence[this.currentTurn - 1];
-                
-                let correctMatches = [];
-                if (nBack.position === current.position) correctMatches.push('position');
-                if (nBack.letter === current.letter) correctMatches.push('letter');
-                if (nBack.color === current.color) correctMatches.push('color');
-
-                if (type === 'none_timeout') {
-                    const sortedUser = [...this.userAnswers].sort();
-                    const sortedCorrect = [...correctMatches].sort();
-                    const isCorrect = JSON.stringify(sortedUser) === JSON.stringify(sortedCorrect);
-                    this.finalizeAnswer(isCorrect, correctMatches);
-                    return;
-                }
+                const correctMatches = this.getCorrectMatches();
                 
                 this.userAnswers.push(type);
 
@@ -609,11 +596,13 @@
                     return;
                 }
 
+                if (this.userAnswers.length > correctMatches.length) {
+                    this.finalizeAnswer(false, correctMatches);
+                    return;
+                }
+
                 if (this.userAnswers.length < correctMatches.length) {
                     this.showMessage('もう一つの答えを入力してください...', 'neutral');
-                    this.partialAnswerTimeout = setTimeout(() => {
-                        this.finalizeAnswer(false, correctMatches);
-                    }, 2500);
                     return;
                 }
             }
@@ -623,8 +612,10 @@
 
                 this.waitingForAnswer = false;
                 this.totalAnswers++;
+                this.positionBtn.disabled = true;
+                this.letterBtn.disabled = true;
+                this.colorBtn.disabled = true;
 
-                if (this.answerTimeout) clearTimeout(this.answerTimeout);
                 if (this.partialAnswerTimeout) clearTimeout(this.partialAnswerTimeout);
 
                 if (isCorrect) {
@@ -640,7 +631,7 @@
                     this.streak = 0;
                     const matchJpMap = { 'position': '位置', 'letter': '文字', 'color': '色' };
                     const correctJpMatches = correctMatches.map(match => matchJpMap[match]);
-                    const answerText = correctJpMatches.length > 0 ? correctJpMatches.join(' と ') : 'なし';
+                    const answerText = correctJpMatches.join(' と ');
                     this.showMessage(`不正解。正解は: ${answerText}`, 'incorrect');
                     this.addHistoryItem(false);
                 }
@@ -648,6 +639,9 @@
                 this.updateDisplay();
                 
                 setTimeout(() => {
+                    this.positionBtn.disabled = false;
+                    this.letterBtn.disabled = false;
+                    this.colorBtn.disabled = false;
                     this.nextTurn();
                 }, 2000);
             }
