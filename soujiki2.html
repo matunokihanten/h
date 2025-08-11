@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>正直者を当てるゲーム</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .game-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #4a5568;
+            margin-bottom: 10px;
+            font-size: 2.2em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .scenario {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            border-left: 5px solid #4299e1;
+        }
+
+        .person {
+            background: #fff;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .person:hover {
+            border-color: #4299e1;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(66, 153, 225, 0.2);
+        }
+
+        .person.selected {
+            border-color: #48bb78;
+            background: #f0fff4;
+        }
+
+        .person-name {
+            font-weight: bold;
+            font-size: 1.2em;
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+
+        .person-statement {
+            color: #4a5568;
+            line-height: 1.6;
+            font-style: italic;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #4299e1, #3182ce);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(66, 153, 225, 0.3);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(66, 153, 225, 0.4);
+        }
+
+        button:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .result {
+            margin-top: 25px;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .result.correct {
+            background: #c6f6d5;
+            color: #22543d;
+            border: 2px solid #48bb78;
+        }
+
+        .result.incorrect {
+            background: #fed7d7;
+            color: #742a2a;
+            border: 2px solid #e53e3e;
+        }
+
+        .explanation {
+            background: #e6fffa;
+            border: 2px solid #38b2ac;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            line-height: 1.6;
+        }
+
+        .explanation h3 {
+            color: #285e61;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+
+        .explanation-button {
+            background: linear-gradient(135deg, #38b2ac, #319795);
+            margin-top: 15px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .person-number {
+            position: absolute;
+            top: -10px;
+            left: 15px;
+            background: #4299e1;
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>🕵️ 正直者を当てるゲーム</h1>
+        <p class="subtitle">5人の中から唯一の正直者を見つけ出そう！</p>
+
+        <div class="scenario">
+            <h3>🎯 ゲームのルール</h3>
+            <p>5人の日本人がいます。この中で<strong>1人だけが正直者</strong>で、残りの4人は嘘つきです。</p>
+            <p>正直者は常に本当のことを言い、嘘つきは常に嘘をつきます。</p>
+            <p>各人の証言を読んで、論理的に正直者を特定してください。</p>
+        </div>
+
+        <div id="gameArea">
+            <div class="person" onclick="selectPerson(1)">
+                <div class="person-number">1</div>
+                <div class="person-name">田中さん</div>
+                <div class="person-statement">「私は正直者です。佐藤さんも正直者です。」</div>
+            </div>
+
+            <div class="person" onclick="selectPerson(2)">
+                <div class="person-number">2</div>
+                <div class="person-name">佐藤さん</div>
+                <div class="person-statement">「田中さんは嘘つきです。私が唯一の正直者です。」</div>
+            </div>
+
+            <div class="person" onclick="selectPerson(3)">
+                <div class="person-number">3</div>
+                <div class="person-name">鈴木さん</div>
+                <div class="person-statement">「田中さんと佐藤さんは両方とも嘘つきです。」</div>
+            </div>
+
+            <div class="person" onclick="selectPerson(4)">
+                <div class="person-number">4</div>
+                <div class="person-name">高橋さん</div>
+                <div class="person-statement">「鈴木さんは嘘つきです。私は正直者です。」</div>
+            </div>
+
+            <div class="person" onclick="selectPerson(5)">
+                <div class="person-number">5</div>
+                <div class="person-name">山田さん</div>
+                <div class="person-statement">「高橋さんは正直者です。私は嘘つきです。」</div>
+            </div>
+        </div>
+
+        <div class="buttons">
+            <button onclick="submitAnswer()" id="submitBtn" disabled>答えを確定する</button>
+            <button onclick="resetGame()" id="resetBtn">リセット</button>
+        </div>
+
+        <div id="result" class="hidden"></div>
+        
+        <div id="explanationSection" class="hidden">
+            <button onclick="showExplanation()" class="explanation-button">なぜその人が正直者なのか解説を見る</button>
+            <div id="explanation" class="explanation hidden">
+                <h3>🎓 解説</h3>
+                <p><strong>答え：鈴木さんが正直者です</strong></p>
+                
+                <p><strong>論理的な推理過程：</strong></p>
+                
+                <p>1. <strong>田中さんの証言分析：</strong><br>
+                田中さんは「私は正直者です。佐藤さんも正直者です」と言っています。<br>
+                しかし、ゲームのルールで正直者は1人だけです。もし田中さんが正直者なら、佐藤さんも正直者ということになり、これは矛盾します。<br>
+                → 田中さんは嘘つきです。</p>
+                
+                <p>2. <strong>佐藤さんの証言分析：</strong><br>
+                佐藤さんは「田中さんは嘘つきです。私が唯一の正直者です」と言っています。<br>
+                田中さんが嘘つきというのは正しいですが、もし佐藤さんが正直者なら、鈴木さんの証言「田中さんと佐藤さんは両方とも嘘つきです」が矛盾します。<br>
+                → 佐藤さんは嘘つきです。</p>
+                
+                <p>3. <strong>鈴木さんの証言分析：</strong><br>
+                鈴木さんは「田中さんと佐藤さんは両方とも嘘つきです」と言っています。<br>
+                上記の分析により、田中さんも佐藤さんも嘘つきであることが確認されました。<br>
+                この証言は正しいです。<br>
+                → 鈴木さんが正直者の候補です。</p>
+                
+                <p>4. <strong>高橋さんの証言分析：</strong><br>
+                高橋さんは「鈴木さんは嘘つきです。私は正直者です」と言っています。<br>
+                しかし、鈴木さんの証言が正しいことを確認したので、高橋さんの証言は矛盾します。<br>
+                → 高橋さんは嘘つきです。</p>
+                
+                <p>5. <strong>山田さんの証言分析：</strong><br>
+                山田さんは「高橋さんは正直者です。私は嘘つきです」と言っています。<br>
+                高橋さんが嘘つきであることが分かっているので、最初の部分は嘘です。<br>
+                また、嘘つきが「私は嘘つきです」と言うのは論理的矛盾（真実を言ってしまっている）です。<br>
+                → 山田さんは嘘つきです。</p>
+                
+                <p><strong>結論：</strong><br>
+                鈴木さんの証言だけが論理的に一貫しており、他の全員の証言に矛盾がありません。<br>
+                したがって、<strong>鈴木さんが唯一の正直者</strong>です。</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedPerson = null;
+        let gameEnded = false;
+        const correctAnswer = 3; // 鈴木さん
+
+        function selectPerson(personNumber) {
+            if (gameEnded) return;
+            
+            // 前の選択をクリア
+            document.querySelectorAll('.person').forEach(person => {
+                person.classList.remove('selected');
+            });
+            
+            // 新しい選択をセット
+            selectedPerson = personNumber;
+            document.querySelectorAll('.person')[personNumber - 1].classList.add('selected');
+            
+            // 提出ボタンを有効化
+            document.getElementById('submitBtn').disabled = false;
+        }
+
+        function submitAnswer() {
+            if (selectedPerson === null || gameEnded) return;
+            
+            gameEnded = true;
+            const resultDiv = document.getElementById('result');
+            const explanationSection = document.getElementById('explanationSection');
+            
+            resultDiv.classList.remove('hidden');
+            
+            if (selectedPerson === correctAnswer) {
+                resultDiv.className = 'result correct';
+                resultDiv.innerHTML = '🎉 正解です！<br>鈴木さんが正直者でした。';
+            } else {
+                resultDiv.className = 'result incorrect';
+                const names = ['', '田中さん', '佐藤さん', '鈴木さん', '高橋さん', '山田さん'];
+                resultDiv.innerHTML = `❌ 残念！<br>${names[selectedPerson]}ではありません。<br>正解は鈴木さんでした。`;
+            }
+            
+            // 解説ボタンを表示
+            explanationSection.classList.remove('hidden');
+            
+            // 提出ボタンを無効化
+            document.getElementById('submitBtn').disabled = true;
+        }
+
+        function showExplanation() {
+            const explanation = document.getElementById('explanation');
+            explanation.classList.remove('hidden');
+        }
+
+        function resetGame() {
+            selectedPerson = null;
+            gameEnded = false;
+            
+            // 選択をクリア
+            document.querySelectorAll('.person').forEach(person => {
+                person.classList.remove('selected');
+            });
+            
+            // 結果と解説を隠す
+            document.getElementById('result').classList.add('hidden');
+            document.getElementById('explanationSection').classList.add('hidden');
+            document.getElementById('explanation').classList.add('hidden');
+            
+            // ボタンの状態をリセット
+            document.getElementById('submitBtn').disabled = true;
+        }
+    </script>
+</body>
+</html>
