@@ -173,11 +173,15 @@
         min-height: 1.2em;
     }
 
+    /* 変更箇所: #numpadのサイズを縮小 */
     #numpad {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
         gap: 8px;
         justify-content: center;
+        /* 追加: numpadの幅を制限 */
+        max-width: 250px; 
+        margin: 0 auto;
     }
     #numpad button {
         height: 50px;
@@ -192,6 +196,9 @@
         transition: all 0.2s ease;
         font-weight: bold;
         text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        /* 追加: ボタンのサイズ調整 */
+        height: 40px;
+        font-size: 1.5em;
     }
     #numpad button:hover {
         background: rgba(255, 255, 255, 0.6);
@@ -205,7 +212,7 @@
         background: rgba(255, 193, 7, 0.3);
         border-color: rgba(255, 193, 7, 0.5);
     }
-
+    
     #submitBtn {
       font-size: 1.8em;
       padding: 12px 30px;
