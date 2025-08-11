@@ -430,18 +430,49 @@
     let bestStreak = 0;
     let timeRemaining = 30;
     let gameTimer;
-    // 変更箇所: 自動回転用のタイマー
-    let rotationTimer;
     let lastUserInteractionTime = Date.now();
     
     let audioCtx;
 
     const difficultySettings = {
-      easy:   { min: 5,  max: 15,  time: 60, colors: ['#4CAF50', '#8BC34A'], specialBlockChance: 0.1 },
-      medium: { min: 10, max: 50,  time: 45, colors: ['#FF9800', '#FFC107'], specialBlockChance: 0.2 },
-      hard:   { min: 30, max: 100, time: 30, colors: ['#F44336', '#E91E63'], specialBlockChance: 0.3 },
-      extreme:{ min: 50, max: 200, time: 20, colors: ['#9C27B0', '#673AB7'], specialBlockChance: 0.4 }
+      easy: {
+        min: 5,
+        max: 15,
+        time: 60,
+        colors: [
+          '#64B5F6', '#81C784', '#FFD54F', '#FFB74D', '#E57373', '#9575CD'
+        ],
+        specialBlockChance: 0.1
+      },
+      medium: {
+        min: 10,
+        max: 50,
+        time: 45,
+        colors: [
+          '#42A5F5', '#66BB6A', '#FFCA28', '#FF9800', '#EF5350', '#7E57C2'
+        ],
+        specialBlockChance: 0.2
+      },
+      hard: {
+        min: 30,
+        max: 100,
+        time: 30,
+        colors: [
+          '#2196F3', '#4CAF50', '#FFC107', '#FB8C00', '#F44336', '#673AB7'
+        ],
+        specialBlockChance: 0.3
+      },
+      extreme: {
+        min: 50,
+        max: 200,
+        time: 20,
+        colors: [
+          '#1976D2', '#388E3C', '#FFA000', '#F57C00', '#D32F2F', '#512DA8'
+        ],
+        specialBlockChance: 0.4
+      }
     };
+
 
     const elements = {
       uiTop: document.getElementById('ui-top'),
@@ -484,8 +515,6 @@
     function gameOver() {
         gameState = 'gameover';
         clearInterval(gameTimer);
-        // 変更箇所: ゲームオーバー時に自動回転タイマーもクリア
-        clearInterval(rotationTimer);
         playSound('gameover');
         
         if (gameMode === 'zen') {
@@ -553,7 +582,6 @@
         controls.maxDistance = 50;
         controls.maxPolarAngle = Math.PI / 2 - 0.05;
         
-        // 変更箇所: controlsにイベントリスナーを追加してユーザー操作を監視
         controls.addEventListener('start', () => {
           lastUserInteractionTime = Date.now();
         });
@@ -676,14 +704,17 @@
                 break;
             default:
                 const color = new THREE.Color(settings.colors[Math.floor(Math.random() * settings.colors.length)]);
-                material = new THREE.MeshStandardMaterial({ color: color, metalness: 0.2, roughness: 0.8 });
+                material = new THREE.MeshStandardMaterial({ color: color, roughness: 0.4, metalness: 0.4 });
         }
         
         const cube = new THREE.Mesh(geometry, material);
         cube.castShadow = true;
         cube.receiveShadow = true;
+
+        // 変更箇所: 積み木の輪郭に太い黒い縁取りを追加
         const edges = new THREE.EdgesGeometry(geometry);
-        const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 2 }));
+        const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 3 }));
+        
         const blockGroup = new THREE.Group();
         blockGroup.add(cube);
         blockGroup.add(line);
@@ -700,7 +731,6 @@
       if (!renderer) return;
       requestAnimationFrame(animate);
 
-      // 変更箇所: ユーザー操作がない場合に自動回転
       if (controls && gameState === 'playing') {
           const currentTime = Date.now();
           if (currentTime - lastUserInteractionTime > 5000) {
@@ -727,7 +757,6 @@
             startTimer();
         }
         updateUI();
-        // 変更箇所: 問題開始時にユーザー操作時間をリセット
         lastUserInteractionTime = Date.now();
     }
     
@@ -869,8 +898,6 @@
         elements.submitBtn.addEventListener("click", onSubmitAnswer);
         window.addEventListener("resize", onWindowResize);
         window.addEventListener('keydown', onKeyDown);
-
-        // 変更箇所: ユーザー操作を監視するためのイベントリスナーを追加
         document.addEventListener('mousedown', () => { lastUserInteractionTime = Date.now(); });
         document.addEventListener('touchstart', () => { lastUserInteractionTime = Date.now(); });
         document.addEventListener('wheel', () => { lastUserInteractionTime = Date.now(); });
