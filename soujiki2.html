@@ -204,206 +204,231 @@
     </div>
 
     <script>
-        const problems = [
-            {
-                people: [
-                    { name: "田中さん", statement: "私は正直者です。佐藤さんも正直者です。" },
-                    { name: "佐藤さん", statement: "田中さんは嘘つきです。私が唯一の正直者です。" },
-                    { name: "鈴木さん", statement: "田中さんと佐藤さんは両方とも嘘つきです。" },
-                    { name: "高橋さん", statement: "鈴木さんは嘘つきです。私は正直者です。" },
-                    { name: "山田さん", statement: "高橋さんは正直者です。私は嘘つきです。" }
-                ],
-                correctAnswerIndex: 2, // 鈴木さん
-                explanationHTML: `
-                    <h3>🎓 解説 (答え: 鈴木さん)</h3>
-                    <p><strong>論理的な推理過程：</strong></p>
-                    <p>1. <strong>田中さんの証言：</strong><br>
-                    「私は正直者です。佐藤さんも正直者です。」<br>
-                    正直者は1人だけなので、この証言は矛盾しています。したがって、<strong>田中さんは嘘つき</strong>です。</p>
-                    <p>2. <strong>佐藤さんの証言：</strong><br>
-                    「田中さんは嘘つきです。私が唯一の正直者です。」<br>
-                    前半部分「田中さんは嘘つきです」は正しいですが、後半部分も正しくなければ正直者ではありません。佐藤さんが正直者だと仮定して、他の証言と矛盾がないか確認します。</p>
-                    <p>3. <strong>鈴木さんの証言：</strong><br>
-                    「田中さんと佐藤さんは両方とも嘘つきです。」<br>
-                    ステップ1で田中さんが嘘つきであることは確定しました。もし鈴木さんが正直者なら、佐藤さんも嘘つきということになります。この証言は、現時点で正しい可能性も間違っている可能性もあります。</p>
-                    <p>4. <strong>推理の核心：</strong><br>
-                    もし<strong>鈴木さんが正直者</strong>だと仮定してみましょう。その場合、鈴木さんの言う通り「田中さんと佐藤さんは両方とも嘘つき」が真実になります。この仮定で他の証言に矛盾がないか検証します。<br>
-                    ・田中さんと佐藤さんは嘘つき → 鈴木さんの証言と一致。<br>
-                    ・高橋さん(嘘つき)の証言「鈴木さんは嘘つきです」は嘘となり、仮定と一致します。<br>
-                    ・山田さん(嘘つき)の証言「高橋さんは正直者です」は嘘となり、高橋さんが嘘つきであることと一致します。<br>
-                    この仮定はどこにも矛盾を生じません。</p>
-                    <p><strong>結論：</strong><br>
-                    鈴木さんの証言を真実と仮定した場合にのみ、すべてのつじつまが合います。したがって、<strong>鈴木さんが唯一の正直者</strong>です。</p>
-                `
-            },
-            {
-                people: [
-                    { name: "木村さん", statement: "中村さんは嘘つきです。" },
-                    { name: "渡辺さん", statement: "小林さんは正直者です。" },
-                    { name: "伊藤さん", statement: "私は正直者か、さもなければ木村さんが正直者です。" },
-                    { name: "小林さん", statement: "渡辺さんは嘘つきです。" },
-                    { name: "中村さん", statement: "ここにいる全員が嘘つきです。" }
-                ],
-                correctAnswerIndex: 3, // 小林さん
-                explanationHTML: `
-                    <h3>🎓 解説 (答え: 小林さん)</h3>
-                    <p><strong>論理的な推理過程：</strong></p>
-                    <p>1. <strong>中村さんの証言：</strong><br>
-                    「ここにいる全員が嘘つきです。」<br>
-                    もし中村さんが正直者なら、この発言自体が嘘（正直者が1人いるため）になり矛盾します。よって、<strong>中村さんは嘘つき</strong>です。</p>
-                    <p>2. <strong>木村さんの証言：</strong><br>
-                    「中村さんは嘘つきです。」<br>
-                    ステップ1で中村さんは嘘つきだと判明したので、木村さんのこの発言は<strong>真実</strong>です。真実を言っているので、<strong>木村さんは正直者</strong>の最有力候補です。</p>
-                    <p>3. <strong>渡辺さんと小林さんの証言：</strong><br>
-                    渡辺さん「小林さんは正直者です」<br>
-                    小林さん「渡辺さんは嘘つきです」<br>
-                    この2人の発言は互いに矛盾しています。もし一方が正直者なら、もう一方は必ず嘘つきになります。</p>
-                    <p>4. <strong>推理の核心：</strong><br>
-                    ここで、一度木村さんが正直者だと仮定して矛盾を探します。もし木村さんが正直者なら、他の4人は全員嘘つきです。<br>
-                    ・渡辺さん(嘘つき)の発言「小林さんは正直者です」は嘘になります。これは小林さんが嘘つきであることを意味し、仮定と一致します。<br>
-                    ・小林さん(嘘つき)の発言「渡辺さんは嘘つきです」は嘘になります。これは渡辺さんが正直者であることを意味しますが、渡辺さんは嘘つきであると仮定したので、<strong>ここで矛盾が発生します。</strong></p>
-                    <p>5. <strong>推理の再構築：</strong><br>
-                    木村さんが正直者だという仮定は間違いでした。よって<strong>木村さんは嘘つき</strong>です。木村さんは「中村さんは嘘つきだ」という真実を言っていますが、嘘つきでも結果的に真実を言うことはあります（※このゲームでは嘘つきは「常に嘘の命題を言う」と解釈します。彼の発言は真実なので、彼は正直者であるはずが、矛盾が生じたため、問題の前提から考え直す必要があります。→失礼、ロジックを修正します）。</p>
-                    <p><strong>【改定】推理の核心：</strong><br>
-                    渡辺さんと小林さんの関係に注目します。もし渡辺さんが正直者なら、小林さんも正直者となりルール違反です。よって<strong>渡辺さんは嘘つき</strong>です。すると、小林さんの発言「渡辺さんは嘘つきです」は真実になります。よって、<strong>小林さんが正直者</strong>です。</p>
-                    <p><strong>結論（検証）：</strong><br>
-                    小林さんが正直者で、他が全員嘘つきだと仮定します。<br>
-                    ・小林(正直): 「渡辺は嘘つき」→真実。OK。<br>
-                    ・渡辺(嘘): 「小林は正直者」→嘘。OK。<br>
-                    ・中村(嘘): 「全員嘘つき」→嘘。OK。<br>
-                    ・木村(嘘): 「中村は嘘つき」→真実だが木村は嘘つき。これは矛盾。…失礼しました。この問題はロジックが破綻していますね。別の問題に差し替えます。</p>
-
-                    <h3>🎓 解説 (答え: 井上さん)</h3>
-                    <p><strong>登場人物と証言:</strong><br>
-                    - 吉田さん: 「松本さんは嘘つきだ」<br>
-                    - 山口さん: 「井上さんは正直者だ」<br>
-                    - 松本さん: 「斎藤さんは嘘つきだ」<br>
-                    - 井上さん: 「山口さんは嘘つきだ」<br>
-                    - 斎藤さん: 「吉田さんと山口さんはどちらも正直者だ」</p>
-                    
-                    <p><strong>論理的な推理過程：</strong></p>
-                    <p>1. <strong>山口さんと井上さんの証言：</strong><br>
-                    山口さん「井上さんは正直者だ」<br>
-                    井上さん「山口さんは嘘つきだ」<br>
-                    この2人の発言は、論理的に「井上さんが正直者で、山口さんが嘘つき」であるか、あるいは「2人とも嘘つき」であるかのどちらかを示しています。2人とも正直者であることはありえません。</p>
-                    
-                    <p>2. <strong>斎藤さんの証言：</strong><br>
-                    「吉田さんと山口さんはどちらも正直者だ」<br>
-                    正直者は1人しかいないルールなので、この証言は絶対に嘘です。したがって、<strong>斎藤さんは嘘つき</strong>です。</p>
-                    
-                    <p>3. <strong>松本さんの証言：</strong><br>
-                    「斎藤さんは嘘つきだ」<br>
-                    ステップ2で斎藤さんは嘘つきだと確定したので、この発言は真実です。真実を言っているので、<strong>松本さんが正直者</strong>の可能性があります。</p>
-                    
-                    <p>4. <strong>推理の核心：</strong><br>
-                    では、<strong>井上さんが正直者</strong>だと仮定してみましょう。
-                    <li>井上さんの発言「山口さんは嘘つきだ」は真実になります。→ <strong>山口さんは嘘つき</strong>。</li>
-                    <li>山口さん(嘘つき)の発言「井上さんは正直者だ」は嘘になります。これは「井上さんは嘘つきだ」という意味になり、井上さんが正直者であるという仮定と矛盾しません。</li>
-                    この時点では、井上さんが正直者である可能性は高いです。この仮定で他の証言を検証します。<br>
-                    <li>井上さんが正直者なら、他の4人（吉田, 山口, 松本, 斎藤）は全員嘘つきです。</li>
-                    <li>吉田さん(嘘つき)の発言「松本さんは嘘つきだ」は嘘になります。つまり松本さんは正直者だという意味になりますが、仮定では松本さんは嘘つきなので、ここで<strong>矛盾が発生します。</strong></li>
-                    
-                    <p><strong>【最終結論】大変失礼しました。正しい答えは松本さんでした。</strong><br>
-                    もし<strong>松本さんが正直者</strong>だと仮定します。<br>
-                    - 松本さんの発言「斎藤さんは嘘つきだ」は真実。→ 斎藤さんは嘘つき。OK。<br>
-                    - 他の4人（吉田, 山口, 井上, 斎藤）は嘘つきです。<br>
-                    - 吉田(嘘)「松本は嘘つきだ」→嘘。OK。<br>
-                    - 斎藤(嘘)「吉田と山口は正直者」→嘘。OK。<br>
-                    - 井上(嘘)「山口は嘘つきだ」→嘘。つまり山口は正直者。これは井上さんが嘘つきであることと矛盾しません。しかし、正直者は松本さんだけのはずなので、山口が正直者であってはなりません。<strong>この問題も破綻しています。</strong>
-                    
-                    <p><strong>【仕切り直し】正しいロジックの問題と解説</strong><br>
-                    答え: <strong>渡辺さん</strong><br>
-                    証言:<br>
-                    - 木村:「私は嘘つきだ」<br>
-                    - 渡辺:「木村さんは嘘つきだ」<br>
-                    - 伊藤:「小林さんは正直者だ」<br>
-                    - 小林:「中村さんは嘘つきだ」<br>
-                    - 中村:「私は正直者だ」<br>
-                    <strong>解説:</strong><br>
-                    1. <strong>木村さん</strong>は「私は嘘つきだ」と言っています。正直者は嘘をつけず、嘘つきはこの発言（真実）をできないため、この発言自体がパラドックスです。しかし、このゲームではこのような発言者は「嘘つき」と見なすのが一般的です。→<strong>木村さんは嘘つき</strong>。
-                    2. <strong>渡辺さん</strong>は「木村さんは嘘つきだ」と言っています。ステップ1からこれは真実です。よって、<strong>渡辺さんが正直者</strong>です。
-                    3. 答えが出たので検証します。渡辺さんが正直者、他は嘘つき。<br>
-                    - 渡辺(正):「木村は嘘つき」→真実。OK。<br>
-                    - 木村(嘘):「私は嘘つきだ」→真実を言ってしまっているが、嘘つきのパラドックスとして成立。OK。<br>
-                    - 中村(嘘):「私は正直者だ」→嘘。OK。<br>
-                    - 小林(嘘):「中村は嘘つき」→嘘。つまり「中村は正直者」が本心。中村は嘘つきなので矛盾なし。OK。<br>
-                    - 伊藤(嘘):「小林は正直者」→嘘。OK。<br>
-                    全ての辻褄が合うため、<strong>渡辺さんが正直者</strong>です。</p>
-                ` // 解説が非常に長くなりましたが、正しいロジックのものを採用します。
-            },
-            {
-                people: [
-                    { name: "吉田さん", statement: "犯人は斎藤さんです。" }, // この問題では「正直者」を「犯人ではない人」と読み替えます
-                    { name: "山口さん", statement: "井上さんは正直者です。" },
-                    { name: "松本さん", statement: "私は嘘つきです。そして吉田さんも嘘つきです。" },
-                    { name: "井上さん", statement: "山口さんは嘘つきです。" },
-                    { name: "斎藤さん", statement: "吉田さんの言っていることは本当です。" }
-                ],
-                correctAnswerIndex: 3, // 井上さん
-                explanationHTML: `
-                    <h3>🎓 解説 (答え: 井上さん)</h3>
-                    <p><strong>論理的な推理過程：</strong></p>
-                    <p>1. <strong>吉田さんと斎藤さんの証言：</strong><br>
-                    吉田さん「犯人は斎藤さんです」<br>
-                    斎藤さん「吉田さんの言っていることは本当です」<br>
-                    この二人の発言内容は全く同じです。したがって、二人は<strong>両方とも正直者</strong>か、<strong>両方とも嘘つき</strong>のどちらかです。正直者は一人しかいないルールなので、二人とも嘘つきであることが確定します。
-                    → <strong>吉田さんと斎藤さんは嘘つき</strong>です。</p>
-                    <p>2. <strong>松本さんの証言：</strong><br>
-                    「私は嘘つきです。そして吉田さんも嘘つきです。」<br>
-                    この証言は二つの部分からなります。後半の「吉田さんも嘘つきです」は、ステップ1で確定した事実なので<strong>真実</strong>です。嘘つきは常に嘘をつくので、一つでも真実の部分を含んだ発言をすることはできません。正直者は常に真実を言うので、この発言は可能です。しかし、「私は嘘つきです」という部分が嘘でなければなりません。つまり、松本さんは正直者である必要があります。これは矛盾です。<br>
-                    厳密に解釈すると、嘘つきはこの発言ができません（真実を含んでいるため）。正直者もこの発言ができません（「私は嘘つきだ」が嘘になるため）。よって、この発言者はどちらでもありえません。しかし、ゲームの単純なルールとして、このような自己言及のパラドックスを持つ発言者は<strong>嘘つき</strong>と判断するのが一般的です。→ <strong>松本さんは嘘つき</strong>です。</p>
-                    <p>3. <strong>山口さんと井上さんの証言：</strong><br>
-                    残るは山口さんと井上さんです。どちらかが正直者です。<br>
-                    山口さん「井上さんは正直者です」<br>
-                    井上さん「山口さんは嘘つきです」<br>
-                    もし山口さんが正直者なら、井上さんも正直者となりルールに反します。よって、<strong>山口さんは嘘つき</strong>です。</p>
-                    <p>4. <strong>結論：</strong><br>
-                    消去法により、残った<strong>井上さんが正直者</strong>です。<br>
-                    検証：井上さんが正直者で、他4人が嘘つきだと仮定します。<br>
-                    ・井上(正)：「山口さんは嘘つきです」 → 真実。OK。<br>
-                    ・山口(嘘)：「井上さんは正直者です」 → 嘘。「井上さんは嘘つきだ」が本心となり、仮定と矛盾しません。OK。<br>
-                    ・吉田(嘘)・斎藤(嘘)・松本(嘘)も確定しているので、全ての辻褄が合います。</p>
-                `
-            }
+        const names = [
+            ['田中', '佐藤', '鈴木', '高橋', '山田'],
+            ['木村', '渡辺', '伊藤', '小林', '中村'],
+            ['吉田', '山口', '松本', '井上', '斎藤'],
+            ['前田', '藤田', '岡田', '長谷川', '村上'],
+            ['森', '林', '清水', '山本', '加藤'],
+            ['谷口', '竹内', '西川', '石川', '橋本'],
+            ['坂本', '遠藤', '青木', '藤井', '西田'],
+            ['三浦', '池田', '原田', '今井', '福田'],
+            ['石田', '上田', '森田', '原', '平野'],
+            ['野村', '河野', '安田', '岡本', '横山']
         ];
-        
-        // 問題2の解説が複雑なため、差し替え後のシンプルなものに変更
-        problems[1] = {
-            people: [
-                { name: "木村さん", statement: "私は嘘つきです。" },
-                { name: "渡辺さん", statement: "木村さんは嘘つきです。" },
-                { name: "伊藤さん", statement: "小林さんは正直者です。" },
-                { name: "小林さん", statement: "中村さんは嘘つきです。" },
-                { name: "中村さん", statement: "私は正直者です。" }
-            ],
-            correctAnswerIndex: 1, // 渡辺さん
-            explanationHTML: `
-                <h3>🎓 解説 (答え: 渡辺さん)</h3>
-                <p><strong>論理的な推理過程：</strong></p>
-                <p>1. <strong>木村さんの証言：</strong><br>
-                「私は嘘つきです。」<br>
-                この発言は「嘘つきのパラドックス」として知られています。もし木村さんが正直者なら嘘をつけないのでこの発言はできません。もし木村さんが嘘つきなら真実を言えないのでこの発言はできません。しかし、この種のパズルでは、このような発言者は<strong>嘘つき</strong>と解釈するのが一般的です。</p>
-                <p>2. <strong>渡辺さんの証言：</strong><br>
-                「木村さんは嘘つきです。」<br>
-                ステップ1で木村さんは嘘つきだと結論付けられたため、渡辺さんのこの発言は<strong>真実</strong>です。真実を言えるのは正直者だけなので、<strong>渡辺さんが正直者</strong>です。</p>
-                <p>3. <strong>結論と検証：</strong><br>
-                渡辺さんが正直者で、他の4人（木村、伊藤、小林、中村）は嘘つきだと仮定して、矛盾がないか確認します。<br>
-                - <strong>渡辺(正直)</strong>: 「木村は嘘つき」→真実。OK。<br>
-                - <strong>木村(嘘つき)</strong>: 「私は嘘つき」→パラドックスですが、嘘つきと確定。OK。<br>
-                - <strong>中村(嘘つき)</strong>: 「私は正直者」→嘘。OK。<br>
-                - <strong>小林(嘘つき)</strong>: 「中村は嘘つき」→嘘。本心は「中村は正直者」。中村は嘘つきなので矛盾しません。OK。<br>
-                - <strong>伊藤(嘘つき)</strong>: 「小林は正直者」→嘘。OK。<br>
-                全ての証言に矛盾が生じないため、<strong>渡辺さんが唯一の正直者</strong>です。</p>
-            `
-        };
-
 
         let selectedPerson = null;
         let gameEnded = false;
-        let currentProblemIndex = 0;
+        let currentProblem = null;
+        let usedNameSets = [];
 
-        function loadProblem(index) {
-            const problem = problems[index];
+        // 問題パターンのテンプレート
+        const problemTemplates = [
+            {
+                // パターン1: 自己矛盾タイプ
+                generator: (nameSet) => {
+                    const truthTellerIndex = Math.floor(Math.random() * 5);
+                    const people = [];
+                    const statements = [
+                        `私は正直者です。${nameSet[(truthTellerIndex + 1) % 5]}さんも正直者です。`,
+                        `${nameSet[(truthTellerIndex + 2) % 5]}さんは嘘つきです。私が唯一の正直者です。`,
+                        `${nameSet[0]}さんと${nameSet[1]}さんは両方とも嘘つきです。`,
+                        `${nameSet[2]}さんは嘘つきです。私は正直者です。`,
+                        `${nameSet[3]}さんは正直者です。私は嘘つきです。`
+                    ];
+                    
+                    for (let i = 0; i < 5; i++) {
+                        people.push({
+                            name: nameSet[i] + 'さん',
+                            statement: statements[i]
+                        });
+                    }
+                    
+                    return {
+                        people,
+                        correctAnswerIndex: 2,
+                        explanationHTML: `
+                            <h3>🎓 解説 (答え: ${nameSet[2]}さん)</h3>
+                            <p><strong>論理的な推理過程：</strong></p>
+                            <p>1. <strong>${nameSet[0]}さんの証言：</strong><br>
+                            「私は正直者です。${nameSet[1]}さんも正直者です。」<br>
+                            正直者は1人だけなので、この証言は矛盾しています。したがって、<strong>${nameSet[0]}さんは嘘つき</strong>です。</p>
+                            <p>2. <strong>${nameSet[2]}さんの証言：</strong><br>
+                            「${nameSet[0]}さんと${nameSet[1]}さんは両方とも嘘つきです。」<br>
+                            ${nameSet[0]}さんが嘘つきであることは確定しました。${nameSet[2]}さんが正直者だと仮定すると、${nameSet[1]}さんも嘘つきということになります。</p>
+                            <p>3. <strong>検証：</strong><br>
+                            ${nameSet[2]}さんが正直者で、他が全員嘘つきだと仮定して確認します。<br>
+                            - ${nameSet[1]}さん（嘘つき）の証言は「${nameSet[3]}さんは嘘つきです。私が唯一の正直者です。」前半は正しいですが、後半が嘘なので全体として嘘の証言となります。<br>
+                            - ${nameSet[3]}さん（嘘つき）の証言「${nameSet[2]}さんは嘘つきです」は嘘になり、一致します。<br>
+                            - ${nameSet[4]}さん（嘘つき）の証言「${nameSet[3]}さんは正直者です」は嘘になり、一致します。</p>
+                            <p><strong>結論：</strong> ${nameSet[2]}さんが唯一の正直者です。</p>
+                        `
+                    };
+                }
+            },
+            {
+                // パターン2: パラドックスタイプ
+                generator: (nameSet) => {
+                    const people = [
+                        { name: nameSet[0] + 'さん', statement: "私は嘘つきです。" },
+                        { name: nameSet[1] + 'さん', statement: `${nameSet[0]}さんは嘘つきです。` },
+                        { name: nameSet[2] + 'さん', statement: `${nameSet[3]}さんは正直者です。` },
+                        { name: nameSet[3] + 'さん', statement: `${nameSet[4]}さんは嘘つきです。` },
+                        { name: nameSet[4] + 'さん', statement: "私は正直者です。" }
+                    ];
+                    
+                    return {
+                        people,
+                        correctAnswerIndex: 1,
+                        explanationHTML: `
+                            <h3>🎓 解説 (答え: ${nameSet[1]}さん)</h3>
+                            <p><strong>論理的な推理過程：</strong></p>
+                            <p>1. <strong>${nameSet[0]}さんの証言：</strong><br>
+                            「私は嘘つきです。」<br>
+                            これは「嘘つきのパラドックス」です。正直者は嘘をつけず、嘘つきは真実を言えないので、この発言者は嘘つきと判断します。</p>
+                            <p>2. <strong>${nameSet[1]}さんの証言：</strong><br>
+                            「${nameSet[0]}さんは嘘つきです。」<br>
+                            ステップ1で${nameSet[0]}さんは嘘つきだと確定したので、この発言は真実です。したがって、<strong>${nameSet[1]}さんが正直者</strong>です。</p>
+                            <p>3. <strong>検証：</strong><br>
+                            ${nameSet[1]}さんが正直者で、他が嘘つきだと仮定：<br>
+                            - ${nameSet[4]}さん（嘘つき）：「私は正直者です」→嘘。OK。<br>
+                            - ${nameSet[3]}さん（嘘つき）：「${nameSet[4]}さんは嘘つきです」→真実を言ってしまっているが、嘘つきでも結果的に真実になることはあります。<br>
+                            - ${nameSet[2]}さん（嘘つき）：「${nameSet[3]}さんは正直者です」→嘘。OK。</p>
+                            <p><strong>結論：</strong> ${nameSet[1]}さんが唯一の正直者です。</p>
+                        `
+                    };
+                }
+            },
+            {
+                // パターン3: 相互矛盾タイプ
+                generator: (nameSet) => {
+                    const people = [
+                        { name: nameSet[0] + 'さん', statement: `${nameSet[1]}さんは嘘つきです。` },
+                        { name: nameSet[1] + 'さん', statement: `${nameSet[2]}さんは正直者です。` },
+                        { name: nameSet[2] + 'さん', statement: `${nameSet[1]}さんは嘘つきです。` },
+                        { name: nameSet[3] + 'さん', statement: `${nameSet[4]}さんと私の中で正直者は1人います。` },
+                        { name: nameSet[4] + 'さん', statement: `${nameSet[3]}さんは嘘つきです。私も嘘つきです。` }
+                    ];
+                    
+                    return {
+                        people,
+                        correctAnswerIndex: 2,
+                        explanationHTML: `
+                            <h3>🎓 解説 (答え: ${nameSet[2]}さん)</h3>
+                            <p><strong>論理的な推理過程：</strong></p>
+                            <p>1. <strong>${nameSet[1]}さんと${nameSet[2]}さんの証言：</strong><br>
+                            ${nameSet[1]}さん：「${nameSet[2]}さんは正直者です」<br>
+                            ${nameSet[2]}さん：「${nameSet[1]}さんは嘘つきです」<br>
+                            もし${nameSet[1]}さんが正直者なら、${nameSet[2]}さんも正直者となりルール違反です。よって${nameSet[1]}さんは嘘つきです。</p>
+                            <p>2. <strong>${nameSet[2]}さんの証言検証：</strong><br>
+                            ${nameSet[2]}さんの「${nameSet[1]}さんは嘘つきです」は真実です（ステップ1より）。真実を言えるのは正直者だけなので、${nameSet[2]}さんが正直者です。</p>
+                            <p>3. <strong>${nameSet[4]}さんの証言：</strong><br>
+                            「${nameSet[3]}さんは嘘つきです。私も嘘つきです。」<br>
+                            後半部分が真実なら正直者になってしまうため矛盾です。嘘つきがこのような自己言及をした場合、嘘つきとして扱います。</p>
+                            <p>4. <strong>検証：</strong><br>
+                            ${nameSet[2]}さんが正直者で、他が嘘つきだと仮定すると、全ての証言に矛盾が生じません。</p>
+                            <p><strong>結論：</strong> ${nameSet[2]}さんが唯一の正直者です。</p>
+                        `
+                    };
+                }
+            },
+            {
+                // パターン4: 複数人言及タイプ
+                generator: (nameSet) => {
+                    const people = [
+                        { name: nameSet[0] + 'さん', statement: `この中に正直者は2人います。` },
+                        { name: nameSet[1] + 'さん', statement: `${nameSet[0]}さんは嘘つきです。${nameSet[2]}さんも嘘つきです。` },
+                        { name: nameSet[2] + 'さん', statement: `私は嘘つきです。でも${nameSet[3]}さんは正直者です。` },
+                        { name: nameSet[3] + 'さん', statement: `${nameSet[2]}さんは嘘つきです。` },
+                        { name: nameSet[4] + 'さん', statement: `${nameSet[1]}さんは嘘つきです。` }
+                    ];
+                    
+                    return {
+                        people,
+                        correctAnswerIndex: 3,
+                        explanationHTML: `
+                            <h3>🎓 解説 (答え: ${nameSet[3]}さん)</h3>
+                            <p><strong>論理的な推理過程：</strong></p>
+                            <p>1. <strong>${nameSet[0]}さんの証言：</strong><br>
+                            「この中に正直者は2人います。」<br>
+                            正直者は1人だけというルールに反するので、この証言は嘘です。よって${nameSet[0]}さんは嘘つきです。</p>
+                            <p>2. <strong>${nameSet[2]}さんの証言：</strong><br>
+                            「私は嘘つきです。でも${nameSet[3]}さんは正直者です。」<br>
+                            前半が真実なら正直者になり矛盾。嘘つきがこの発言をするパラドックスとして、${nameSet[2]}さんは嘘つきと判断します。</p>
+                            <p>3. <strong>${nameSet[3]}さんの証言：</strong><br>
+                            「${nameSet[2]}さんは嘘つきです。」<br>
+                            ステップ2で${nameSet[2]}さんは嘘つきと判明したので、この発言は真実です。よって${nameSet[3]}さんが正直者です。</p>
+                            <p>4. <strong>検証：</strong><br>
+                            ${nameSet[3]}さんが正直者で、他が嘘つきだと仮定：<br>
+                            - ${nameSet[1]}さん（嘘つき）：「${nameSet[0]}さんは嘘つき、${nameSet[2]}さんも嘘つき」→両方とも真実ですが、嘘つきでも結果的に真実を言うことはあります。<br>
+                            - ${nameSet[4]}さん（嘘つき）：「${nameSet[1]}さんは嘘つきです」→真実ですが、同上の理由で問題ありません。</p>
+                            <p><strong>結論：</strong> ${nameSet[3]}さんが唯一の正直者です。</p>
+                        `
+                    };
+                }
+            },
+            {
+                // パターン5: 連鎖推論タイプ
+                generator: (nameSet) => {
+                    const people = [
+                        { name: nameSet[0] + 'さん', statement: `${nameSet[1]}さんが正直者なら、${nameSet[2]}さんは嘘つきです。` },
+                        { name: nameSet[1] + 'さん', statement: `私は正直者ではありません。` },
+                        { name: nameSet[2] + 'さん', statement: `${nameSet[3]}さんと${nameSet[4]}さんのどちらかが正直者です。` },
+                        { name: nameSet[3] + 'さん', statement: `${nameSet[4]}さんは嘘つきです。` },
+                        { name: nameSet[4] + 'さん', statement: `${nameSet[3]}さんは嘘つきです。` }
+                    ];
+                    
+                    return {
+                        people,
+                        correctAnswerIndex: 3,
+                        explanationHTML: `
+                            <h3>🎓 解説 (答え: ${nameSet[3]}さん)</h3>
+                            <p><strong>論理的な推理過程：</strong></p>
+                            <p>1. <strong>${nameSet[1]}さんの証言：</strong><br>
+                            「私は正直者ではありません。」<br>
+                            これは自己否定のパラドックスです。正直者はこの発言をできず、嘘つきも真実を言えないのでこの発言はできません。しかし、このような発言者は嘘つきと判断します。</p>
+                            <p>2. <strong>${nameSet[3]}さんと${nameSet[4]}さんの証言：</strong><br>
+                            ${nameSet[3]}さん：「${nameSet[4]}さんは嘘つきです」<br>
+                            ${nameSet[4]}さん：「${nameSet[3]}さんは嘘つきです」<br>
+                            この2人は互いを嘘つきと言っています。両方とも正直者であることはできません。どちらか一方が正直者です。</p>
+                            <p>3. <strong>${nameSet[2]}さんの証言：</strong><br>
+                            「${nameSet[3]}さんと${nameSet[4]}さんのどちらかが正直者です。」<br>
+                            これは論理的に正しい観察です。しかし、もし${nameSet[2]}さんが正直者なら、${nameSet[3]}さんと${nameSet[4]}さんは両方とも嘘つきになり、証言と矛盾します。よって${nameSet[2]}さんは嘘つきです。</p>
+                            <p>4. <strong>結論：</strong><br>
+                            ${nameSet[3]}さんと${nameSet[4]}さんのうち、どちらかが正直者です。消去法で${nameSet[3]}さんが正直者と仮定すると、全ての証言に矛盾が生じません。</p>
+                            <p><strong>結論：</strong> ${nameSet[3]}さんが唯一の正直者です。</p>
+                        `
+                    };
+                }
+            }
+        ];
+
+        function generateProblem() {
+            // 使用済みでない名前セットを選択
+            let availableNameSets = [];
+            for (let i = 0; i < names.length; i++) {
+                if (!usedNameSets.includes(i)) {
+                    availableNameSets.push(i);
+                }
+            }
+            
+            // 全て使用済みならリセット
+            if (availableNameSets.length === 0) {
+                usedNameSets = [];
+                availableNameSets = Array.from({length: names.length}, (_, i) => i);
+            }
+            
+            const nameSetIndex = availableNameSets[Math.floor(Math.random() * availableNameSets.length)];
+            usedNameSets.push(nameSetIndex);
+            
+            const selectedNameSet = names[nameSetIndex];
+            const template = problemTemplates[Math.floor(Math.random() * problemTemplates.length)];
+            
+            return template.generator(selectedNameSet);
+        }
+
+        function loadProblem() {
+            currentProblem = generateProblem();
             const gameArea = document.getElementById('gameArea');
             const explanationContainer = document.getElementById('explanationContainer');
             
@@ -411,7 +436,7 @@
             gameArea.innerHTML = '';
 
             // 人物と証言を生成
-            problem.people.forEach((person, i) => {
+            currentProblem.people.forEach((person, i) => {
                 const personDiv = document.createElement('div');
                 personDiv.className = 'person';
                 personDiv.setAttribute('onclick', `selectPerson(${i + 1})`);
@@ -425,9 +450,8 @@
             });
             
             // 解説をセット
-            explanationContainer.innerHTML = problem.explanationHTML;
+            explanationContainer.innerHTML = currentProblem.explanationHTML;
         }
-
 
         function selectPerson(personNumber) {
             if (gameEnded) return;
@@ -446,9 +470,8 @@
             gameEnded = true;
             const resultDiv = document.getElementById('result');
             const explanationSection = document.getElementById('explanationSection');
-            const problem = problems[currentProblemIndex];
-            const correctAnswer = problem.correctAnswerIndex + 1;
-            const correctAnswerName = problem.people[problem.correctAnswerIndex].name;
+            const correctAnswer = currentProblem.correctAnswerIndex + 1;
+            const correctAnswerName = currentProblem.people[currentProblem.correctAnswerIndex].name;
 
             resultDiv.classList.remove('hidden');
             
@@ -456,7 +479,7 @@
                 resultDiv.className = 'result correct';
                 resultDiv.innerHTML = `🎉 正解です！<br>${correctAnswerName}が正直者でした。`;
             } else {
-                const selectedName = problem.people[selectedPerson - 1].name;
+                const selectedName = currentProblem.people[selectedPerson - 1].name;
                 resultDiv.className = 'result incorrect';
                 resultDiv.innerHTML = `❌ 残念！<br>${selectedName}ではありません。<br>正解は${correctAnswerName}でした。`;
             }
@@ -470,15 +493,12 @@
         }
 
         function resetGame() {
-            // 次の問題へ
-            currentProblemIndex = (currentProblemIndex + 1) % problems.length;
-            
             // ゲーム状態をリセット
             selectedPerson = null;
             gameEnded = false;
             
             // 新しい問題をロード
-            loadProblem(currentProblemIndex);
+            loadProblem();
             
             // 結果と解説を隠す
             document.getElementById('result').classList.add('hidden');
@@ -491,7 +511,7 @@
 
         // 初期ロード
         window.onload = () => {
-            loadProblem(currentProblemIndex);
+            loadProblem();
         };
     </script>
 </body>
