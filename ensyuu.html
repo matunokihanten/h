@@ -237,7 +237,7 @@
       background: linear-gradient(45deg, #007bff, #00c0ff);
       color: #fff;
       box-shadow: 0 3px 8px rgba(0,0,0,0.5);
-      transition: transform 0.1s ease, background 0.2s ease;
+      transition: all 0.2s ease, transform 0.1s ease;
       touch-action: manipulation;
     }
     #keypad button:hover {
@@ -251,6 +251,14 @@
     }
     #clearButton:hover {
       background: linear-gradient(45deg, #c82333, #bd2130);
+    }
+    /* 練習モード用ハイライト */
+    .practice-highlight {
+      background: linear-gradient(45deg, #ffeb3b, #fbc02d);
+      color: #333;
+      box-shadow: 0 0 20px 10px rgba(255, 235, 59, 0.7);
+      border: 3px solid white;
+      transform: scale(1.1);
     }
 
     #rankingContainer {
@@ -451,6 +459,10 @@
         <input type="radio" id="modeTime" name="mode" value="time">
         <label for="modeTime">タイムモード (102桁)</label>
       </div>
+      <div class="mode-option">
+        <input type="radio" id="modePractice" name="mode" value="practice">
+        <label for="modePractice">練習モード</label>
+      </div>
     </div>
     <div id="randomModeSettings">
         <label for="fillPercentage">穴の割合:</label>
@@ -508,13 +520,13 @@
                  "33057270365759591953092186117381932611793105118548" +
                  "67328620941921285673831410175517260550887893049101"; // 502桁目まで延長
 
-      const MAX_PI_DIGITS = pi.length;
-      const GAME_DIGITS_PER_LINE = 20;
-      const MEMORIZE_DIGITS_PER_LINE = 20;
-      const MEMORIZE_BLOCK_SIZE = 100;
+      const MAXPIDIGITS = pi.length;
+      const GAMEDIGITSPER_LINE = 20;
+      const MEMORIZEDIGITSPER_LINE = 20;
+      const MEMORIZEBLOCKSIZE = 100;
       const GROUP_SIZE = 2;
       const INDENT_DIGITS = 2;
-      const TIME_MODE_TARGET_DIGITS = 102;
+      const TIMEMODETARGET_DIGITS = 102;
 
       let targetCount = 502;
       let startIndex = 0;
@@ -525,7 +537,7 @@
       let missingPointer = 0;
       let totalWrongAttempts = 0;
 
-      let gameMode = "standard"; // "standard", "randomFill", "time", "memorize"
+      let gameMode = "standard"; // "standard", "randomFill", "time", "memorize", "practice"
       let gameActive = false;
       let startTime;
       let ranking = [];
@@ -537,6 +549,7 @@
       const modeStandardRadio = document.getElementById("modeStandard");
       const modeRandomFillRadio = document.getElementById("modeRandomFill");
       const modeTimeRadio = document.getElementById("modeTime");
+      const modePracticeRadio = document.getElementById("modePractice"); // 練習モード用ラジオボタン
       const randomModeSettingsDiv = document.getElementById("randomModeSettings");
       const fillPercentageSlider = document.getElementById("fillPercentage");
       const fillPercentageValueSpan = document.getElementById("fillPercentageValue");
@@ -548,6 +561,7 @@
       const rankingContainer = document.getElementById("rankingContainer");
       const rankingList = document.getElementById("rankingList");
       const clearRankingBtn = document.getElementById("clearRankingBtn");
+      const keypadButtons = document.querySelectorAll(".key"); // キーパッドのボタン
 
       // タイムモード用の新しいUI要素
       const timeModeInfoDiv = document.getElementById("timeModeInfo");
@@ -560,7 +574,7 @@
       const correctSound = new Audio('https://cdn.jsdelivr.net/gh/Tonejs/Tone.js/examples/audio/context/success.mp3'); 
       const wrongSound = new Audio('https://cdn.jsdelivr.net/gh/Tonejs/Tone.js/examples/audio/context/fail.mp3');   
 
-      maxPiLengthSpan.textContent = MAX_PI_DIGITS;
+      maxPiLengthSpan.textContent = MAXPIDIGITS;
 
       // --- 設定の記憶機能 ---
       function saveSettings() {
@@ -666,16 +680,41 @@
             progressBar.style.width = "0%";
             progressDigitsSpan.textContent = "0";
           }
-
+          
           saveSettings();
           piDisplay.innerHTML = ""; // モード切り替え時にディスプレイをクリア
           messageDiv.textContent = ""; // メッセージもクリア
           gameActive = false; // ゲーム状態をリセット
+          highlightNextKey(); // モード切替時にハイライトをクリア
+      }
+      
+      // --- キーのハイライト (練習モード用) ---
+      function highlightNextKey() {
+        // 全てのキーからハイライトを削除
+        keypadButtons.forEach(btn => {
+            btn.classList.remove('practice-highlight');
+        });
+
+        if (!gameActive || gameMode !== "practice") {
+            return; // ゲームがアクティブでない、または練習モードでない場合は何もしない
+        }
+
+        if (currentIndex >= startIndex + targetCount) {
+            return; // ゲーム終了
+        }
+
+        const nextDigit = pi.charAt(currentIndex);
+        for (const btn of keypadButtons) {
+            if (btn.textContent === nextDigit) {
+                btn.classList.add('practice-highlight');
+                break;
+            }
+        }
       }
 
       // --- ディスプレイ更新関数 ---
       function updateDisplay() {
-        if (gameMode === "standard" || gameMode === "time") {
+        if (gameMode === "standard" || gameMode === "time" || gameMode === "practice") {
           updateStandardTimeDisplay();
         } else if (gameMode === "randomFill") {
           updateRandomFillDisplay();
@@ -688,7 +727,7 @@
         if (gameMode === "time" && gameActive) {
             const completedDigits = currentIndex - 2; // '3.'の2桁分を引く
             progressDigitsSpan.textContent = Math.max(0, completedDigits);
-            const progressPercentage = (Math.max(0, completedDigits) / (TIME_MODE_TARGET_DIGITS - 2)) * 100; // '3.'を除いた桁数で計算
+            const progressPercentage = (Math.max(0, completedDigits) / (TIMEMODETARGET_DIGITS - 2)) * 100; // '3.'を除いた桁数で計算
             progressBar.style.width = `${progressPercentage}%`;
         }
       }
@@ -703,7 +742,7 @@
                 isEntered: true
             });
         }
-        if (gameActive && currentIndex < startIndex + targetCount) {
+        if (gameActive && currentIndex < startIndex + targetCount && gameMode !== "practice") { // 練習モードではカレント位置のプレースホルダは不要
             displayDigits.push({
                 digit: pi.charAt(currentIndex),
                 wrong: false,
@@ -737,7 +776,7 @@
 
           let currentLineLengthFromStart = i;
           
-          if ((currentLineLengthFromStart + 1) % GAME_DIGITS_PER_LINE === 0 && i < displayDigits.length - 1) { 
+          if ((currentLineLengthFromStart + 1) % GAMEDIGITSPER_LINE === 0 && i < displayDigits.length - 1) { 
               rows.push(rowStr);
               rowStr = `<span class="digit">&nbsp;</span>`.repeat(INDENT_DIGITS);
           }
@@ -746,7 +785,7 @@
 
         piDisplay.innerHTML = rows.join("<br>");
         if (gameActive) {
-            const currentDigitElement = piDisplay.querySelector('.current-placeholder');
+            const currentDigitElement = piDisplay.querySelector('.current-placeholder, .entered-digit:last-child');
             if (currentDigitElement) {
                 currentDigitElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
@@ -788,7 +827,7 @@
             rowStr += `<span class="${className}">${digitContent}</span>`;
 
             let currentLineLengthFromStart = i;
-            if ((currentLineLengthFromStart + 1) % GAME_DIGITS_PER_LINE === 0 && i < puzzle.length - 1) {
+            if ((currentLineLengthFromStart + 1) % GAMEDIGITSPER_LINE === 0 && i < puzzle.length - 1) {
                 rows.push(rowStr);
                 rowStr = `<span class="digit">&nbsp;</span>`.repeat(INDENT_DIGITS);
             }
@@ -808,15 +847,16 @@
       // 暗記モード
       function activateMemorizeMode(setAsCurrentMode = true) {
         if (setAsCurrentMode) {
-            gameMode = "memorize"; // ゲームモードを暗記モードに設定
-            gameActive = false; // 入力は受け付けない
+            gameMode = "memorize";
+            gameActive = false;
         }
-        clearInterval(timerInterval); // タイマーを停止
-        timerDisplay.textContent = "0.0000"; // 表示をリセット
+        clearInterval(timerInterval);
+        timerDisplay.textContent = "0.0000";
         progressBar.style.width = "0%";
         progressDigitsSpan.textContent = "0";
+        highlightNextKey(); // ハイライトをクリア
 
-        let digits = pi.slice(0, Math.min(MAX_PI_DIGITS, 502)); 
+        let digits = pi.slice(0, Math.min(MAXPIDIGITS, 502)); 
         let displayHtml = '';
 
         displayHtml += `<div class="memorize-line"><span class="pi-integer-part">3.</span></div>`;
@@ -830,19 +870,19 @@
             totalDecimalDigitsProcessed++;
 
             if ((totalDecimalDigitsProcessed % GROUP_SIZE === 0) &&
-                (totalDecimalDigitsProcessed % MEMORIZE_DIGITS_PER_LINE !== 0) &&
+                (totalDecimalDigitsProcessed % MEMORIZEDIGITSPER_LINE !== 0) &&
                 (totalDecimalDigitsProcessed < decimalDigits.length)) {
                 currentLineDigits.push('<span class="memorize-group-space"></span>');
             }
 
-            if (totalDecimalDigitsProcessed % MEMORIZE_DIGITS_PER_LINE === 0) {
+            if (totalDecimalDigitsProcessed % MEMORIZEDIGITSPER_LINE === 0) {
                 if (currentLineDigits[currentLineDigits.length - 1] === '<span class="memorize-group-space"></span>') {
                     currentLineDigits.pop();
                 }
                 displayHtml += `<div class="memorize-line">${currentLineDigits.join('')}</div>`;
                 currentLineDigits = [];
 
-                if (totalDecimalDigitsProcessed % MEMORIZE_BLOCK_SIZE === 0 && totalDecimalDigitsProcessed < decimalDigits.length) {
+                if (totalDecimalDigitsProcessed % MEMORIZEBLOCKSIZE === 0 && totalDecimalDigitsProcessed < decimalDigits.length) {
                     displayHtml += `<br>`;
                 }
             }
@@ -857,60 +897,59 @@
         displayHtml = displayHtml.replace(/(\d)/g, '<span class="memorize-digit">$1</span>');
 
         piDisplay.innerHTML = displayHtml;
-        messageDiv.textContent = `暗記モード：πの先頭${Math.min(MAX_PI_DIGITS, 502)}桁を表示しています。`;
-        
-        // ★★★ 修正点 ★★★
-        // ここにあった `updateModeSettingsVisibility()` の呼び出しを削除しました。
-        // これが画面をクリアしてしまう原因でした。
+        messageDiv.textContent = `暗記モード：πの先頭${Math.min(MAXPIDIGITS, 502)}桁を表示しています。`;
       }
 
       // --- ゲーム初期化 ---
       function initGame() {
-        clearInterval(timerInterval); // ゲーム開始時に既存のタイマーをクリア
+        clearInterval(timerInterval);
+        gameMode = document.querySelector('input[name="mode"]:checked').value;
 
-        if (modeTimeRadio.checked) {
-            gameMode = "time";
+        if (gameMode === "time") {
             startIndex = 0;
-            targetCount = TIME_MODE_TARGET_DIGITS;
+            targetCount = TIMEMODETARGET_DIGITS;
             piDisplay.innerHTML = "";
             digitsHistory = [];
             
-            // タイムモードでは'3.'から開始するため、最初の2桁を履歴に追加
             digitsHistory.push({ digit: pi.charAt(0), wrong: false }); // '3'
             digitsHistory.push({ digit: pi.charAt(1), wrong: false }); // '.'
             currentIndex = 2; // 入力は小数点以下から開始
 
             gameActive = true;
-            startTime = performance.now(); // タイム計測開始
-            startTimer(); // タイマーを開始
+            startTime = performance.now();
+            startTimer();
             updateDisplay();
-            messageDiv.textContent = `タイムモード開始！πの先頭${TIME_MODE_TARGET_DIGITS}桁を入力してください。`;
-            progressDigitsSpan.textContent = currentIndex; // 3.の分として2桁進捗を表示
-            targetDigitsSpan.textContent = TIME_MODE_TARGET_DIGITS;
+            messageDiv.textContent = `タイムモード開始！πの先頭${TIMEMODETARGET_DIGITS}桁を入力してください。`;
+            progressDigitsSpan.textContent = currentIndex;
+            targetDigitsSpan.textContent = TIMEMODETARGET_DIGITS;
         } else {
-            gameMode = document.querySelector('input[name="mode"]:checked').value; // 現在選択されているモードを取得
             startIndex = parseInt(startIndexInput.value, 10);
-            if (isNaN(startIndex) || startIndex < 0 || startIndex >= MAX_PI_DIGITS) {
+            if (isNaN(startIndex) || startIndex < 0 || startIndex >= MAXPIDIGITS) {
                 startIndex = 0;
                 startIndexInput.value = 0;
             }
             
             targetCount = 502;
-            if (startIndex + targetCount > MAX_PI_DIGITS) {
-                targetCount = MAX_PI_DIGITS - startIndex;
+            if (startIndex + targetCount > MAXPIDIGITS) {
+                targetCount = MAXPIDIGITS - startIndex;
             }
+
+            currentIndex = startIndex;
+            digitsHistory = [];
+            for (let i = 0; i < startIndex; i++) {
+                digitsHistory.push({ digit: pi.charAt(i), wrong: false });
+            }
+            piDisplay.innerHTML = "";
+            gameActive = true;
 
             if (gameMode === "randomFill") {
                 initRandomFillMode();
                 messageDiv.textContent = "ランダム穴埋めモード開始！隠された数字を入力してください。";
+            } else if (gameMode === "practice") {
+                updateDisplay();
+                highlightNextKey(); // ここでハイライトを初期化
+                messageDiv.textContent = "練習モード開始！ハイライトされたキーを押してください。";
             } else { // standard mode
-                currentIndex = startIndex;
-                digitsHistory = [];
-                for (let i = 0; i < startIndex; i++) {
-                    digitsHistory.push({ digit: pi.charAt(i), wrong: false });
-                }
-                piDisplay.innerHTML = "";
-                gameActive = true;
                 updateDisplay();
                 messageDiv.textContent = "標準モード開始！数字を入力してください。";
             }
@@ -961,13 +1000,12 @@
 
         missingIndices.sort((a, b) => a - b);
         missingPointer = 0;
-        piDisplay.innerHTML = "";
         updateDisplay();
       }
 
       // --- キー入力処理 ---
       function handleKeyInput(value) {
-        if (!gameActive) { // gameActiveがtrueの時だけキー入力を処理
+        if (!gameActive) { 
             messageDiv.textContent = "「スタート」ボタンを押してゲームを開始してください。";
             return;
         }
@@ -984,17 +1022,44 @@
             } else {
                 messageDiv.textContent = "これ以上戻れません。";
             }
-          } else {
+          } else { // standard, time, practice
             if (currentIndex > startIndex) {
               currentIndex--;
               digitsHistory.pop();
               updateDisplay();
+              if (gameMode === "practice") highlightNextKey(); // 練習モードの場合、ハイライトを更新
               messageDiv.textContent = "最後の入力を消しました。";
             } else {
                 messageDiv.textContent = "これ以上戻れません。";
             }
           }
           return;
+        }
+        
+        if (gameMode === "practice") {
+            const expected = pi.charAt(currentIndex);
+            if (value === expected) {
+                correctSound.currentTime = 0;
+                correctSound.play();
+                digitsHistory.push({ digit: value, wrong: false, isEntered: true });
+                currentIndex++;
+                updateDisplay();
+                highlightNextKey(); 
+
+                if (currentIndex === startIndex + targetCount) {
+                    gameActive = false;
+                    highlightNextKey();
+                    messageDiv.textContent = "おめでとうございます！目標桁数まで到達しました！";
+                } else {
+                    messageDiv.textContent = "正解！ 現在 " + (currentIndex - startIndex) + " 桁完了";
+                }
+            } else {
+                wrongSound.currentTime = 0;
+                wrongSound.play();
+                messageDiv.textContent = "間違いです。ハイライトされたキーを押してください。";
+            }
+            // 間違ったキーは無視
+            return;
         }
 
         if (gameMode === "randomFill") {
@@ -1011,7 +1076,7 @@
           } else {
               messageDiv.textContent = "全ての穴を補完しました！";
           }
-        } else {
+        } else { // standard, time
           if (currentIndex < startIndex + targetCount) {
             const expected = pi.charAt(currentIndex);
             if (value === expected) {
@@ -1067,8 +1132,7 @@
               messageDiv.textContent = finalMessage;
           } else {
               if (gameMode === "time") {
-                  // 小数点以下の桁数で進捗を計算 (3.14159... の1から数える)
-                  messageDiv.textContent = `正解！ 現在 ${currentIndex - 2} / ${TIME_MODE_TARGET_DIGITS - 2} 桁完了`;
+                  messageDiv.textContent = `正解！ 現在 ${currentIndex - 2} / ${TIMEMODETARGET_DIGITS - 2} 桁完了`;
               } else {
                   messageDiv.textContent = "正解！ 現在 " + (currentIndex - startIndex) + " 桁完了 (" + (currentIndex - startIndex + 1) + "桁目を入力)";
               }
@@ -1152,7 +1216,6 @@
       }
 
       // --- イベントリスナー設定 ---
-      const keypadButtons = document.querySelectorAll(".key");
       keypadButtons.forEach(btn => {
         const handler = function(e) {
           e.preventDefault();
@@ -1174,15 +1237,12 @@
         progressDigitsSpan.textContent = "0";
         piDisplay.innerHTML = "";
         messageDiv.textContent = "ゲーム終了。また挑戦してね！";
-        // モード選択を標準モードに戻す (任意)
+        highlightNextKey(); // ハイライトを消す
         modeStandardRadio.checked = true;
         updateModeSettingsVisibility();
       });
 
-      // 暗記モードボタン
       memorizeBtn.addEventListener("click", function() {
-        // ★★★ 修正点 ★★★
-        // `updateModeSettingsVisibility()` の呼び出しを削除しました。
         if (gameMode !== "memorize") {
             activateMemorizeMode();
         }
@@ -1203,8 +1263,8 @@
         let currentVal = parseInt(startIndexInput.value, 10);
         if (isNaN(currentVal) || currentVal < 0) {
             currentVal = 0;
-        } else if (currentVal > MAX_PI_DIGITS -1) {
-            currentVal = MAX_PI_DIGITS -1;
+        } else if (currentVal > MAXPIDIGITS -1) {
+            currentVal = MAXPIDIGITS -1;
         }
         startIndexInput.value = currentVal;
         saveSettings();
@@ -1212,7 +1272,7 @@
       startIndexInput.addEventListener('change', saveSettings); 
 
       document.addEventListener('keydown', function(event) {
-        if (!gameActive && gameMode !== "memorize") return; // 暗記モードではキー入力を受け付けない
+        if (!gameActive) return;
 
         const key = event.key;
         if (key >= '0' && key <= '9') {
@@ -1225,19 +1285,17 @@
       });
 
       window.addEventListener('resize', () => {
-          // 暗記モードが選択されている場合のみ再描画
           if (gameMode === "memorize") { 
-              activateMemorizeMode(false); // gameActiveを変更しないようにfalseを渡す
+              activateMemorizeMode(false);
           }
       });
 
       // 初期ロード時の処理
-      loadSettings(); // 設定をロード
-      // ページロード時に選択されているモードに基づいてUIを適切に表示
+      loadSettings();
       if (document.querySelector('input[name="mode"]:checked').value === "memorize") {
-          activateMemorizeMode(); // 暗記モードが選択されていれば暗記モードで開始
+          activateMemorizeMode();
       } else {
-          updateModeSettingsVisibility(); // それ以外なら通常のモード表示ロジック
+          updateModeSettingsVisibility();
       }
     });
   </script>
