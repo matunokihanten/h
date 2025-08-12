@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>円周率暗記ゲーム</title>
+  <link href="https://fonts.googleapis.com/css?family=Roboto+Mono:400,700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #000;
+      color: #fff;
+      font-family: 'Roboto Mono', monospace;
+      -webkit-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+    #gameContainer {
+      max-width: 650px;
+      margin: 20px auto;
+      background-color: #111;
+      border-radius: 15px;
+      padding: 30px;
+      box-shadow: 0 6px 30px rgba(0,0,0,0.6);
+      box-sizing: border-box;
+      width: 95%;
+    }
+    .config, .mode-select, #controlButtons {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 25px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    label {
+      font-size: 18px;
+      color: #eee;
+      white-space: nowrap;
+    }
+    input[type="number"] {
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #666;
+      font-size: 18px;
+      width: 90px;
+      text-align: center;
+      background-color: #333;
+      color: #fff;
+    }
+    input[type="radio"] {
+      transform: scale(1.3);
+      margin-right: 5px;
+    }
+    .mode-option {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    #piDisplay {
+      background: rgba(255,255,255,0.08);
+      padding: 20px;
+      border-radius: 10px;
+      min-height: 60px; /* 1行表示に合わせた高さ */
+      max-height: 60px; /* 1行表示に合わせた高さ */
+      overflow-x: hidden;
+      overflow-y: hidden;
+      white-space: nowrap;
+      margin: 25px auto;
+      text-align: right;
+      display: flex;
+      flex-direction: row-reverse; /* 右から左に数字を配置 */
+      align-items: center;
+      justify-content: flex-start;
+      box-sizing: border-box;
+    }
+    .pi-integer-part {
+      font-size: 60px;
+      font-weight: bold;
+      margin-right: 8px;
+      display: inline-block;
+      vertical-align: middle;
+      flex-shrink: 0;
+    }
+    .digit {
+      font-size: 60px;
+      display: inline-block;
+      text-align: center;
+      width: 1ch;
+      flex-shrink: 0;
+    }
+    .entered-digit {
+      font-size: 60px;
+    }
+    .digit.remove {
+        animation: digit-remove 0.5s forwards;
+    }
+    @keyframes digit-remove {
+        from { opacity: 1; transform: translateX(0); }
+        to { opacity: 0; transform: translateX(100%); }
+    }
+    .wrong {
+      color: #ff6666;
+      text-shadow: 0 0 5px rgba(255,102,102,0.8);
+    }
+    .memorize-line {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 5px;
+    }
+    .memorize-digit {
+      font-size: 20px;
+      display: inline-block;
+      width: 1ch;
+      text-align: center;
+    }
+    .memorize-group-space {
+      margin-right: 1.5ch;
+      display: inline-block;
+    }
+
+    #controlButtons button {
+      padding: 12px 25px;
+      font-size: 18px;
+      border: none;
+      border-radius: 8px;
+      background-color: #4CAF50;
+      color: #fff;
+      cursor: pointer;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.5);
+      transition: background 0.2s ease, transform 0.1s ease;
+    }
+    #controlButtons button:hover {
+      background-color: #45a049;
+    }
+    #controlButtons button:active {
+      transform: scale(0.96);
+    }
+    #exitBtn {
+        background-color: #607d8b;
+    }
+    #exitBtn:hover {
+        background-color: #546e7a;
+    }
+    #memorizeBtn {
+        background-color: #03a9f4;
+    }
+    #memorizeBtn:hover {
+        background-color: #0288d1;
+    }
+    
+    #message {
+      margin: 15px;
+      font-size: 18px;
+      min-height: 30px;
+      text-align: center;
+      color: #fff;
+    }
+    #keypad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      max-width: 450px;
+      margin: 20px auto 0 auto;
+    }
+    #keypad button {
+      padding: 25px;
+      font-size: 48px;
+      font-weight: bold;
+      border: none;
+      border-radius: 10px;
+      background-color: #333;
+      color: #fff;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.5);
+      transition: all 0.2s ease, transform 0.1s ease;
+      touch-action: manipulation;
+    }
+    #keypad button:hover {
+      background-color: #555;
+    }
+    #keypad button:active {
+      transform: scale(0.92);
+    }
+    #clearButton {
+      background-color: #f44336;
+    }
+    #clearButton:hover {
+      background-color: #d32f2f;
+    }
+    /* 練習モード用ハイライト */
+    @keyframes yellow-pulse {
+      0% { box-shadow: 0 0 10px 5px rgba(255, 235, 59, 0.7); transform: scale(1.05); }
+      50% { box-shadow: 0 0 20px 10px rgba(255, 235, 59, 0.9); transform: scale(1.1); }
+      100% { box-shadow: 0 0 10px 5px rgba(255, 235, 59, 0.7); transform: scale(1.05); }
+    }
+    .practice-highlight {
+      background-color: #ffeb3b;
+      color: #333;
+      border: 3px solid white;
+      animation: yellow-pulse 1.5s infinite;
+    }
+
+
+    /* レスポンシブデザイン */
+    @media (max-width: 768px) {
+      #gameContainer {
+        margin: 10px;
+        padding: 15px;
+        width: 98%;
+      }
+      .config, .mode-select, #controlButtons {
+        gap: 10px;
+        margin: 10px 0;
+      }
+      label, input[type="number"], input[type="radio"] + label {
+        font-size: 14px;
+      }
+      input[type="number"] {
+        width: 60px;
+        font-size: 14px;
+        padding: 6px;
+      }
+      #controlButtons button {
+        padding: 8px 15px;
+        font-size: 14px;
+      }
+      #piDisplay {
+        padding: 10px;
+        min-height: 40px;
+        max-height: 40px;
+      }
+      .digit {
+        font-size: 36px;
+        width: 1ch;
+      }
+      .entered-digit {
+        font-size: 36px;
+      }
+      .pi-integer-part {
+        font-size: 36px;
+        margin-right: 4px;
+      }
+      .memorize-line {
+        justify-content: center;
+        margin-bottom: 2px;
+      }
+      .memorize-digit {
+        font-size: 16px;
+      }
+      .memorize-group-space {
+        margin-right: 1ch;
+      }
+      #message {
+        font-size: 14px;
+        margin: 8px;
+        min-height: 25px;
+      }
+      #keypad {
+        gap: 8px;
+        max-width: 300px;
+      }
+      #keypad button {
+        padding: 18px;
+        font-size: 32px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="gameContainer">
+    <div class="config">
+      <label for="startIndex">開始桁数:</label>
+      <input type="number" id="startIndex" value="0" min="0">
+      <span style="font-size: 14px; color: #aaa;">（最大: <span id="maxPiLength"></span> 桁）</span>
+    </div>
+    <div class="mode-select">
+      <div class="mode-option">
+        <input type="radio" id="modeStandard" name="mode" value="standard" checked>
+        <label for="modeStandard">標準モード</label>
+      </div>
+      <div class="mode-option">
+        <input type="radio" id="modePractice" name="mode" value="practice">
+        <label for="modePractice">練習モード</label>
+      </div>
+    </div>
+    <div id="controlButtons">
+      <button id="startBtn">スタート</button>
+      <button id="exitBtn">終了</button>
+      <button id="memorizeBtn">暗記モード</button>
+    </div>
+
+    <div id="piDisplay"></div>
+    <div id="message"></div>
+    <div id="keypad">
+      <button class="key">7</button>
+      <button class="key">8</button>
+      <button class="key">9</button>
+      <button class="key">4</button>
+      <button class="key">5</button>
+      <button class="key">6</button>
+      <button class="key">1</button>
+      <button class="key">2</button>
+      <button class="key">3</button>
+      <button class="key">.</button>
+      <button class="key">0</button>
+      <button class="key" id="clearButton">C</button>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      const pi = "3.14159265358979323846264338327950288419716939937510" +
+                 "58209749445923078164062862089986280348253421170679" +
+                 "82148086513282306647093844609550582231725359408128" +
+                 "48111745028410270193852110555964462294895493038196" +
+                 "44288109756659334461284756482337867831652712019091" +
+                 "45648566923460348610454326648213393607260249141273" +
+                 "72458700660631558817488152092096282925409171536436" +
+                 "78925903600113305305488204665213841469519415116094" +
+                 "33057270365759591953092186117381932611793105118548" +
+                 "67328620941921285673831410175517260550887893049101";
+
+      const MAXPIDIGITS = pi.length;
+      const MEMORIZEDIGITSPER_LINE = 20;
+      const MEMORIZEBLOCKSIZE = 100;
+      const GROUP_SIZE = 2;
+      let targetCount = 502;
+      let startIndex = 0;
+      let currentIndex = 0;
+      let digitsHistory = [];
+      let totalWrongAttempts = 0;
+      let gameMode = "standard";
+      let gameActive = false;
+
+      const startIndexInput = document.getElementById("startIndex");
+      const maxPiLengthSpan = document.getElementById("maxPiLength");
+      const modeStandardRadio = document.getElementById("modeStandard");
+      const modePracticeRadio = document.getElementById("modePractice");
+      const startBtn = document.getElementById("startBtn");
+      const exitBtn = document.getElementById("exitBtn");
+      const memorizeBtn = document.getElementById("memorizeBtn");
+      const piDisplay = document.getElementById("piDisplay");
+      const messageDiv = document.getElementById("message");
+      const keypadButtons = document.querySelectorAll(".key");
+      const correctSound = new Audio('https://cdn.jsdelivr.net/gh/Tonejs/Tone.js/examples/audio/context/success.mp3'); 
+      const wrongSound = new Audio('https://cdn.jsdelivr.net/gh/Tonejs/Tone.js/examples/audio/context/fail.mp3');
+      const PI_DISPLAY_MAX_WIDTH = 650 - 60; // コンテナの最大幅 - padding
+
+      maxPiLengthSpan.textContent = MAXPIDIGITS;
+
+      function saveSettings() {
+        localStorage.setItem('piGameStartIndex', startIndexInput.value);
+        localStorage.setItem('piGameMode', document.querySelector('input[name="mode"]:checked').value);
+      }
+
+      function loadSettings() {
+        const savedStartIndex = localStorage.getItem('piGameStartIndex');
+        if (savedStartIndex !== null) {
+          startIndexInput.value = savedStartIndex;
+        }
+        const savedMode = localStorage.getItem('piGameMode');
+        if (savedMode) {
+          const radio = document.getElementById('mode' + savedMode.charAt(0).toUpperCase() + savedMode.slice(1));
+          if (radio) {
+            radio.checked = true;
+            gameMode = savedMode;
+          } else {
+             modeStandardRadio.checked = true;
+             gameMode = "standard";
+          }
+        }
+        updateModeSettingsVisibility();
+      }
+
+      function updateModeSettingsVisibility() {
+          const currentMode = document.querySelector('input[name="mode"]:checked').value;
+          gameMode = currentMode;
+          saveSettings();
+          piDisplay.innerHTML = "";
+          messageDiv.textContent = "";
+          gameActive = false;
+          highlightNextKey();
+      }
+      
+      function highlightNextKey() {
+        keypadButtons.forEach(btn => {
+            btn.classList.remove('practice-highlight');
+        });
+        if (!gameActive || gameMode !== "practice") {
+            return;
+        }
+        if (currentIndex >= startIndex + targetCount) {
+            return;
+        }
+        const nextDigit = pi.charAt(currentIndex);
+        for (const btn of keypadButtons) {
+            if (btn.textContent === nextDigit) {
+                btn.classList.add('practice-highlight');
+                break;
+            }
+        }
+      }
+
+      function updateDisplay() {
+        if (gameMode === "memorize") {
+            activateMemorizeMode(false);
+            return;
+        }
+        
+        piDisplay.innerHTML = "";
+        
+        // 整数部を追加
+        if (digitsHistory.length > 0) {
+            piDisplay.innerHTML = `<span class="pi-integer-part">${pi.charAt(0)}.</span>`;
+        }
+        
+        // 小数部の数字を後ろから追加
+        for (let i = digitsHistory.length - 1; i >= 0; i--) {
+          const digitObj = digitsHistory[i];
+          const digitContent = digitObj.digit;
+          let className = "digit entered-digit";
+          if (digitObj.wrong) {
+            className += " wrong";
+          }
+          const digitSpan = document.createElement('span');
+          digitSpan.className = className;
+          digitSpan.textContent = digitContent;
+          piDisplay.appendChild(digitSpan);
+        }
+        
+        // 入力した数字が入りきらない場合に左から消す
+        let totalWidth = 0;
+        const allDigits = piDisplay.querySelectorAll('.digit');
+        const integerPartWidth = piDisplay.querySelector('.pi-integer-part')?.offsetWidth || 0;
+        
+        for (const digitSpan of allDigits) {
+            totalWidth += digitSpan.offsetWidth;
+        }
+
+        while (totalWidth + integerPartWidth > piDisplay.offsetWidth) {
+            const firstDigit = piDisplay.querySelector('.digit:first-of-type');
+            if (firstDigit) {
+                totalWidth -= firstDigit.offsetWidth;
+                firstDigit.classList.add('remove');
+                firstDigit.addEventListener('animationend', () => {
+                    firstDigit.remove();
+                });
+            } else {
+                break;
+            }
+        }
+      }
+
+      function activateMemorizeMode(setAsCurrentMode = true) {
+        if (setAsCurrentMode) {
+            gameMode = "memorize";
+            gameActive = false;
+        }
+        highlightNextKey();
+        let digits = pi.slice(0, Math.min(MAXPIDIGITS, 502));
+        let displayHtml = '';
+        displayHtml += `<div class="memorize-line"><span class="pi-integer-part">3.</span></div>`;
+        let decimalDigits = digits.substring(2);
+        let currentLineDigits = [];
+        let totalDecimalDigitsProcessed = 0;
+        for (let i = 0; i < decimalDigits.length; i++) {
+            currentLineDigits.push(decimalDigits[i]);
+            totalDecimalDigitsProcessed++;
+            if ((totalDecimalDigitsProcessed % GROUP_SIZE === 0) &&
+                (totalDecimalDigitsProcessed % MEMORIZEDIGITSPER_LINE !== 0) &&
+                (totalDecimalDigitsProcessed < decimalDigits.length)) {
+                currentLineDigits.push('<span class="memorize-group-space"></span>');
+            }
+            if (totalDecimalDigitsProcessed % MEMORIZEDIGITSPER_LINE === 0) {
+                if (currentLineDigits[currentLineDigits.length - 1] === '<span class="memorize-group-space"></span>') {
+                    currentLineDigits.pop();
+                }
+                displayHtml += `<div class="memorize-line">${currentLineDigits.join('')}</div>`;
+                currentLineDigits = [];
+                if (totalDecimalDigitsProcessed % MEMORIZEBLOCKSIZE === 0 && totalDecimalDigitsProcessed < decimalDigits.length) {
+                    displayHtml += `<br>`;
+                }
+            }
+        }
+        if (currentLineDigits.length > 0) {
+            if (currentLineDigits[currentLineDigits.length - 1] === '<span class="memorize-group-space"></span>') {
+                currentLineDigits.pop();
+            }
+            displayHtml += `<div class="memorize-line">${currentLineDigits.join('')}</div>`;
+        }
+        displayHtml = displayHtml.replace(/(\d)/g, '<span class="memorize-digit">$1</span>');
+        piDisplay.innerHTML = displayHtml;
+        messageDiv.textContent = `暗記モード：πの先頭${Math.min(MAXPIDIGITS, 502)}桁を表示しています。`;
+      }
+
+      function initGame() {
+        gameMode = document.querySelector('input[name="mode"]:checked').value;
+        startIndex = parseInt(startIndexInput.value, 10);
+        if (isNaN(startIndex) || startIndex < 0 || startIndex >= MAXPIDIGITS) {
+            startIndex = 0;
+            startIndexInput.value = 0;
+        }
+        targetCount = 502;
+        if (startIndex + targetCount > MAXPIDIGITS) {
+            targetCount = MAXPIDIGITS - startIndex;
+        }
+        currentIndex = startIndex;
+        digitsHistory = [];
+        for (let i = 0; i < startIndex; i++) {
+            digitsHistory.push({ digit: pi.charAt(i), wrong: false });
+        }
+        piDisplay.innerHTML = "";
+        gameActive = true;
+        totalWrongAttempts = 0;
+        if (gameMode === "practice") {
+            updateDisplay();
+            highlightNextKey();
+            messageDiv.textContent = "練習モード開始！ハイライトされたキーを押してください。";
+        } else {
+            updateDisplay();
+            messageDiv.textContent = "標準モード開始！数字を入力してください。";
+        }
+        saveSettings();
+      }
+
+      function handleKeyInput(value) {
+        if (!gameActive) { 
+            messageDiv.textContent = "「スタート」ボタンを押してゲームを開始してください。";
+            return;
+        }
+        if (value === "C") {
+          if (currentIndex > startIndex) {
+            currentIndex--;
+            digitsHistory.pop();
+            updateDisplay();
+            if (gameMode === "practice") highlightNextKey();
+            messageDiv.textContent = "最後の入力を消しました。";
+          } else {
+              messageDiv.textContent = "これ以上戻れません。";
+          }
+          return;
+        }
+        
+        if (gameMode === "practice") {
+            const expected = pi.charAt(currentIndex);
+            if (value === expected) {
+                correctSound.currentTime = 0;
+                correctSound.play();
+                digitsHistory.push({ digit: value, wrong: false, isEntered: true });
+                currentIndex++;
+                updateDisplay();
+                highlightNextKey(); 
+                if (currentIndex === startIndex + targetCount) {
+                    gameActive = false;
+                    highlightNextKey();
+                    messageDiv.textContent = "おめでとうございます！目標桁数まで到達しました！";
+                } else {
+                    messageDiv.textContent = "正解！ 現在 " + (currentIndex - startIndex) + " 桁完了";
+                }
+            } else {
+                wrongSound.currentTime = 0;
+                wrongSound.play();
+                messageDiv.textContent = "間違いです。ハイライトされたキーを押してください。";
+            }
+            return;
+        }
+
+        if (currentIndex < startIndex + targetCount) {
+            const expected = pi.charAt(currentIndex);
+            if (value === expected) {
+                correctSound.currentTime = 0;
+                correctSound.play();
+                digitsHistory.push({ digit: value, wrong: false, isEntered: true });
+                currentIndex++;
+                updateDisplay();
+                if (currentIndex === startIndex + targetCount) {
+                    gameActive = false;
+                    let finalMessage = "おめでとうございます！目標の" + targetCount + "桁に到達しました！";
+                    if (totalWrongAttempts > 0) {
+                      finalMessage += " 間違いは " + totalWrongAttempts + " 回ありました。";
+                    } else {
+                      finalMessage += " 全問正解です！";
+                    }
+                    messageDiv.textContent = finalMessage;
+                } else {
+                    messageDiv.textContent = "正解！ 現在 " + (currentIndex - startIndex) + " 桁完了 (" + (currentIndex - startIndex + 1) + "桁目を入力)";
+                }
+            } else {
+                wrongSound.currentTime = 0;
+                wrongSound.play();
+                digitsHistory.push({ digit: value, wrong: true, isEntered: true });
+                totalWrongAttempts++;
+                currentIndex++;
+                updateDisplay();
+                if (currentIndex === startIndex + targetCount) {
+                    gameActive = false;
+                    let finalMessage = "目標桁数に達しました。";
+                    if (totalWrongAttempts > 0) {
+                      finalMessage += " 間違いは " + totalWrongAttempts + " 回ありました。";
+                    }
+                    messageDiv.textContent = finalMessage;
+                } else {
+                    messageDiv.textContent = "間違い！ 正解は '" + expected + "' です。";
+                }
+            }
+        } else {
+            let finalMessage = "おめでとうございます！目標の" + targetCount + "桁に到達しました！";
+            messageDiv.textContent = finalMessage;
+        }
+      }
+
+      keypadButtons.forEach(btn => {
+        const handler = function(e) {
+          e.preventDefault();
+          handleKeyInput(this.textContent);
+        };
+        btn.addEventListener("click", handler);
+        btn.addEventListener("touchstart", handler, { passive: false }); 
+      });
+
+      startBtn.addEventListener("click", function() {
+        initGame();
+      });
+
+      exitBtn.addEventListener("click", function() {
+        gameActive = false;
+        piDisplay.innerHTML = "";
+        messageDiv.textContent = "ゲーム終了。また挑戦してね！";
+        highlightNextKey();
+        modeStandardRadio.checked = true;
+        updateModeSettingsVisibility();
+      });
+
+      memorizeBtn.addEventListener("click", function() {
+        if (gameMode !== "memorize") {
+            activateMemorizeMode();
+        }
+      });
+
+      document.querySelectorAll('input[name="mode"]').forEach(radio => {
+          radio.addEventListener('change', updateModeSettingsVisibility);
+      });
+
+      startIndexInput.addEventListener('input', () => {
+        let currentVal = parseInt(startIndexInput.value, 10);
+        if (isNaN(currentVal) || currentVal < 0) {
+            currentVal = 0;
+        } else if (currentVal > MAXPIDIGITS -1) {
+            currentVal = MAXPIDIGITS -1;
+        }
+        startIndexInput.value = currentVal;
+        saveSettings();
+      });
+      startIndexInput.addEventListener('change', saveSettings); 
+
+      document.addEventListener('keydown', function(event) {
+        if (!gameActive) return;
+        const key = event.key;
+        if (key >= '0' && key <= '9') {
+          handleKeyInput(key);
+        } else if (key === '.') {
+          handleKeyInput('.');
+        } else if (key === 'Backspace' || key === 'Delete') {
+          handleKeyInput('C');
+        }
+      });
+
+      window.addEventListener('resize', () => {
+          if (gameMode === "memorize") { 
+              activateMemorizeMode(false);
+          }
+      });
+
+      loadSettings();
+      if (document.querySelector('input[name="mode"]:checked').value === "memorize") {
+          activateMemorizeMode();
+      } else {
+          updateModeSettingsVisibility();
+      }
+    });
+  </script>
+</body>
+</html>
