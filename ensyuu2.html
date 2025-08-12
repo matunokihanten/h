@@ -74,9 +74,9 @@
       overflow-y: hidden;
       white-space: nowrap;
       margin: 25px auto;
-      text-align: right;
+      text-align: left;
       display: flex;
-      flex-direction: row-reverse;
+      flex-direction: row;
       align-items: center;
       justify-content: flex-start;
       box-sizing: border-box;
@@ -100,11 +100,11 @@
       font-size: 60px;
     }
     .digit.remove {
-        animation: digit-remove 0.5s forwards;
+      animation: digit-remove 0.5s forwards;
     }
     @keyframes digit-remove {
-        from { opacity: 1; transform: translateX(0); }
-        to { opacity: 0; transform: translateX(100%); }
+      from { opacity: 1; transform: translateX(0); }
+      to { opacity: 0; transform: translateX(100%); }
     }
     .wrong {
       color: #ff6666;
@@ -128,10 +128,10 @@
       transform: scale(0.96);
     }
     #exitBtn {
-        background-color: #607d8b;
+      background-color: #607d8b;
     }
     #exitBtn:hover {
-        background-color: #546e7a;
+      background-color: #546e7a;
     }
     
     #message {
@@ -165,6 +165,7 @@
     }
     #keypad button:active {
       transform: scale(0.92);
+      background-color: #666;
     }
     #clearButton {
       background-color: #f44336;
@@ -172,19 +173,17 @@
     #clearButton:hover {
       background-color: #d32f2f;
     }
-    /* 練習モード用ハイライト */
+    .practice-highlight {
+      background-color: #ffeb3b !important;
+      color: #333 !important;
+      border: 3px solid white;
+      animation: yellow-pulse 1.5s infinite;
+    }
     @keyframes yellow-pulse {
       0% { box-shadow: 0 0 10px 5px rgba(255, 235, 59, 0.7); transform: scale(1.05); }
       50% { box-shadow: 0 0 20px 10px rgba(255, 235, 59, 0.9); transform: scale(1.1); }
       100% { box-shadow: 0 0 10px 5px rgba(255, 235, 59, 0.7); transform: scale(1.05); }
     }
-    .practice-highlight {
-      background-color: #ffeb3b;
-      color: #333;
-      border: 3px solid white;
-      animation: yellow-pulse 1.5s infinite;
-    }
-
     @media (max-width: 768px) {
       #gameContainer {
         margin: 10px;
@@ -280,6 +279,7 @@
 
       const MAX_PI_DIGITS = pi.length;
       const TARGET_COUNT = 502;
+      const DISPLAY_COUNT = 12;
       let startIndex = 0;
       let currentIndex = 0;
       let digitsHistory = [];
@@ -342,67 +342,53 @@
       function updateDisplay() {
         piDisplay.innerHTML = "";
         
-        // 整数部と小数点の表示
+        if (digitsHistory.length === 0) {
+            return; // 履歴が空の場合は何も表示しない
+        }
+
+        const displayStart = Math.max(0, digitsHistory.length - DISPLAY_COUNT);
+        const displayedDigits = digitsHistory.slice(displayStart);
+
         const integerPart = pi.charAt(0);
         const decimalPoint = pi.charAt(1);
         
-        // 入力履歴に基づいて表示を生成
-        for (let i = digitsHistory.length - 1; i >= 0; i--) {
-            const digitObj = digitsHistory[i];
-            const digitSpan = document.createElement('span');
-            digitSpan.className = `digit entered-digit ${digitObj.wrong ? 'wrong' : ''}`;
-            digitSpan.textContent = digitObj.digit;
-            piDisplay.appendChild(digitSpan);
-        }
+        let htmlString = '';
+        let isIntegerPartDisplayed = false;
 
-        // 整数部と小数点の追加
-        let historyString = digitsHistory.map(d => d.digit).reverse().join('');
-        if (historyString.startsWith(integerPart) && historyString.includes(decimalPoint)) {
-             const integerPartSpan = document.createElement('span');
-             integerPartSpan.className = 'pi-integer-part';
-             integerPartSpan.textContent = historyString.substring(0,2);
-             
-             // 既存の要素をクリアして再構成
-             piDisplay.innerHTML = '';
-             piDisplay.appendChild(integerPartSpan);
-
-             const decimalPart = historyString.substring(2);
-             for(let i = 0; i < decimalPart.length; i++) {
-                const digitSpan = document.createElement('span');
-                digitSpan.className = `digit entered-digit ${digitsHistory[i].wrong ? 'wrong' : ''}`;
-                digitSpan.textContent = decimalPart[i];
-                piDisplay.appendChild(digitSpan);
-             }
-        } else {
-             // 最初の数字が入力された場合
-            let firstDigit = digitsHistory[digitsHistory.length - 1];
-            if(firstDigit && firstDigit.digit === integerPart && startIndex === 0) {
-                 piDisplay.innerHTML = ''; // 一旦クリア
-                 const integerPartSpan = document.createElement('span');
-                 integerPartSpan.className = 'pi-integer-part';
-                 integerPartSpan.textContent = integerPart;
-                 piDisplay.appendChild(integerPartSpan);
+        if (startIndex === 0) {
+            if (displayedDigits.length > 0 && displayedDigits[0].digit === integerPart) {
+                htmlString += `<span class="pi-integer-part">${integerPart}`;
+                isIntegerPartDisplayed = true;
+            }
+            if (displayedDigits.length > 1 && displayedDigits[1].digit === decimalPoint) {
+                if (isIntegerPartDisplayed) {
+                    htmlString += decimalPoint;
+                } else {
+                    htmlString += `<span class="pi-integer-part">${decimalPoint}</span>`;
+                }
+            }
+            if (isIntegerPartDisplayed) {
+                htmlString += `</span>`;
             }
         }
-        
-        let totalWidth = 0;
-        const allDigits = piDisplay.querySelectorAll('.digit');
-        const integerPartWidth = piDisplay.querySelector('.pi-integer-part')?.offsetWidth || 0;
-        
-        for (const digitSpan of allDigits) totalWidth += digitSpan.offsetWidth;
 
-        while (totalWidth + integerPartWidth > piDisplay.offsetWidth) {
-            const firstDigit = piDisplay.querySelector('.digit:first-of-type');
-            if (firstDigit) {
-                totalWidth -= firstDigit.offsetWidth;
-                firstDigit.classList.add('remove');
-                firstDigit.addEventListener('animationend', () => firstDigit.remove());
-            } else {
-                break;
+        let startDecimalDisplay = 0;
+        if (startIndex === 0 && digitsHistory.length > 1) {
+            if (displayedDigits[0].digit === integerPart && displayedDigits[1].digit === decimalPoint) {
+                startDecimalDisplay = 2;
+            } else if (displayedDigits[0].digit === decimalPoint) {
+                startDecimalDisplay = 1;
             }
         }
+
+        for (let i = startDecimalDisplay; i < displayedDigits.length; i++) {
+            const digitObj = displayedDigits[i];
+            htmlString += `<span class="digit entered-digit ${digitObj.wrong ? 'wrong' : ''}">${digitObj.digit}</span>`;
+        }
+
+        piDisplay.innerHTML = htmlString;
       }
-
+      
       function initGame() {
         gameMode = document.querySelector('input[name="mode"]:checked').value;
         startIndex = parseInt(startIndexInput.value, 10) || 0;
