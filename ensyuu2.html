@@ -103,37 +103,26 @@
       background: #000;
       border: 1px solid #fff;
       padding: 15px;
-      min-height: 150px;
-      max-height: 300px;
-      overflow-y: auto;
+      min-height: 115px; /* 3行分の高さを確保 */
+      max-height: 115px; /* 3行分の高さを確保 */
+      overflow-y: hidden; /* スクロールバーを非表示 */
       letter-spacing: 2px;
       line-height: 1.6;
       margin: 20px auto;
       text-align: left;
       word-break: break-all;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end; /* 内容を下から表示 */
     }
 
-    .digit, .memorize-digit {
+    .digit {
       font-size: 18px;
       display: inline-block;
       text-align: center;
       width: 1ch;
     }
-    .pi-integer-part {
-      font-size: 20px;
-      font-weight: bold;
-    }
-    .memorize-line {
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      margin-bottom: 5px;
-    }
-    .memorize-group-space {
-      margin-right: 1.5ch;
-      display: inline-block;
-    }
-
+    
     .wrong {
       /* 機能性のために赤色を維持 */
       color: #f00;
@@ -262,7 +251,7 @@
       label { font-size: 14px; }
       input[type="number"] { width: 60px; font-size: 14px; }
       button { padding: 8px 12px; font-size: 14px; }
-      #piDisplay { font-size: 16px; min-height: 100px; padding: 10px; }
+      #piDisplay { font-size: 16px; min-height: 100px; max-height: 100px; padding: 10px; }
       .digit { font-size: 16px; }
       #keypad { gap: 5px; max-width: 250px; }
       #keypad button { padding: 15px; font-size: 20px; }
@@ -368,7 +357,7 @@
       let missingPointer = 0;
       let totalWrongAttempts = 0;
 
-      let gameMode = "standard"; // "standard", "randomFill", "time", "memorize", "practice"
+      let gameMode = "standard"; // "standard", "randomFill", "time", "practice"
       let gameActive = false;
       let startTime;
       let ranking = [];
@@ -380,7 +369,7 @@
       const modeStandardRadio = document.getElementById("modeStandard");
       const modeRandomFillRadio = document.getElementById("modeRandomFill");
       const modeTimeRadio = document.getElementById("modeTime");
-      const modePracticeRadio = document.getElementById("modePractice"); // 練習モード用ラジオボタン
+      const modePracticeRadio = document.getElementById("modePractice");
       const randomModeSettingsDiv = document.getElementById("randomModeSettings");
       const fillPercentageSlider = document.getElementById("fillPercentage");
       const fillPercentageValueSpan = document.getElementById("fillPercentageValue");
@@ -542,9 +531,6 @@
           updateStandardTimeDisplay();
         } else if (gameMode === "randomFill") {
           updateRandomFillDisplay();
-        } else if (gameMode === "memorize") {
-            activateMemorizeMode(false);
-            return;
         }
 
         if (gameMode === "time" && gameActive) {
@@ -606,13 +592,11 @@
         }
         rows.push(rowStr);
 
-        piDisplay.innerHTML = rows.join("<br>");
-        if (gameActive) {
-            const currentDigitElement = piDisplay.querySelector('.current-placeholder, .entered-digit:last-child');
-            if (currentDigitElement) {
-                currentDigitElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
+        if (rows.length > 3) {
+            rows = rows.slice(-3);
         }
+
+        piDisplay.innerHTML = `<div>${rows.join("</div><div>")}</div>`;
       }
 
       function updateRandomFillDisplay() {
@@ -657,69 +641,11 @@
         }
         rows.push(rowStr);
 
-        piDisplay.innerHTML = rows.join("<br>");
-
-        if (gameActive) {
-            const currentDigitElement = piDisplay.querySelector('.current');
-            if (currentDigitElement) {
-                currentDigitElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
+        if (rows.length > 3) {
+            rows = rows.slice(-3);
         }
-      }
 
-      function activateMemorizeMode(setAsCurrentMode = true) {
-        if (setAsCurrentMode) {
-            gameMode = "memorize";
-            gameActive = false;
-        }
-        clearInterval(timerInterval);
-        timerDisplay.textContent = "0.0000";
-        progressBar.style.width = "0%";
-        progressDigitsSpan.textContent = "0";
-        highlightNextKey();
-
-        let digits = pi.slice(0, Math.min(MAXPIDIGITS, 502)); 
-        let displayHtml = '';
-
-        displayHtml += `<div class="memorize-line"><span class="pi-integer-part">3.</span></div>`;
-
-        let decimalDigits = digits.substring(2);
-        let currentLineDigits = [];
-        let totalDecimalDigitsProcessed = 0;
-
-        for (let i = 0; i < decimalDigits.length; i++) {
-            currentLineDigits.push(decimalDigits[i]);
-            totalDecimalDigitsProcessed++;
-
-            if ((totalDecimalDigitsProcessed % GROUP_SIZE === 0) &&
-                (totalDecimalDigitsProcessed % MEMORIZEDIGITSPER_LINE !== 0) &&
-                (totalDecimalDigitsProcessed < decimalDigits.length)) {
-                currentLineDigits.push('<span class="memorize-group-space"></span>');
-            }
-
-            if (totalDecimalDigitsProcessed % MEMORIZEDIGITSPER_LINE === 0) {
-                if (currentLineDigits[currentLineDigits.length - 1] === '<span class="memorize-group-space"></span>') {
-                    currentLineDigits.pop();
-                }
-                displayHtml += `<div class="memorize-line">${currentLineDigits.join('')}</div>`;
-                currentLineDigits = [];
-
-                if (totalDecimalDigitsProcessed % MEMORIZEBLOCKSIZE === 0 && totalDecimalDigitsProcessed < decimalDigits.length) {
-                    displayHtml += `<br>`;
-                }
-            }
-        }
-        if (currentLineDigits.length > 0) {
-            if (currentLineDigits[currentLineDigits.length - 1] === '<span class="memorize-group-space"></span>') {
-                currentLineDigits.pop();
-            }
-            displayHtml += `<div class="memorize-line">${currentLineDigits.join('')}</div>`;
-        }
-        
-        displayHtml = displayHtml.replace(/(\d)/g, '<span class="memorize-digit">$1</span>');
-
-        piDisplay.innerHTML = displayHtml;
-        messageDiv.textContent = `暗記モード：πの先頭${Math.min(MAXPIDIGITS, 502)}桁を表示しています。`;
+        piDisplay.innerHTML = `<div>${rows.join("</div><div>")}</div>`;
       }
 
       function initGame() {
@@ -987,9 +913,80 @@
         updateModeSettingsVisibility();
       });
 
+      // MODIFIED: 暗記ボタンの機能を別ウィンドウ表示に変更
       memorizeBtn.addEventListener("click", function() {
-        if (gameMode !== "memorize") {
-            activateMemorizeMode();
+        const memorizePi = pi.slice(0, 502);
+        
+        // 円周率を整形するHTMLを生成
+        let displayHtml = '';
+        displayHtml += `<div class="memorize-line"><span class="pi-integer-part">3.</span></div>`;
+
+        let decimalDigits = memorizePi.substring(2);
+        let currentLineDigits = [];
+        let totalDecimalDigitsProcessed = 0;
+
+        for (let i = 0; i < decimalDigits.length; i++) {
+            currentLineDigits.push(decimalDigits[i]);
+            totalDecimalDigitsProcessed++;
+
+            if ((totalDecimalDigitsProcessed % GROUP_SIZE === 0) &&
+                (totalDecimalDigitsProcessed % MEMORIZEDIGITSPER_LINE !== 0) &&
+                (totalDecimalDigitsProcessed < decimalDigits.length)) {
+                currentLineDigits.push('<span class="memorize-group-space"></span>');
+            }
+
+            if (totalDecimalDigitsProcessed % MEMORIZEDIGITSPER_LINE === 0) {
+                if (currentLineDigits[currentLineDigits.length - 1] === '<span class="memorize-group-space"></span>') {
+                    currentLineDigits.pop();
+                }
+                displayHtml += `<div class="memorize-line">${currentLineDigits.join('')}</div>`;
+                currentLineDigits = [];
+
+                if (totalDecimalDigitsProcessed % MEMORIZEBLOCKSIZE === 0 && totalDecimalDigitsProcessed < decimalDigits.length) {
+                    displayHtml += `<br>`;
+                }
+            }
+        }
+        if (currentLineDigits.length > 0) {
+            if (currentLineDigits[currentLineDigits.length - 1] === '<span class="memorize-group-space"></span>') {
+                currentLineDigits.pop();
+            }
+            displayHtml += `<div class="memorize-line">${currentLineDigits.join('')}</div>`;
+        }
+        displayHtml = displayHtml.replace(/(\d)/g, '<span class="memorize-digit">$1</span>');
+
+        // 新しいウィンドウを開く
+        const newWindow = window.open('', 'piMemorizeWindow', 'width=600,height=700,scrollbars=yes,resizable=yes');
+        
+        if (newWindow) {
+            newWindow.document.write(`
+              <!DOCTYPE html>
+              <html lang="ja">
+              <head>
+                <meta charset="UTF-8">
+                <title>円周率 502桁 - 暗記用</title>
+                <style>
+                  body { background-color: #000; color: #fff; font-family: monospace; font-size: 18px; padding: 20px; text-align: center; }
+                  h1 { font-size: 24px; margin-bottom: 20px; }
+                  .memorize-container { line-height: 1.8; text-align: left; display: inline-block; }
+                  .pi-integer-part { font-size: 24px; font-weight: bold; }
+                  .memorize-line { display: flex; justify-content: flex-start; flex-wrap: wrap; margin-bottom: 5px; }
+                  .memorize-digit { display: inline-block; width: 1ch; text-align: center; }
+                  .memorize-group-space { margin-right: 1.5ch; display: inline-block; }
+                </style>
+              </head>
+              <body>
+                <h1>円周率 502桁 - 暗記用</h1>
+                <div class="memorize-container">
+                  ${displayHtml}
+                </div>
+              </body>
+              </html>
+            `);
+            newWindow.document.close();
+            newWindow.focus();
+        } else {
+            alert('ポップアップがブロックされました。ブラウザの設定で許可してください。');
         }
       });
 
@@ -1016,29 +1013,19 @@
       });
 
       document.addEventListener('keydown', function(event) {
-        if (event.target.tagName.toLowerCase() === 'input') return; // inputにフォーカスがあるときは無視
+        if (event.target.tagName.toLowerCase() === 'input') return;
         
         const key = event.key;
         if (key >= '0' && key <= '9' || key === '.') {
           handleKeyInput(key);
         } else if (key === 'Backspace' || key === 'Delete') {
-          event.preventDefault(); // 戻る動作をキャンセル
+          event.preventDefault();
           handleKeyInput('C');
         }
       });
 
-      window.addEventListener('resize', () => {
-          if (gameMode === "memorize") { 
-              activateMemorizeMode(false);
-          }
-      });
-
       loadSettings();
-      if (document.querySelector('input[name="mode"]:checked').value === "memorize") {
-          activateMemorizeMode();
-      } else {
-          updateModeSettingsVisibility();
-      }
+      updateModeSettingsVisibility();
     });
   </script>
 </body>
