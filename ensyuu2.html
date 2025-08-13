@@ -329,18 +329,64 @@
 
   <script>
     document.addEventListener("DOMContentLoaded", function() {
-      const pi = "3.14159265358979323846264338327950288419716939937510" +
-                 "58209749445923078164062862089986280348253421170679" +
-                 "82148086513282306647093844609550582231725359408128" +
-                 "48111745028410270193852110555964462294895493038196" +
-                 "44288109756659334461284756482337867831652712019091" +
-                 "45648566923460348610454326648213393607260249141273" +
-                 "72458700660631558817488152092096282925409171536436" +
-                 "78925903600113305305488204665213841469519415116094" +
-                 "33057270365759591953092186117381932611793105118548" +
-                 "67328620941921285673831410175517260550887893049101"; // 502桁目まで延長
 
-      const MAXPIDIGITS = pi.length;
+      // ガウス＝ルジャンドル法で円周率を計算する関数
+      // ユーザーが入力した桁数まで計算
+      function calculatePi(digits) {
+        // Big.jsライブラリを使用して高精度計算を行う
+        // 外部スクリプトの動的読み込み
+        return new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdn.jsdelivr.net/npm/big.js@6.2.1/big.min.js';
+          script.onload = () => {
+            try {
+              // Big.jsの設定
+              Big.DP = digits + 2; // 指定桁数より少し多めに計算して丸め誤差をなくす
+
+              let a = new Big(1);
+              let b = new Big(1).div(new Big(2).sqrt());
+              let t = new Big(1).div(4);
+              let p = new Big(1);
+              let pi = new Big(0);
+
+              let a_next, b_next;
+              
+              for (let i = 0; i < 10; i++) { // 10回の反復で十分な精度
+                a_next = a.add(b).div(2);
+                b_next = a.mul(b).sqrt();
+                t = t.minus(p.mul(a.minus(a_next).pow(2)));
+                a = a_next;
+                b = b_next;
+                p = p.mul(2);
+                pi = a.add(b).pow(2).div(t.mul(4));
+              }
+
+              resolve(pi.toFixed(digits));
+            } catch (e) {
+              reject(e);
+            }
+          };
+          script.onerror = () => {
+            reject(new Error('Big.jsライブラリの読み込みに失敗しました。'));
+          };
+          document.head.appendChild(script);
+        });
+      }
+
+      let pi = ""; // 計算された円周率を格納する変数
+      const desiredDigits = 502; // 計算したい桁数
+
+      // ページ読み込み時に円周率を計算
+      calculatePi(desiredDigits).then(result => {
+        pi = result;
+        const MAXPIDIGITS = pi.length;
+        maxPiLengthSpan.textContent = MAXPIDIGITS;
+        loadSettings();
+      }).catch(error => {
+        console.error("円周率の計算に失敗しました:", error);
+        alert("円周率の計算に失敗しました。ページを再読み込みしてください。");
+      });
+
       const GAMEDIGITSPER_LINE = 20;
       const MEMORIZEDIGITSPER_LINE = 20;
       const MEMORIZEBLOCKSIZE = 100;
@@ -393,7 +439,6 @@
       const correctSound = new Audio('https://cdn.jsdelivr.net/gh/Tonejs/Tone.js/examples/audio/context/success.mp3'); 
       const wrongSound = new Audio('https://cdn.jsdelivr.net/gh/Tonejs/Tone.js/examples/audio/context/fail.mp3');   
 
-      maxPiLengthSpan.textContent = MAXPIDIGITS;
 
       function saveSettings() {
         localStorage.setItem('piGameStartIndex', startIndexInput.value);
@@ -649,6 +694,11 @@
       }
 
       function initGame() {
+        if (!pi) {
+            alert("円周率の計算中です。しばらくお待ちください。");
+            return;
+        }
+
         clearInterval(timerInterval);
         gameMode = document.querySelector('input[name="mode"]:checked').value;
 
@@ -671,14 +721,14 @@
             targetDigitsSpan.textContent = TIMEMODETARGET_DIGITS - 2;
         } else {
             startIndex = parseInt(startIndexInput.value, 10);
-            if (isNaN(startIndex) || startIndex < 0 || startIndex >= MAXPIDIGITS) {
+            if (isNaN(startIndex) || startIndex < 0 || startIndex >= pi.length) {
                 startIndex = 0;
                 startIndexInput.value = 0;
             }
             
             targetCount = 502;
-            if (startIndex + targetCount > MAXPIDIGITS) {
-                targetCount = MAXPIDIGITS - startIndex;
+            if (startIndex + targetCount > pi.length) {
+                targetCount = pi.length - startIndex;
             }
 
             currentIndex = startIndex;
@@ -915,6 +965,11 @@
 
       // MODIFIED: 暗記ボタンの機能を別ウィンドウ表示に変更
       memorizeBtn.addEventListener("click", function() {
+        if (!pi) {
+            alert("円周率の計算中です。しばらくお待ちください。");
+            return;
+        }
+
         const memorizePi = pi.slice(0, 502);
         
         // 円周率を整形するHTMLを生成
@@ -1002,11 +1057,16 @@
       });
 
       startIndexInput.addEventListener('change', () => {
+        if (!pi) {
+            alert("円周率の計算中です。しばらくお待ちください。");
+            startIndexInput.value = 0;
+            return;
+        }
         let currentVal = parseInt(startIndexInput.value, 10);
         if (isNaN(currentVal) || currentVal < 0) {
             currentVal = 0;
-        } else if (currentVal > MAXPIDIGITS -1) {
-            currentVal = MAXPIDIGITS -1;
+        } else if (currentVal > pi.length -1) {
+            currentVal = pi.length -1;
         }
         startIndexInput.value = currentVal;
         saveSettings();
@@ -1023,9 +1083,6 @@
           handleKeyInput('C');
         }
       });
-
-      loadSettings();
-      updateModeSettingsVisibility();
     });
   </script>
 </body>
