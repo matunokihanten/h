@@ -339,6 +339,15 @@
         min-height: 20px;
     }
     
+    /* Current Digit Display */
+    #currentDigitDisplay {
+        text-align: center;
+        margin-top: 10px;
+        font-size: 18px;
+        color: #A0A0A0;
+        min-height: 20px;
+    }
+
     /* Responsive Design */
     @media (max-width: 600px) {
       body { padding: 10px; }
@@ -352,6 +361,7 @@
       #keypad { gap: 10px; max-width: 280px; }
       #keypad button { padding: 20px; font-size: 24px; }
       #timeModeInfo p { font-size: 16px; }
+      #currentDigitDisplay { font-size: 16px; }
     }
   </style>
 </head>
@@ -398,6 +408,7 @@
     </div>
 
     <div id="piDisplay"></div>
+    <div id="currentDigitDisplay"></div>
     <div id="message"></div>
 
     <div id="keypad">
@@ -514,6 +525,7 @@
       const memorizeBtn = document.getElementById("memorizeBtn");
       const piDisplay = document.getElementById("piDisplay");
       const messageDiv = document.getElementById("message");
+      const currentDigitDisplay = document.getElementById("currentDigitDisplay");
       const rankingContainer = document.getElementById("rankingContainer");
       const rankingList = document.getElementById("rankingList");
       const clearRankingBtn = document.getElementById("clearRankingBtn");
@@ -626,6 +638,7 @@
           saveSettings();
           piDisplay.innerHTML = "";
           messageDiv.textContent = "";
+          currentDigitDisplay.textContent = "";
           gameActive = false;
           highlightNextKey();
       }
@@ -654,6 +667,7 @@
 
       function updateDisplay() {
         updateStandardTimeDisplay();
+        updateCurrentDigitInfo();
 
         if (gameMode === "time" && gameActive) {
             const completedDigits = currentIndex - 2;
@@ -661,6 +675,16 @@
             const progressPercentage = (Math.max(0, completedDigits) / (TIMEMODETARGET_DIGITS - 2)) * 100;
             progressBar.style.width = `${progressPercentage}%`;
         }
+      }
+
+      function updateCurrentDigitInfo() {
+          if (gameActive) {
+              const currentPosition = currentIndex + 1;
+              const totalDigits = startIndex + targetCount;
+              currentDigitDisplay.textContent = `${currentPosition}桁目`;
+          } else {
+              currentDigitDisplay.textContent = "";
+          }
       }
 
       function updateStandardTimeDisplay() {
@@ -744,7 +768,7 @@
             startTime = performance.now();
             startTimer();
             updateDisplay();
-            messageDiv.textContent = `タイムモード開始！${TIMEMODETARGET_DIGITS}桁を入力。`;
+            messageDiv.textContent = `タイムモード開始！${TIMEMODETARGET_DIGITS - 2}桁を入力。`;
             progressDigitsSpan.textContent = currentIndex - 2;
             targetDigitsSpan.textContent = TIMEMODETARGET_DIGITS - 2;
         } else {
@@ -818,6 +842,7 @@
                 if (currentIndex === startIndex + targetCount) {
                     gameActive = false;
                     highlightNextKey();
+                    currentDigitDisplay.textContent = "";
                     messageDiv.textContent = "完了！おめでとうございます！";
                 }
             } else {
@@ -846,6 +871,7 @@
           if (currentIndex === startIndex + targetCount) {
               gameActive = false;
               clearInterval(timerInterval);
+              currentDigitDisplay.textContent = "";
               let finalMessage = "";
               if (gameMode === "time") {
                   const elapsedTime = performance.now() - startTime;
@@ -870,6 +896,7 @@
           if (currentIndex === startIndex + targetCount) {
               gameActive = false;
               clearInterval(timerInterval);
+              currentDigitDisplay.textContent = "";
               let finalMessage = "";
               if (gameMode === "time") {
                   const elapsedTime = performance.now() - startTime;
@@ -896,6 +923,7 @@
         clearInterval(timerInterval);
         piDisplay.innerHTML = "";
         messageDiv.textContent = "ゲーム終了。";
+        currentDigitDisplay.textContent = "";
         highlightNextKey();
         modeStandardRadio.checked = true;
         updateModeSettingsVisibility();
