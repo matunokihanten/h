@@ -124,44 +124,6 @@
       transform: translate(-50%, -50%);
     }
 
-    #randomModeSettings {
-      margin-top: 10px;
-      text-align: center;
-      display: none;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 15px;
-    }
-    #randomModeSettings input[type="range"] {
-      width: 180px;
-      height: 4px;
-      background: #444;
-      border-radius: 2px;
-      outline: none;
-      -webkit-appearance: none;
-      appearance: none;
-    }
-    #randomModeSettings input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 18px;
-      height: 18px;
-      background: #007BFF;
-      cursor: pointer;
-      border-radius: 50%;
-      border: 2px solid #fff;
-      transition: background 0.2s;
-    }
-    #randomModeSettings input[type="range"]::-moz-range-thumb {
-      width: 18px;
-      height: 18px;
-      background: #007BFF;
-      cursor: pointer;
-      border-radius: 50%;
-      border: 2px solid #fff;
-      transition: background 0.2s;
-    }
-
     /* Game Display */
     #piDisplay {
       background: #2D2D2D;
@@ -411,10 +373,6 @@
         <label for="modeStandard">標準</label>
       </div>
       <div class="mode-option">
-        <input type="radio" id="modeRandomFill" name="mode" value="randomFill">
-        <label for="modeRandomFill">穴埋め</label>
-      </div>
-      <div class="mode-option">
         <input type="radio" id="modeTime" name="mode" value="time">
         <label for="modeTime">タイム</label>
       </div>
@@ -422,12 +380,6 @@
         <input type="radio" id="modePractice" name="mode" value="practice">
         <label for="modePractice">練習</label>
       </div>
-    </div>
-
-    <div id="randomModeSettings">
-        <label for="fillPercentage">穴の割合:</label>
-        <input type="range" id="fillPercentage" min="5" max="50" value="20" step="1">
-        <span id="fillPercentageValue">20%</span>
     </div>
 
     <div id="controlButtons">
@@ -542,12 +494,9 @@
       let startIndex = 0;
       let currentIndex = 0;
       let digitsHistory = [];
-      let puzzle = [];
-      let missingIndices = [];
-      let missingPointer = 0;
       let totalWrongAttempts = 0;
 
-      let gameMode = "standard"; // "standard", "randomFill", "time", "practice"
+      let gameMode = "standard"; // "standard", "time", "practice"
       let gameActive = false;
       let startTime;
       let ranking = [];
@@ -557,12 +506,8 @@
       const startIndexInput = document.getElementById("startIndex");
       const maxPiLengthSpan = document.getElementById("maxPiLength");
       const modeStandardRadio = document.getElementById("modeStandard");
-      const modeRandomFillRadio = document.getElementById("modeRandomFill");
       const modeTimeRadio = document.getElementById("modeTime");
       const modePracticeRadio = document.getElementById("modePractice");
-      const randomModeSettingsDiv = document.getElementById("randomModeSettings");
-      const fillPercentageSlider = document.getElementById("fillPercentage");
-      const fillPercentageValueSpan = document.getElementById("fillPercentageValue");
       const startBtn = document.getElementById("startBtn");
       const exitBtn = document.getElementById("exitBtn");
       const resetBtn = document.getElementById("resetBtn");
@@ -588,7 +533,6 @@
       function saveSettings() {
         localStorage.setItem('piGameStartIndex', startIndexInput.value);
         localStorage.setItem('piGameMode', document.querySelector('input[name="mode"]:checked').value);
-        localStorage.setItem('piGameFillPercentage', fillPercentageSlider.value);
       }
 
       function loadSettings() {
@@ -609,12 +553,6 @@
           }
         }
         
-        const savedFillPercentage = localStorage.getItem('piGameFillPercentage');
-        if (savedFillPercentage !== null) {
-            fillPercentageSlider.value = savedFillPercentage;
-            fillPercentageValueSpan.textContent = savedFillPercentage + "%";
-        }
-
         loadRanking();
         updateModeSettingsVisibility();
       }
@@ -670,8 +608,6 @@
           const currentMode = document.querySelector('input[name="mode"]:checked').value;
           gameMode = currentMode;
 
-          randomModeSettingsDiv.style.display = (currentMode === "randomFill") ? 'flex' : 'none';
-          
           startIndexInput.disabled = (currentMode === "time");
           maxPiLengthSpan.parentElement.style.visibility = (currentMode === "time") ? 'hidden' : 'visible';
 
@@ -717,11 +653,7 @@
       }
 
       function updateDisplay() {
-        if (gameMode === "standard" || gameMode === "time" || gameMode === "practice") {
-          updateStandardTimeDisplay();
-        } else if (gameMode === "randomFill") {
-          updateRandomFillDisplay();
-        }
+        updateStandardTimeDisplay();
 
         if (gameMode === "time" && gameActive) {
             const completedDigits = currentIndex - 2;
@@ -789,55 +721,6 @@
         piDisplay.innerHTML = `<div>${rows.join("</div><div>")}</div>`;
       }
 
-      function updateRandomFillDisplay() {
-        let rows = [];
-        let rowStr = '';
-
-        if (startIndex > 0 && pi.charAt(startIndex -1) === '.') {
-        } else {
-            rowStr += `<span class="digit">&nbsp;</span>`.repeat(INDENT_DIGITS); 
-        }
-        
-        for (let i = 0; i < puzzle.length; i++) {
-            const currentGlobalIndex = startIndex + i; 
-            const isCurrentMissing = gameActive && missingPointer < missingIndices.length && (currentGlobalIndex === missingIndices[missingPointer]);
-
-            let className = "digit";
-            let digitContent = "";
-
-            if (!puzzle[i].prefilled) {
-                if (puzzle[i].userInput === null) {
-                    digitContent = "_";
-                    if (isCurrentMissing) {
-                      className += " current";
-                    }
-                } else {
-                    digitContent = puzzle[i].userInput;
-                    if (puzzle[i].wrong) {
-                      className += " wrong";
-                    }
-                    className += " entered-digit";
-                }
-            } else {
-                digitContent = puzzle[i].correct;
-            }
-            rowStr += `<span class="${className}">${digitContent}</span>`;
-
-            let currentLineLengthFromStart = i;
-            if ((currentLineLengthFromStart + 1) % GAMEDIGITSPER_LINE === 0 && i < puzzle.length - 1) {
-                rows.push(rowStr);
-                rowStr = `<span class="digit">&nbsp;</span>`.repeat(INDENT_DIGITS);
-            }
-        }
-        rows.push(rowStr);
-
-        if (rows.length > 3) {
-            rows = rows.slice(-3);
-        }
-
-        piDisplay.innerHTML = `<div>${rows.join("</div><div>")}</div>`;
-      }
-
       function initGame() {
         if (!pi) {
             alert("円周率の計算中です。しばらくお待ちください。");
@@ -884,10 +767,7 @@
             piDisplay.innerHTML = "";
             gameActive = true;
 
-            if (gameMode === "randomFill") {
-                initRandomFillMode();
-                messageDiv.textContent = "穴埋めモード開始！";
-            } else if (gameMode === "practice") {
+            if (gameMode === "practice") {
                 updateDisplay();
                 highlightNextKey();
                 messageDiv.textContent = "練習モード開始！";
@@ -910,40 +790,6 @@
         }, 10);
       }
 
-      function initRandomFillMode() {
-        gameActive = true;
-        puzzle = [];
-        for (let i = 0; i < targetCount; i++) {
-          puzzle.push({ correct: pi.charAt(startIndex + i), prefilled: true, userInput: null, wrong: false });
-        }
-
-        const percentage = parseInt(fillPercentageSlider.value, 10) / 100;
-        const numToHide = Math.max(1, Math.floor(targetCount * percentage));
-
-        let availableIndices = [];
-        for (let i = 0; i < targetCount; i++) {
-            if (puzzle[i].correct !== '.') {
-                availableIndices.push(i);
-            }
-        }
-
-        for (let i = availableIndices.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [availableIndices[i], availableIndices[j]] = [availableIndices[j], availableIndices[i]];
-        }
-
-        missingIndices = [];
-        for (let k = 0; k < numToHide && k < availableIndices.length; k++) {
-            const indexToHideLocal = availableIndices[k];
-            puzzle[indexToHideLocal].prefilled = false;
-            missingIndices.push(startIndex + indexToHideLocal);
-        }
-
-        missingIndices.sort((a, b) => a - b);
-        missingPointer = 0;
-        updateDisplay();
-      }
-
       function handleKeyInput(value) {
         if (!gameActive) { 
             messageDiv.textContent = "「スタート」を押してください。";
@@ -951,21 +797,11 @@
         }
 
         if (value === "C") {
-          if (gameMode === "randomFill") {
-            if (missingPointer > 0) {
-              missingPointer--;
-              const indexToClearLocal = missingIndices[missingPointer] - startIndex;
-              puzzle[indexToClearLocal].userInput = null;
-              puzzle[indexToClearLocal].wrong = false;
-              updateDisplay();
-            }
-          } else {
-            if (currentIndex > startIndex && !(gameMode === 'time' && currentIndex <= 2)) {
-              currentIndex--;
-              digitsHistory.pop();
-              updateDisplay();
-              if (gameMode === "practice") highlightNextKey();
-            }
+          if (currentIndex > startIndex && !(gameMode === 'time' && currentIndex <= 2)) {
+            currentIndex--;
+            digitsHistory.pop();
+            updateDisplay();
+            if (gameMode === "practice") highlightNextKey();
           }
           return;
         }
@@ -991,26 +827,12 @@
             return;
         }
 
-        if (gameMode === "randomFill") {
-          if (missingPointer < missingIndices.length) {
-            const curGlobalIndex = missingIndices[missingPointer];
-            const curLocalIndex = curGlobalIndex - startIndex;
-            const expected = puzzle[curLocalIndex].correct;
-            
-            if (value === expected) {
-              handleRandomFillCorrect(value, curLocalIndex);
-            } else {
-              handleRandomFillWrong(value, curLocalIndex);
-            }
-          }
-        } else {
-          if (currentIndex < startIndex + targetCount) {
-            const expected = pi.charAt(currentIndex);
-            if (value === expected) {
-              handleStandardTimeCorrect(value);
-            } else {
-              handleStandardTimeWrong(value);
-            }
+        if (currentIndex < startIndex + targetCount) {
+          const expected = pi.charAt(currentIndex);
+          if (value === expected) {
+            handleStandardTimeCorrect(value);
+          } else {
+            handleStandardTimeWrong(value);
           }
         }
       }
@@ -1055,35 +877,6 @@
                   addRankingEntry(elapsedTime, totalWrongAttempts);
               }
               messageDiv.textContent += finalMessage;
-          }
-      }
-
-      function handleRandomFillCorrect(value, index) {
-          correctSound.currentTime = 0; correctSound.play();
-          puzzle[index].userInput = value;
-          puzzle[index].wrong = false;
-          missingPointer++;
-          updateDisplay();
-
-          if (missingPointer === missingIndices.length) {
-              gameActive = false;
-              messageDiv.textContent = `完了！おめでとうございます！ (${totalWrongAttempts}ミス)`;
-          }
-      }
-
-      function handleRandomFillWrong(value, index) {
-          wrongSound.currentTime = 0; wrongSound.play();
-          const expected = puzzle[index].correct;
-          puzzle[index].userInput = value;
-          puzzle[index].wrong = true;
-          totalWrongAttempts++;
-          missingPointer++;
-          updateDisplay();
-          messageDiv.textContent = "間違い！ 正解は " + expected;
-
-          if (missingPointer === missingIndices.length) {
-              gameActive = false;
-              messageDiv.textContent += ` | 全て補完しました。`;
           }
       }
 
@@ -1201,11 +994,6 @@
 
       document.querySelectorAll('input[name="mode"]').forEach(radio => {
           radio.addEventListener('change', updateModeSettingsVisibility);
-      });
-
-      fillPercentageSlider.addEventListener('input', () => {
-          fillPercentageValueSpan.textContent = fillPercentageSlider.value + "%";
-          saveSettings();
       });
 
       startIndexInput.addEventListener('change', () => {
