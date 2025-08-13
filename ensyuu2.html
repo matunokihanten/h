@@ -292,6 +292,7 @@
     <div id="controlButtons">
       <button id="startBtn">スタート</button>
       <button id="exitBtn">終了</button>
+      <button id="resetBtn">リセット</button>
       <button id="memorizeBtn">暗記</button>
     </div>
 
@@ -374,7 +375,7 @@
       }
 
       let pi = ""; // 計算された円周率を格納する変数
-      const desiredDigits = 502; // 計算したい桁数
+      const desiredDigits = 1002; // 計算したい桁数
 
       // ページ読み込み時に円周率を計算
       calculatePi(desiredDigits).then(result => {
@@ -394,7 +395,7 @@
       const INDENT_DIGITS = 2;
       const TIMEMODETARGET_DIGITS = 102;
 
-      let targetCount = 502;
+      let targetCount = 1002;
       let startIndex = 0;
       let currentIndex = 0;
       let digitsHistory = [];
@@ -421,6 +422,7 @@
       const fillPercentageValueSpan = document.getElementById("fillPercentageValue");
       const startBtn = document.getElementById("startBtn");
       const exitBtn = document.getElementById("exitBtn");
+      const resetBtn = document.getElementById("resetBtn");
       const memorizeBtn = document.getElementById("memorizeBtn");
       const piDisplay = document.getElementById("piDisplay");
       const messageDiv = document.getElementById("message");
@@ -726,7 +728,7 @@
                 startIndexInput.value = 0;
             }
             
-            targetCount = 502;
+            targetCount = 1002;
             if (startIndex + targetCount > pi.length) {
                 targetCount = pi.length - startIndex;
             }
@@ -962,6 +964,13 @@
         modeStandardRadio.checked = true;
         updateModeSettingsVisibility();
       });
+      
+      resetBtn.addEventListener("click", function() {
+        startIndexInput.value = 0;
+        saveSettings();
+        messageDiv.textContent = "開始桁数を0にリセットしました。";
+        exitBtn.click();
+      });
 
       // MODIFIED: 暗記ボタンの機能を別ウィンドウ表示に変更
       memorizeBtn.addEventListener("click", function() {
@@ -970,7 +979,7 @@
             return;
         }
 
-        const memorizePi = pi.slice(0, 502);
+        const memorizePi = pi.slice(0, 1002);
         
         // 円周率を整形するHTMLを生成
         let displayHtml = '';
@@ -1019,7 +1028,7 @@
               <html lang="ja">
               <head>
                 <meta charset="UTF-8">
-                <title>円周率 502桁 - 暗記用</title>
+                <title>円周率 1002桁 - 暗記用</title>
                 <style>
                   body { background-color: #000; color: #fff; font-family: monospace; font-size: 18px; padding: 20px; text-align: center; }
                   h1 { font-size: 24px; margin-bottom: 20px; }
@@ -1031,7 +1040,7 @@
                 </style>
               </head>
               <body>
-                <h1>円周率 502桁 - 暗記用</h1>
+                <h1>円周率 1002桁 - 暗記用</h1>
                 <div class="memorize-container">
                   ${displayHtml}
                 </div>
