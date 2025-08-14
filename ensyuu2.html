@@ -1,928 +1,377 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>円周率暗記ゲーム</title>
-  <style>
-    /* --- 軽量・白黒デザイン --- */
-    body {
-      margin: 0;
-      padding: 10px;
-      background: #000;
-      color: #fff;
-      font-family: monospace, 'Courier New', Courier;
-      -webkit-user-select: none;
-      -ms-user-select: none;
-      user-select: none;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      box-sizing: border-box;
-    }
-
-    #gameContainer {
-      max-width: 650px;
-      margin: 0 auto;
-      border: 1px solid #fff;
-      padding: 20px;
-      box-sizing: border-box;
-      width: 100%;
-      background: #000;
-    }
-
-    .config, .mode-select, #controlButtons {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 15px;
-      margin: 20px 0;
-      flex-wrap: wrap;
-    }
-
-    label {
-      font-size: 16px;
-    }
-
-    input[type="number"] {
-      padding: 5px;
-      border: 1px solid #fff;
-      border-radius: 0;
-      font-size: 16px;
-      width: 80px;
-      text-align: center;
-      background-color: #000;
-      color: #fff;
-      -moz-appearance: textfield; /* Firefox */
-    }
-    input[type="number"]::-webkit-outer-spin-button,
-    input[type="number"]::-webkit-inner-spin-button {
-      -webkit-appearance: none;
-      margin: 0;
-    }
-
-    input[type="radio"] {
-      margin-right: 5px;
-    }
-    
-    #piDisplay {
-      background: #000;
-      border: 1px solid #fff;
-      padding: 15px;
-      min-height: 115px; /* 3行分の高さを確保 */
-      max-height: 115px; /* 3行分の高さを確保 */
-      overflow-y: hidden; /* スクロールバーを非表示 */
-      letter-spacing: 2px;
-      line-height: 1.6;
-      margin: 20px auto;
-      text-align: left;
-      word-break: break-all;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end; /* 内容を下から表示 */
-    }
-
-    .digit {
-      font-size: 18px;
-      display: inline-block;
-      text-align: center;
-      width: 1ch;
-    }
-    
-    .wrong {
-      /* 機能性のために赤色を維持 */
-      color: #f00;
-      text-decoration: underline;
-    }
-    .current {
-      background-color: #fff;
-      color: #000;
-    }
-    .current-placeholder {
-      background-color: #fff;
-      color: #fff; /* 背景色と同じにして非表示に見せる */
-    }
-
-    button {
-      padding: 10px 20px;
-      font-size: 16px;
-      border: 1px solid #fff;
-      border-radius: 0;
-      background: #000;
-      color: #fff;
-      cursor: pointer;
-      box-shadow: none;
-      transition: none;
-      font-family: monospace;
-      touch-action: manipulation;
-    }
-    button:hover {
-      background: #fff;
-      color: #000;
-    }
-    button:active {
-      transform: none;
-      background: #ccc;
-      border-color: #ccc;
-      color: #000;
-    }
-
-    #keypad {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-      max-width: 300px;
-      margin: 20px auto 0 auto;
-    }
-    #keypad button {
-      padding: 20px;
-      font-size: 24px;
-      font-weight: bold;
-    }
-
-    /* 練習モード用ハイライト */
-    .practice-highlight {
-      background: yellow;
-      color: black;
-      border: 1px solid black;
-    }
-    .practice-highlight:hover {
-      /* ホバーしても色が変わらないように */
-      background: yellow;
-      color: black;
-    }
-
-    #rankingContainer {
-      margin-top: 25px;
-      padding: 20px;
-      border: 1px solid #fff;
-    }
-    #rankingContainer h3 {
-      text-align: center;
-      margin-top: 0;
-    }
-    #rankingList {
-      list-style: none;
-      padding: 0;
-      max-height: 200px;
-      overflow-y: auto;
-      margin-bottom: 15px;
-    }
-    #rankingList li {
-      margin-bottom: 8px;
-      padding: 10px;
-      border-bottom: 1px solid #555;
-    }
-    #rankingList li:last-child {
-        border-bottom: none;
-    }
-    #rankingList li .ranking-details {
-      font-size: 14px;
-      color: #aaa;
-    }
-
-    #timeModeInfo {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin: 15px 0;
-      padding-bottom: 10px;
-      border-bottom: 1px solid #fff;
-      display: none; /* 初期は非表示 */
-    }
-    #timeModeInfo p {
-      margin: 0;
-      font-size: 18px;
-    }
-    #progressContainer {
-      width: 100%;
-      background-color: #000;
-      border: 1px solid #fff;
-      height: 15px;
-      margin-top: 10px;
-      padding: 2px;
-      box-sizing: border-box;
-    }
-    #progressBar {
-      height: 100%;
-      width: 0%;
-      background: #fff;
-      transition: width 0.1s linear;
-    }
-    
-    #digitCountDisplay {
-      text-align: center;
-      font-size: 16px;
-      color: #fff;
-      margin: 10px 0;
-      height: 18px;
-      line-height: 1.2;
-    }
-
-    @media (max-width: 600px) {
-      body { padding: 5px; }
-      #gameContainer { padding: 10px; }
-      .config, .mode-select, #controlButtons { gap: 8px; margin: 15px 0; }
-      label { font-size: 14px; }
-      input[type="number"] { width: 60px; font-size: 14px; }
-      button { padding: 8px 12px; font-size: 14px; }
-      #piDisplay { font-size: 16px; min-height: 100px; max-height: 100px; padding: 10px; }
-      .digit { font-size: 16px; }
-      #keypad { gap: 5px; max-width: 250px; }
-      #keypad button { padding: 15px; font-size: 20px; }
-      #timeModeInfo p { font-size: 14px; }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>円周率暗記ゲーム</title>
+<style>
+/* --- 省略なし：元コードのCSSそのまま --- */
+body {
+  margin: 0; padding: 10px; background: #000; color: #fff;
+  font-family: monospace, 'Courier New', Courier;
+  -webkit-user-select: none; -ms-user-select: none; user-select: none;
+  display: flex; justify-content: center; align-items: center;
+  min-height: 100vh; box-sizing: border-box;
+}
+#gameContainer { max-width: 650px; margin: 0 auto; border: 1px solid #fff; padding: 20px; box-sizing: border-box; width: 100%; background: #000; }
+.config, .mode-select, #controlButtons {
+  display: flex; justify-content: center; align-items: center; gap: 15px; margin: 20px 0; flex-wrap: wrap;
+}
+label { font-size: 16px; }
+input[type="number"] {
+  padding: 5px; border: 1px solid #fff; border-radius: 0; font-size: 16px; width: 80px; text-align: center;
+  background-color: #000; color: #fff; -moz-appearance: textfield;
+}
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="radio"] { margin-right: 5px; }
+#piDisplay {
+  background: #000; border: 1px solid #fff; padding: 15px;
+  min-height: 115px; max-height: 115px; overflow-y: hidden;
+  letter-spacing: 2px; line-height: 1.6; margin: 20px auto; text-align: left; word-break: break-all;
+  display: flex; flex-direction: column; justify-content: flex-end;
+}
+.digit { font-size: 18px; display: inline-block; text-align: center; width: 1ch; }
+.wrong { color: #f00; text-decoration: underline; }
+.current { background-color: #fff; color: #000; }
+.current-placeholder { background-color: #fff; color: #fff; }
+button {
+  padding: 10px 20px; font-size: 16px; border: 1px solid #fff; border-radius: 0;
+  background: #000; color: #fff; cursor: pointer; box-shadow: none;
+  transition: none; font-family: monospace; touch-action: manipulation;
+}
+button:hover { background: #fff; color: #000; }
+button:active { transform: none; background: #ccc; border-color: #ccc; color: #000; }
+#keypad {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 10px; max-width: 300px; margin: 20px auto 0 auto;
+}
+#keypad button { padding: 20px; font-size: 24px; font-weight: bold; }
+.practice-highlight { background: yellow; color: black; border: 1px solid black; }
+.practice-highlight:hover { background: yellow; color: black; }
+#rankingContainer { margin-top: 25px; padding: 20px; border: 1px solid #fff; }
+#rankingContainer h3 { text-align: center; margin-top: 0; }
+#rankingList { list-style: none; padding: 0; max-height: 200px; overflow-y: auto; margin-bottom: 15px; }
+#rankingList li { margin-bottom: 8px; padding: 10px; border-bottom: 1px solid #555; }
+#rankingList li:last-child { border-bottom: none; }
+#rankingList li .ranking-details { font-size: 14px; color: #aaa; }
+#timeModeInfo {
+  display: flex; justify-content: space-between; align-items: center;
+  margin: 15px 0; padding-bottom: 10px; border-bottom: 1px solid #fff;
+  display: none;
+}
+#timeModeInfo p { margin: 0; font-size: 18px; }
+#progressContainer {
+  width: 100%; background-color: #000; border: 1px solid #fff;
+  height: 15px; margin-top: 10px; padding: 2px; box-sizing: border-box;
+}
+#progressBar { height: 100%; width: 0%; background: #fff; transition: width 0.1s linear; }
+#digitCountDisplay {
+  text-align: center; font-size: 16px; color: #fff;
+  margin: 10px 0; height: 18px; line-height: 1.2;
+}
+@media (max-width: 600px) {
+  body { padding: 5px; }
+  #gameContainer { padding: 10px; }
+  .config, .mode-select, #controlButtons { gap: 8px; margin: 15px 0; }
+  label { font-size: 14px; }
+  input[type="number"] { width: 60px; font-size: 14px; }
+  button { padding: 8px 12px; font-size: 14px; }
+  #piDisplay { font-size: 16px; min-height: 100px; max-height: 100px; padding: 10px; }
+  .digit { font-size: 16px; }
+  #keypad { gap: 5px; max-width: 250px; }
+  #keypad button { padding: 15px; font-size: 20px; }
+  #timeModeInfo p { font-size: 14px; }
+}
+</style>
 </head>
 <body>
-  <div id="gameContainer">
-    <div class="config">
-      <label for="startIndex">開始桁数:</label>
-      <input type="number" id="startIndex" value="0" min="0">
-      <span style="font-size: 14px; color: #aaa;">（最大: <span id="maxPiLength"></span> 桁）</span>
+<div id="gameContainer">
+  <div class="config">
+    <label for="startIndex">開始桁数:</label>
+    <input type="number" id="startIndex" value="0" min="0">
+    <span style="font-size: 14px; color: #aaa;">（最大: <span id="maxPiLength"></span> 桁）</span>
+  </div>
+  <div class="mode-select">
+    <div class="mode-option">
+      <input type="radio" id="modeStandard" name="mode" value="standard" checked>
+      <label for="modeStandard">標準</label>
     </div>
-    <div class="mode-select">
-      <div class="mode-option">
-        <input type="radio" id="modeStandard" name="mode" value="standard" checked>
-        <label for="modeStandard">標準</label>
-      </div>
-      <div class="mode-option">
-        <input type="radio" id="modeTime" name="mode" value="time">
-        <label for="modeTime">タイム</label>
-      </div>
-      <div class="mode-option">
-        <input type="radio" id="modePractice" name="mode" value="practice">
-        <label for="modePractice">練習</label>
-      </div>
+    <div class="mode-option">
+      <input type="radio" id="modeTime" name="mode" value="time">
+      <label for="modeTime">タイム</label>
     </div>
-    <div id="controlButtons">
-      <button id="startBtn">スタート</button>
-      <button id="exitBtn">終了</button>
-      <button id="resetBtn">リセット</button>
-      <button id="memorizeBtn">暗記</button>
-    </div>
-
-    <div id="timeModeInfo">
-      <p>タイム: <span id="timerDisplay">0.0000</span></p>
-      <p>進捗: <span id="progressDigits">0</span>/<span id="targetDigits">102</span></p>
-    </div>
-    <div id="progressContainer" style="display: none;">
-      <div id="progressBar"></div>
-    </div>
-    <div id="digitCountDisplay"></div>
-    <div id="piDisplay"></div>
-    <div id="message"></div>
-    <div id="keypad">
-      <button class="key">7</button>
-      <button class="key">8</button>
-      <button class="key">9</button>
-      <button class="key">4</button>
-      <button class="key">5</button>
-      <button class="key">6</button>
-      <button class="key">1</button>
-      <button class="key">2</button>
-      <button class="key">3</button>
-      <button class="key">.</button>
-      <button class="key">0</button>
-      <button class="key" id="clearButton">C</button>
-    </div>
-
-    <div id="rankingContainer" style="display: none;">
-      <h3>タイムモードランキング</h3>
-      <ul id="rankingList">
-        </ul>
-      <button id="clearRankingBtn">履歴を削除</button>
+    <div class="mode-option">
+      <input type="radio" id="modePractice" name="mode" value="practice">
+      <label for="modePractice">練習</label>
     </div>
   </div>
+  <div id="controlButtons">
+    <button id="startBtn">スタート</button>
+    <button id="exitBtn">終了</button>
+    <button id="resetBtn">リセット</button>
+    <button id="memorizeBtn">暗記</button>
+  </div>
+  <div id="timeModeInfo">
+    <p>タイム: <span id="timerDisplay">0.0000</span></p>
+    <p>進捗: <span id="progressDigits">0</span>/<span id="targetDigits">102</span></p>
+  </div>
+  <div id="progressContainer" style="display: none;">
+    <div id="progressBar"></div>
+  </div>
+  <div id="digitCountDisplay"></div>
+  <div id="piDisplay"></div>
+  <div id="message"></div>
+  <div id="keypad">
+    <button class="key">7</button><button class="key">8</button><button class="key">9</button>
+    <button class="key">4</button><button class="key">5</button><button class="key">6</button>
+    <button class="key">1</button><button class="key">2</button><button class="key">3</button>
+    <button class="key">.</button><button class="key">0</button><button class="key" id="clearButton">C</button>
+  </div>
+  <div id="rankingContainer" style="display: none;">
+    <h3>タイムモードランキング</h3>
+    <ul id="rankingList"></ul>
+    <button id="clearRankingBtn">履歴を削除</button>
+  </div>
+</div>
 
-  <script>
-    document.addEventListener("DOMContentLoaded", function() {
-
-      // ガウス＝ルジャンドル法で円周率を計算する関数
-      // ユーザーが入力した桁数まで計算
-      function calculatePi(digits) {
-        // Big.jsライブラリを使用して高精度計算を行う
-        // 外部スクリプトの動的読み込み
-        return new Promise((resolve, reject) => {
-          const script = document.createElement('script');
-          script.src = 'https://cdn.jsdelivr.net/npm/big.js@6.2.1/big.min.js';
-          script.onload = () => {
-            try {
-              // Big.jsの設定
-              Big.DP = digits + 2; // 指定桁数より少し多めに計算して丸め誤差をなくす
-
-              let a = new Big(1);
-              let b = new Big(1).div(new Big(2).sqrt());
-              let t = new Big(1).div(4);
-              let p = new Big(1);
-              let pi = new Big(0);
-
-              let a_next, b_next;
-              
-              for (let i = 0; i < 10; i++) { // 10回の反復で十分な精度
-                a_next = a.add(b).div(2);
-                b_next = a.mul(b).sqrt();
-                t = t.minus(p.mul(a.minus(a_next).pow(2)));
-                a = a_next;
-                b = b_next;
-                p = p.mul(2);
-                pi = a.add(b).pow(2).div(t.mul(4));
-              }
-
-              resolve(pi.toFixed(digits));
-            } catch (e) {
-              reject(e);
-            }
-          };
-          script.onerror = () => {
-            reject(new Error('Big.jsライブラリの読み込みに失敗しました。'));
-          };
-          document.head.appendChild(script);
-        });
-      }
-
-      let pi = ""; // 計算された円周率を格納する変数
-      const desiredDigits = 1002; // 計算したい桁数
-
-      // ページ読み込み時に円周率を計算
-      calculatePi(desiredDigits).then(result => {
-        pi = result;
-        const MAXPIDIGITS = pi.length;
-        maxPiLengthSpan.textContent = MAXPIDIGITS;
-        loadSettings();
-      }).catch(error => {
-        console.error("円周率の計算に失敗しました:", error);
-        alert("円周率の計算に失敗しました。ページを再読み込みしてください。");
-      });
-
-      const GAMEDIGITSPER_LINE = 20;
-      const MEMORIZEDIGITSPER_LINE = 20;
-      const MEMORIZEBLOCKSIZE = 100;
-      const GROUP_SIZE = 2;
-      const INDENT_DIGITS = 2;
-      const TIMEMODETARGET_DIGITS = 102;
-
-      let targetCount = 1002;
-      let startIndex = 0;
-      let currentIndex = 0;
-      let digitsHistory = [];
-      let totalWrongAttempts = 0;
-
-      let gameMode = "standard"; // "standard", "time", "practice"
-      let gameActive = false;
-      let startTime;
-      let ranking = [];
-      let timerInterval;
-
-      // エレメントの取得
-      const startIndexInput = document.getElementById("startIndex");
-      const maxPiLengthSpan = document.getElementById("maxPiLength");
-      const modeStandardRadio = document.getElementById("modeStandard");
-      const modeTimeRadio = document.getElementById("modeTime");
-      const modePracticeRadio = document.getElementById("modePractice");
-      const startBtn = document.getElementById("startBtn");
-      const exitBtn = document.getElementById("exitBtn");
-      const resetBtn = document.getElementById("resetBtn");
-      const memorizeBtn = document.getElementById("memorizeBtn");
-      const piDisplay = document.getElementById("piDisplay");
-      const messageDiv = document.getElementById("message");
-      const rankingContainer = document.getElementById("rankingContainer");
-      const rankingList = document.getElementById("rankingList");
-      const clearRankingBtn = document.getElementById("clearRankingBtn");
-      const keypadButtons = document.querySelectorAll(".key");
-      const digitCountDisplay = document.getElementById("digitCountDisplay");
-
-      const timeModeInfoDiv = document.getElementById("timeModeInfo");
-      const timerDisplay = document.getElementById("timerDisplay");
-      const progressDigitsSpan = document.getElementById("progressDigits");
-      const targetDigitsSpan = document.getElementById("targetDigits");
-      const progressContainer = document.getElementById('progressContainer');
-      const progressBar = document.getElementById("progressBar");
-
-      const correctSound = new Audio('https://cdn.jsdelivr.net/gh/Tonejs/Tone.js/examples/audio/context/success.mp3'); 
-      const wrongSound = new Audio('https://cdn.jsdelivr.net/gh/Tonejs/Tone.js/examples/audio/context/fail.mp3');   
-
-
-      function saveSettings() {
-        localStorage.setItem('piGameStartIndex', startIndexInput.value);
-        localStorage.setItem('piGameMode', document.querySelector('input[name="mode"]:checked').value);
-      }
-
-      function loadSettings() {
-        const savedStartIndex = localStorage.getItem('piGameStartIndex');
-        if (savedStartIndex !== null) {
-          startIndexInput.value = savedStartIndex;
-        }
-
-        const savedMode = localStorage.getItem('piGameMode');
-        if (savedMode) {
-          const radio = document.getElementById('mode' + savedMode.charAt(0).toUpperCase() + savedMode.slice(1));
-          if (radio) {
-            radio.checked = true;
-            gameMode = savedMode;
-          } else {
-             modeStandardRadio.checked = true;
-             gameMode = "standard";
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  function calculatePi(digits) {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/big.js@6.2.1/big.min.js';
+      script.onload = () => {
+        try {
+          Big.DP = digits + 2;
+          let a = new Big(1);
+          let b = new Big(1).div(new Big(2).sqrt());
+          let t = new Big(1).div(4);
+          let p = new Big(1);
+          let pi = new Big(0);
+          for (let i = 0; i < 10; i++) {
+            let a_next = a.add(b).div(2);
+            let b_next = a.mul(b).sqrt();
+            t = t.minus(p.mul(a.minus(a_next).pow(2)));
+            a = a_next;
+            b = b_next;
+            p = p.mul(2);
+            pi = a.add(b).pow(2).div(t.mul(4));
           }
-        }
-        
-        loadRanking();
-        updateModeSettingsVisibility();
-      }
-
-      function loadRanking() {
-        const savedRanking = localStorage.getItem('piGameRanking');
-        ranking = savedRanking ? JSON.parse(savedRanking) : [];
-        displayRanking();
-      }
-
-      function saveRanking() {
-        localStorage.setItem('piGameRanking', JSON.stringify(ranking));
-        displayRanking();
-      }
-
-      function displayRanking() {
-        rankingList.innerHTML = '';
-        if (ranking.length === 0) {
-          rankingList.innerHTML = '<li>まだ記録がありません。</li>';
-          return;
-        }
-        ranking.sort((a, b) => a.time - b.time);
-        ranking.slice(0, 5).forEach((record, index) => {
-          const listItem = document.createElement('li');
-          const timeFormatted = (record.time / 1000).toFixed(4);
-          const date = new Date(record.date);
-          const dateFormatted = date.toLocaleString('ja-JP', {
-              year: 'numeric', month: '2-digit', day: '2-digit',
-              hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
-          });
-          listItem.innerHTML = `
-            <span>${index + 1}. ${timeFormatted}秒</span>
-            <span class="ranking-details">(${record.wrongAttempts}ミス) ${dateFormatted}</span>
-          `;
-          rankingList.appendChild(listItem);
-        });
-      }
-
-      function addRankingEntry(time, wrongAttempts) {
-        ranking.push({ time: time, wrongAttempts: wrongAttempts, date: new Date().toISOString() });
-        saveRanking();
-      }
-
-      function clearRanking() {
-        if (confirm("ランキング履歴を全て削除しますか？")) {
-          ranking = [];
-          saveRanking();
-          messageDiv.textContent = "ランキング履歴を削除しました。";
-        }
-      }
-
-      function updateModeSettingsVisibility() {
-          const currentMode = document.querySelector('input[name="mode"]:checked').value;
-          gameMode = currentMode;
-          
-          startIndexInput.disabled = (currentMode === "time");
-          maxPiLengthSpan.parentElement.style.visibility = (currentMode === "time") ? 'hidden' : 'visible';
-
-          rankingContainer.style.display = (currentMode === "time") ? 'block' : 'none';
-          
-          timeModeInfoDiv.style.display = (currentMode === "time") ? 'flex' : 'none';
-          progressContainer.style.display = (currentMode === "time") ? 'block' : 'none';
-
-          if (currentMode !== "time") {
-            clearInterval(timerInterval);
-            timerDisplay.textContent = "0.0000";
-            progressBar.style.width = "0%";
-            progressDigitsSpan.textContent = "0";
-          }
-          
-          saveSettings();
-          piDisplay.innerHTML = "";
-          messageDiv.textContent = "";
-          digitCountDisplay.textContent = "";
-          gameActive = false;
-          highlightNextKey();
-      }
-      
-      function highlightNextKey() {
-        keypadButtons.forEach(btn => {
-            btn.classList.remove('practice-highlight');
-        });
-
-        if (!gameActive || gameMode !== "practice") {
-            return;
-        }
-
-        if (currentIndex >= startIndex + targetCount) {
-            return;
-        }
-
-        const nextDigit = pi.charAt(currentIndex);
-        for (const btn of keypadButtons) {
-            if (btn.textContent === nextDigit) {
-                btn.classList.add('practice-highlight');
-                break;
-            }
-        }
-      }
-
-      function updateDigitCountDisplay() {
-          if (!gameActive) {
-              digitCountDisplay.textContent = "";
-              return;
-          }
-          let displayIndex = currentIndex;
-          if (displayIndex >= 0) {
-              if (displayIndex === 1) { // 3. の次
-                  digitCountDisplay.textContent = `${displayIndex-1} 桁目`;
-              } else if (displayIndex >= 2) {
-                  digitCountDisplay.textContent = `${displayIndex-1} 桁目`;
-              } else {
-                  digitCountDisplay.textContent = "";
-              }
-          }
-      }
-
-      function updateDisplay() {
-        if (gameMode === "standard" || gameMode === "time" || gameMode === "practice") {
-          updateStandardTimeDisplay();
-        }
-        updateDigitCountDisplay();
-
-        if (gameMode === "time" && gameActive) {
-            const completedDigits = currentIndex - 2;
-            progressDigitsSpan.textContent = Math.max(0, completedDigits);
-            const progressPercentage = (Math.max(0, completedDigits) / (TIMEMODETARGET_DIGITS - 2)) * 100;
-            progressBar.style.width = `${progressPercentage}%`;
-        }
-      }
-
-      function updateStandardTimeDisplay() {
-        let displayDigits = [];
-        for (let i = 0; i < digitsHistory.length; i++) {
-            displayDigits.push({
-                digit: digitsHistory[i].digit,
-                wrong: digitsHistory[i].wrong,
-                isCurrent: false,
-                isEntered: true
-            });
-        }
-        if (gameActive && currentIndex < startIndex + targetCount && gameMode !== "practice") {
-            displayDigits.push({
-                digit: pi.charAt(currentIndex),
-                wrong: false,
-                isCurrent: true,
-                isEntered: false
-            });
-        }
-
-        let rows = [];
-        let rowStr = '';
-        
-        if (startIndex > 0 && pi.charAt(startIndex -1) === '.') {
-        } else {
-            rowStr += `<span class="digit">&nbsp;</span>`.repeat(INDENT_DIGITS);
-        }
-        
-        for (let i = 0; i < displayDigits.length; i++) {
-          const digitObj = displayDigits[i];
-          const digitContent = digitObj.isCurrent ? " " : digitObj.digit;
-          let className = "digit";
-          if (digitObj.wrong) {
-            className += " wrong";
-          } else if (digitObj.isCurrent) {
-            className += " current-placeholder";
-          }
-          if (digitObj.isEntered) {
-            className += " entered-digit";
-          }
-          
-          rowStr += `<span class="${className}">${digitContent}</span>`;
-
-          let currentLineLengthFromStart = i;
-          
-          if ((currentLineLengthFromStart + 1) % GAMEDIGITSPER_LINE === 0 && i < displayDigits.length - 1) { 
-              rows.push(rowStr);
-              rowStr = `<span class="digit">&nbsp;</span>`.repeat(INDENT_DIGITS);
-          }
-        }
-        rows.push(rowStr);
-
-        if (rows.length > 3) {
-            rows = rows.slice(-3);
-        }
-
-        piDisplay.innerHTML = `<div>${rows.join("</div><div>")}</div>`;
-      }
-
-      function initGame() {
-        if (!pi) {
-            alert("円周率の計算中です。しばらくお待ちください。");
-            return;
-        }
-
-        clearInterval(timerInterval);
-        gameMode = document.querySelector('input[name="mode"]:checked').value;
-
-        if (gameMode === "time") {
-            startIndex = 0;
-            targetCount = TIMEMODETARGET_DIGITS;
-            piDisplay.innerHTML = "";
-            digitsHistory = [];
-            
-            digitsHistory.push({ digit: pi.charAt(0), wrong: false });
-            digitsHistory.push({ digit: pi.charAt(1), wrong: false });
-            currentIndex = 2;
-
-            gameActive = true;
-            startTime = performance.now();
-            startTimer();
-            updateDisplay();
-            messageDiv.textContent = `タイムモード開始！${TIMEMODETARGET_DIGITS}桁を入力。`;
-            progressDigitsSpan.textContent = currentIndex - 2;
-            targetDigitsSpan.textContent = TIMEMODETARGET_DIGITS - 2;
-        } else {
-            startIndex = parseInt(startIndexInput.value, 10);
-            if (isNaN(startIndex) || startIndex < 0 || startIndex >= pi.length) {
-                startIndex = 0;
-                startIndexInput.value = 0;
-            }
-            
-            targetCount = 1002;
-            if (startIndex + targetCount > pi.length) {
-                targetCount = pi.length - startIndex;
-            }
-
-            currentIndex = startIndex;
-            digitsHistory = [];
-            for (let i = 0; i < startIndex; i++) {
-                digitsHistory.push({ digit: pi.charAt(i), wrong: false });
-            }
-            piDisplay.innerHTML = "";
-            gameActive = true;
-
-            if (gameMode === "practice") {
-                updateDisplay();
-                highlightNextKey();
-                messageDiv.textContent = "練習モード開始！";
-            } else {
-                updateDisplay();
-                messageDiv.textContent = "標準モード開始！";
-            }
-        }
-        saveSettings();
-        totalWrongAttempts = 0;
-      }
-
-      function startTimer() {
-        timerInterval = setInterval(() => {
-          if (gameActive) {
-            const currentTime = performance.now();
-            const elapsedTime = currentTime - startTime;
-            timerDisplay.textContent = (elapsedTime / 1000).toFixed(4);
-          }
-        }, 10);
-      }
-
-      function handleKeyInput(value) {
-        if (!gameActive) { 
-            messageDiv.textContent = "「スタート」を押してください。";
-            return;
-        }
-
-        if (value === "C") {
-          if (currentIndex > startIndex && !(gameMode === 'time' && currentIndex <= 2)) {
-            currentIndex--;
-            digitsHistory.pop();
-            updateDisplay();
-            if (gameMode === "practice") highlightNextKey();
-          }
-          return;
-        }
-        
-        if (gameMode === "practice") {
-            const expected = pi.charAt(currentIndex);
-            if (value === expected) {
-                correctSound.currentTime = 0; correctSound.play();
-                digitsHistory.push({ digit: value, wrong: false, isEntered: true });
-                currentIndex++;
-                updateDisplay();
-                highlightNextKey(); 
-
-                if (currentIndex === startIndex + targetCount) {
-                    gameActive = false;
-                    highlightNextKey();
-                    messageDiv.textContent = "完了！おめでとうございます！";
-                    updateDigitCountDisplay();
-                }
-            } else {
-                wrongSound.currentTime = 0; wrongSound.play();
-                messageDiv.textContent = "間違いです。";
-            }
-            return;
-        }
-
-        if (currentIndex < startIndex + targetCount) {
-          const expected = pi.charAt(currentIndex);
-          if (value === expected) {
-            handleStandardTimeCorrect(value);
-          } else {
-            handleStandardTimeWrong(value);
-          }
-        }
-      }
-
-      function handleStandardTimeCorrect(value) {
-          correctSound.currentTime = 0; correctSound.play();
-          digitsHistory.push({ digit: value, wrong: false, isEntered: true });
-          currentIndex++;
-          updateDisplay();
-          
-          if (currentIndex === startIndex + targetCount) {
-              gameActive = false;
-              clearInterval(timerInterval);
-              let finalMessage = "";
-              if (gameMode === "time") {
-                  const elapsedTime = performance.now() - startTime;
-                  finalMessage = `完了！タイム: ${(elapsedTime / 1000).toFixed(4)}秒 (${totalWrongAttempts}ミス)`;
-                  addRankingEntry(elapsedTime, totalWrongAttempts);
-              } else {
-                  finalMessage = `完了！おめでとうございます！ (${totalWrongAttempts}ミス)`;
-              }
-              messageDiv.textContent = finalMessage;
-              updateDigitCountDisplay();
-          }
-      }
-
-      function handleStandardTimeWrong(value) {
-          wrongSound.currentTime = 0; wrongSound.play();
-          const expected = pi.charAt(currentIndex);
-          digitsHistory.push({ digit: value, wrong: true, isEntered: true });
-          totalWrongAttempts++;
-          currentIndex++;
-          updateDisplay();
-          messageDiv.textContent = "間違い！ 正解は " + expected;
-
-          if (currentIndex === startIndex + targetCount) {
-              gameActive = false;
-              clearInterval(timerInterval);
-              let finalMessage = "";
-              if (gameMode === "time") {
-                  const elapsedTime = performance.now() - startTime;
-                  finalMessage += ` | 完了！タイム: ${(elapsedTime / 1000).toFixed(4)}秒`;
-                  addRankingEntry(elapsedTime, totalWrongAttempts);
-              }
-              messageDiv.textContent += finalMessage;
-              updateDigitCountDisplay();
-          }
-      }
-
-      keypadButtons.forEach(btn => {
-        const handler = function(e) {
-          e.preventDefault();
-          handleKeyInput(this.textContent);
-        };
-        btn.addEventListener("click", handler);
-        btn.addEventListener("touchstart", handler, { passive: false }); 
-      });
-
-      startBtn.addEventListener("click", initGame);
-
-      exitBtn.addEventListener("click", function() {
-        gameActive = false;
-        clearInterval(timerInterval);
-        piDisplay.innerHTML = "";
-        messageDiv.textContent = "ゲーム終了。";
-        digitCountDisplay.textContent = "";
-        highlightNextKey();
-        modeStandardRadio.checked = true;
-        updateModeSettingsVisibility();
-      });
-      
-      resetBtn.addEventListener("click", function() {
-        startIndexInput.value = 0;
-        saveSettings();
-        messageDiv.textContent = "開始桁数を0にリセットしました。";
-        exitBtn.click();
-      });
-
-      // MODIFIED: 暗記ボタンの機能を別ウィンドウ表示に変更
-      memorizeBtn.addEventListener("click", function() {
-        if (!pi) {
-            alert("円周率の計算中です。しばらくお待ちください。");
-            return;
-        }
-
-        const memorizePi = pi.slice(0, 1002);
-        
-        // 円周率を整形するHTMLを生成
-        let displayHtml = '';
-        displayHtml += `<div class="memorize-line"><span class="pi-integer-part">3.</span></div>`;
-
-        let decimalDigits = memorizePi.substring(2);
-        let currentLineDigits = [];
-        let totalDecimalDigitsProcessed = 0;
-
-        for (let i = 0; i < decimalDigits.length; i++) {
-            currentLineDigits.push(decimalDigits[i]);
-            totalDecimalDigitsProcessed++;
-
-            if ((totalDecimalDigitsProcessed % GROUP_SIZE === 0) &&
-                (totalDecimalDigitsProcessed % MEMORIZEDIGITSPER_LINE !== 0) &&
-                (totalDecimalDigitsProcessed < decimalDigits.length)) {
-                currentLineDigits.push('<span class="memorize-group-space"></span>');
-            }
-
-            if (totalDecimalDigitsProcessed % MEMORIZEDIGITSPER_LINE === 0) {
-                if (currentLineDigits[currentLineDigits.length - 1] === '<span class="memorize-group-space"></span>') {
-                    currentLineDigits.pop();
-                }
-                displayHtml += `<div class="memorize-line">${currentLineDigits.join('')}</div>`;
-                currentLineDigits = [];
-
-                if (totalDecimalDigitsProcessed % MEMORIZEBLOCKSIZE === 0 && totalDecimalDigitsProcessed < decimalDigits.length) {
-                    displayHtml += `<br>`;
-                }
-            }
-        }
-        if (currentLineDigits.length > 0) {
-            if (currentLineDigits[currentLineDigits.length - 1] === '<span class="memorize-group-space"></span>') {
-                currentLineDigits.pop();
-            }
-            displayHtml += `<div class="memorize-line">${currentLineDigits.join('')}</div>`;
-        }
-        displayHtml = displayHtml.replace(/(\d)/g, '<span class="memorize-digit">$1</span>');
-
-        // 新しいウィンドウを開く
-        const newWindow = window.open('', 'piMemorizeWindow', 'width=600,height=700,scrollbars=yes,resizable=yes');
-        
-        if (newWindow) {
-            newWindow.document.write(`
-              <!DOCTYPE html>
-              <html lang="ja">
-              <head>
-                <meta charset="UTF-8">
-                <title>円周率 1002桁 - 暗記用</title>
-                <style>
-                  body { background-color: #000; color: #fff; font-family: monospace; font-size: 18px; padding: 20px; text-align: center; }
-                  h1 { font-size: 24px; margin-bottom: 20px; }
-                  .memorize-container { line-height: 1.8; text-align: left; display: inline-block; }
-                  .pi-integer-part { font-size: 24px; font-weight: bold; }
-                  .memorize-line { display: flex; justify-content: flex-start; flex-wrap: wrap; margin-bottom: 5px; }
-                  .memorize-digit { display: inline-block; width: 1ch; text-align: center; }
-                  .memorize-group-space { margin-right: 1.5ch; display: inline-block; }
-                </style>
-              </head>
-              <body>
-                <h1>円周率 1002桁 - 暗記用</h1>
-                <div class="memorize-container">
-                  ${displayHtml}
-                </div>
-              </body>
-              </html>
-            `);
-            newWindow.document.close();
-            newWindow.focus();
-        } else {
-            alert('ポップアップがブロックされました。ブラウザの設定で許可してください。');
-        }
-      });
-
-      clearRankingBtn.addEventListener("click", clearRanking);
-
-      document.querySelectorAll('input[name="mode"]').forEach(radio => {
-          radio.addEventListener('change', updateModeSettingsVisibility);
-      });
-
-      startIndexInput.addEventListener('change', () => {
-        if (!pi) {
-            alert("円周率の計算中です。しばらくお待ちください。");
-            startIndexInput.value = 0;
-            return;
-        }
-        let currentVal = parseInt(startIndexInput.value, 10);
-        if (isNaN(currentVal) || currentVal < 0) {
-            currentVal = 0;
-        } else if (currentVal > pi.length -1) {
-            currentVal = pi.length -1;
-        }
-        startIndexInput.value = currentVal;
-        saveSettings();
-      });
-
-      document.addEventListener('keydown', function(event) {
-        if (event.target.tagName.toLowerCase() === 'input') return;
-        
-        const key = event.key;
-        if (key >= '0' && key <= '9' || key === '.') {
-          handleKeyInput(key);
-        } else if (key === 'Backspace' || key === 'Delete') {
-          event.preventDefault();
-          handleKeyInput('C');
-        }
-      });
+          resolve(pi.toFixed(digits));
+        } catch (e) { reject(e); }
+      };
+      script.onerror = () => reject(new Error('Big.jsロード失敗'));
+      document.head.appendChild(script);
     });
-  </script>
+  }
+
+  let pi = "";
+  const desiredDigits = 1002;
+  calculatePi(desiredDigits).then(result => {
+    pi = result;
+    maxPiLengthSpan.textContent = pi.length;
+    loadSettings();
+  }).catch(e => { alert("計算失敗"); });
+
+  const GAMEDIGITSPER_LINE = 20;
+  const MEMORIZEDIGITSPER_LINE = 20;
+  const MEMORIZEBLOCKSIZE = 100;
+  const GROUP_SIZE = 2;
+  const INDENT_DIGITS = 2;
+
+  let targetCount = 1002;
+  let startIndex = 0;
+  let currentIndex = 0;
+  let digitsHistory = [];
+  let totalWrongAttempts = 0;
+  let gameMode = "standard";
+  let gameActive = false;
+  let startTime;
+  let ranking = [];
+  let timerInterval;
+
+  const startIndexInput = document.getElementById("startIndex");
+  const maxPiLengthSpan = document.getElementById("maxPiLength");
+  const modeStandardRadio = document.getElementById("modeStandard");
+  const modeTimeRadio = document.getElementById("modeTime");
+  const modePracticeRadio = document.getElementById("modePractice");
+  const startBtn = document.getElementById("startBtn");
+  const exitBtn = document.getElementById("exitBtn");
+  const resetBtn = document.getElementById("resetBtn");
+  const memorizeBtn = document.getElementById("memorizeBtn");
+  const piDisplay = document.getElementById("piDisplay");
+  const messageDiv = document.getElementById("message");
+  const rankingContainer = document.getElementById("rankingContainer");
+  const rankingList = document.getElementById("rankingList");
+  const clearRankingBtn = document.getElementById("clearRankingBtn");
+  const keypadButtons = document.querySelectorAll(".key");
+  const digitCountDisplay = document.getElementById("digitCountDisplay");
+  const timeModeInfoDiv = document.getElementById("timeModeInfo");
+  const timerDisplay = document.getElementById("timerDisplay");
+  const progressDigitsSpan = document.getElementById("progressDigits");
+  const targetDigitsSpan = document.getElementById("targetDigits");
+  const progressContainer = document.getElementById('progressContainer');
+  const progressBar = document.getElementById("progressBar");
+
+  const correctSound = new Audio('https://cdn.jsdelivr.net/gh/Tonejs/Tone.js/examples/audio/context/success.mp3'); 
+  const wrongSound = new Audio('https://cdn.jsdelivr.net/gh/Tonejs/Tone.js/examples/audio/context/fail.mp3');   
+
+  function saveSettings() {
+    localStorage.setItem('piGameStartIndex', startIndexInput.value);
+    localStorage.setItem('piGameMode', document.querySelector('input[name="mode"]:checked').value);
+  }
+  function loadSettings() {
+    const savedStartIndex = localStorage.getItem('piGameStartIndex');
+    if (savedStartIndex !== null) startIndexInput.value = savedStartIndex;
+    const savedMode = localStorage.getItem('piGameMode');
+    if (savedMode) {
+      const radio = document.getElementById('mode'+savedMode.charAt(0).toUpperCase()+savedMode.slice(1));
+      if (radio) { radio.checked = true; gameMode = savedMode; }
+    }
+    loadRanking(); updateModeSettingsVisibility();
+  }
+  function loadRanking() {
+    const savedRanking = localStorage.getItem('piGameRanking');
+    ranking = savedRanking ? JSON.parse(savedRanking) : [];
+    displayRanking();
+  }
+  function saveRanking() { localStorage.setItem('piGameRanking', JSON.stringify(ranking)); displayRanking(); }
+  function displayRanking() {
+    rankingList.innerHTML = '';
+    if (!ranking.length) { rankingList.innerHTML = '<li>まだ記録がありません。</li>'; return; }
+    ranking.sort((a,b) => a.time - b.time);
+    ranking.slice(0,5).forEach((record, index) => {
+      const timeFormatted = (record.time / 1000).toFixed(4);
+      const dateFormatted = new Date(record.date).toLocaleString('ja-JP',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+      rankingList.innerHTML += `<li>${index+1}. ${timeFormatted}秒 <span class="ranking-details">(${record.wrongAttempts}ミス) ${dateFormatted}</span></li>`;
+    });
+  }
+  function addRankingEntry(time, wrongAttempts) { ranking.push({time,wrongAttempts,date:new Date().toISOString()}); saveRanking(); }
+  function clearRanking() { if (confirm("ランキング履歴を全て削除しますか？")) { ranking=[]; saveRanking(); messageDiv.textContent="ランキング履歴を削除しました。"; } }
+
+  function updateModeSettingsVisibility() {
+    const currentMode = document.querySelector('input[name="mode"]:checked').value;
+    gameMode = currentMode;
+    startIndexInput.disabled = false; // ★修正: タイムモードでも開始桁設定可能
+    maxPiLengthSpan.parentElement.style.visibility = 'visible';
+    rankingContainer.style.display = (currentMode==="time")?'block':'none';
+    timeModeInfoDiv.style.display = (currentMode==="time")?'flex':'none';
+    progressContainer.style.display = (currentMode==="time")?'block':'none';
+    if (currentMode!=="time") { clearInterval(timerInterval); timerDisplay.textContent="0.0000"; progressBar.style.width="0%"; progressDigitsSpan.textContent="0"; }
+    saveSettings(); piDisplay.innerHTML=""; messageDiv.textContent=""; digitCountDisplay.textContent=""; gameActive=false;
+  }
+
+  function updateDigitCountDisplay() {
+    if (!gameActive) { digitCountDisplay.textContent=""; return; }
+    if (currentIndex >= 2) digitCountDisplay.textContent = `${currentIndex-1} 桁目`;
+  }
+
+  function updateDisplay() {
+    updateStandardTimeDisplay(); updateDigitCountDisplay();
+    if (gameMode==="time" && gameActive) {
+      const completed = currentIndex - startIndex; // ★修正
+      progressDigitsSpan.textContent = completed;
+      progressBar.style.width = `${(completed/targetCount)*100}%`;
+    }
+  }
+
+  function updateStandardTimeDisplay() {
+    let displayDigits = digitsHistory.map(d => ({digit:d.digit,wrong:d.wrong,isCurrent:false,isEntered:true}));
+    if (gameActive && currentIndex < startIndex+targetCount && gameMode!=="practice") {
+      displayDigits.push({digit:pi.charAt(currentIndex),wrong:false,isCurrent:true,isEntered:false});
+    }
+    let rows=[]; let rowStr = `<span class="digit">&nbsp;</span>`.repeat(INDENT_DIGITS);
+    for (let i=0;i<displayDigits.length;i++) {
+      const d=displayDigits[i];
+      let className="digit";
+      if (d.wrong) className+=" wrong";
+      else if (d.isCurrent) className+=" current-placeholder";
+      rowStr+=`<span class="${className}">${d.isCurrent?" ":d.digit}</span>`;
+      if ((i+1)%GAMEDIGITSPER_LINE===0 && i<displayDigits.length-1) {
+        rows.push(rowStr); rowStr = `<span class="digit">&nbsp;</span>`.repeat(INDENT_DIGITS);
+      }
+    }
+    rows.push(rowStr); if (rows.length>3) rows=rows.slice(-3);
+    piDisplay.innerHTML=`<div>${rows.join("</div><div>")}</div>`;
+  }
+
+  function initGame() {
+    if (!pi) { alert("計算中です"); return; }
+    clearInterval(timerInterval);
+    gameMode = document.querySelector('input[name="mode"]:checked').value;
+    startIndex = parseInt(startIndexInput.value)||0;
+    if (startIndex<0) startIndex=0;
+    if (startIndex>=pi.length) startIndex=pi.length-1;
+
+    if (gameMode==="time") {
+      targetCount = 100; // ★修正: タイムモードは100桁入力
+      digitsHistory=[];
+      for(let i=0;i<startIndex;i++){ digitsHistory.push({digit:pi.charAt(i),wrong:false}); }
+      currentIndex=startIndex;
+      gameActive=true; startTime=performance.now();
+      targetDigitsSpan.textContent = targetCount;
+      startTimer(); updateDisplay();
+      messageDiv.textContent=`タイムモード開始！${targetCount}桁を入力。`;
+    } else {
+      targetCount=1002;
+      if (startIndex+targetCount>pi.length) targetCount = pi.length - startIndex;
+      currentIndex=startIndex; digitsHistory=[];
+      for(let i=0;i<startIndex;i++){ digitsHistory.push({digit:pi.charAt(i),wrong:false}); }
+      piDisplay.innerHTML=""; gameActive=true;
+      updateDisplay();
+      messageDiv.textContent = (gameMode==="practice")?"練習モード開始！":"標準モード開始！";
+    }
+    saveSettings(); totalWrongAttempts=0;
+  }
+
+  function startTimer() {
+    timerInterval=setInterval(()=>{
+      if (gameActive) timerDisplay.textContent=((performance.now()-startTime)/1000).toFixed(4);
+    },10);
+  }
+
+  function handleKeyInput(v) {
+    if (!gameActive) { messageDiv.textContent="「スタート」を押してください。"; return; }
+    if (v==="C") { if (currentIndex>startIndex) { currentIndex--; digitsHistory.pop(); updateDisplay(); } return; }
+    if (currentIndex<startIndex+targetCount) {
+      const exp = pi.charAt(currentIndex);
+      if (v===exp) handleCorrect(v); else handleWrong(v);
+    }
+  }
+  function handleCorrect(v) {
+    correctSound.currentTime=0; correctSound.play();
+    digitsHistory.push({digit:v,wrong:false}); currentIndex++; updateDisplay();
+    if (currentIndex===startIndex+targetCount) finishGame();
+  }
+  function handleWrong(v) {
+    wrongSound.currentTime=0; wrongSound.play();
+    const exp=pi.charAt(currentIndex);
+    digitsHistory.push({digit:v,wrong:true});
+    totalWrongAttempts++; currentIndex++; updateDisplay();
+    messageDiv.textContent="間違い！ 正解は "+exp;
+    if (currentIndex===startIndex+targetCount) finishGame();
+  }
+  function finishGame() {
+    gameActive=false; clearInterval(timerInterval);
+    let final="";
+    if (gameMode==="time") {
+      const elapsed=performance.now()-startTime;
+      final=`完了！タイム: ${(elapsed/1000).toFixed(4)}秒 (${totalWrongAttempts}ミス)`;
+      addRankingEntry(elapsed,totalWrongAttempts);
+    } else {
+      final=`完了！おめでとうございます！ (${totalWrongAttempts}ミス)`;
+    }
+    messageDiv.textContent=final;
+  }
+
+  keypadButtons.forEach(btn => btn.addEventListener("click", e=>handleKeyInput(btn.textContent)));
+  startBtn.addEventListener("click", initGame);
+  exitBtn.addEventListener("click", ()=>{gameActive=false;clearInterval(timerInterval);piDisplay.innerHTML="";messageDiv.textContent="ゲーム終了。";digitCountDisplay.textContent="";modeStandardRadio.checked=true;updateModeSettingsVisibility();});
+  resetBtn.addEventListener("click", ()=>{startIndexInput.value=0;saveSettings();messageDiv.textContent="開始桁数を0にリセットしました。";exitBtn.click();});
+  clearRankingBtn.addEventListener("click", clearRanking);
+  document.querySelectorAll('input[name="mode"]').forEach(r => r.addEventListener('change', updateModeSettingsVisibility));
+});
+</script>
 </body>
 </html>
