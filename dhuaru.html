@@ -3,11 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>デュアルNバック トレーニングDX</title>
+<title>デュアルNバック トレーニングDX（色対応）</title>
 <style>
-/* 元のCSSそのまま */
-body { font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; display:flex; justify-content:center; align-items:center; min-height:100vh; margin:0; background-color:#f0f2f5; color:#333; text-align:center; padding:20px;}
-.container {width:90%;max-width:450px;padding:25px;background-color:#fff;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.15);transition:transform 0.3s ease-in-out;}
+/* 基本CSSは前回と同じ。一部調整 */
+body { font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+ display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;
+ background-color:#f0f2f5;color:#333;text-align:center;padding:20px;}
+.container {width:90%;max-width:450px;padding:25px;background-color:#fff;border-radius:12px;
+ box-shadow:0 4px 20px rgba(0,0,0,0.15);transition:transform 0.3s ease-in-out;}
 .container.game-active {transform:scale(1.02);}
 h2 {margin-top:0;color:#1a237e;}
 p {margin-bottom:20px;line-height:1.6;}
@@ -16,27 +19,27 @@ p {margin-bottom:20px;line-height:1.6;}
 .settings select,.settings button {padding:10px 15px;border-radius:8px;border:1px solid #ccc;font-size:16px;}
 #start-btn,#end-btn {background-color:#4caf50;color:white;border-color:#4caf50;cursor:pointer;transition:background-color 0.3s,transform 0.1s;}
 #start-btn:hover,#end-btn:hover {background-color:#45a049;transform:translateY(-2px);}
-#start-btn:active,#end-btn:active {transform:translateY(0);}
-#start-btn:disabled,#end-btn:disabled {background-color:#a5d6a7;cursor:not-allowed;transform:none;}
+#start-btn:disabled,#end-btn:disabled {background-color:#a5d6a7;cursor:not-allowed;}
 #end-btn {background-color:#f44336;border-color:#f44336;display:none;}
 #end-btn:hover {background-color:#e53935;}
 .progress-container {width:100%;background-color:#e0e0e0;border-radius:5px;margin-bottom:20px;}
 #progress-bar {width:0;height:10px;background-color:#3f51b5;border-radius:5px;transition:width 0.5s;}
-#game-board {display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:10px;width:300px;height:300px;margin:20px auto;border:2px solid #ccc;padding:10px;border-radius:8px;background-color:#e8eaf6;}
-.grid-cell {display:flex;justify-content:center;align-items:center;background-color:#fff;border-radius:6px;transition:background-color 0.2s,box-shadow 0.2s;font-size:3rem;font-weight:bold;color:#333;}
-.grid-cell.active {background-color:#3f51b5;box-shadow:0 0 15px rgba(63,81,181,0.5);color:white;}
+#game-board {display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
+ gap:10px;width:300px;height:300px;margin:20px auto;border:2px solid #ccc;padding:10px;border-radius:8px;background-color:#e8eaf6;}
+.grid-cell {display:flex;justify-content:center;align-items:center;border-radius:6px;
+ font-size:3rem;font-weight:bold;color:#333;transition:background-color 0.2s,box-shadow 0.2s;}
+.grid-cell.active {box-shadow:0 0 15px rgba(63,81,181,0.5);color:white;}
 #status-bar {margin:15px 0;font-size:18px;font-weight:500;color:#555;min-height:25px;}
 #high-score {font-size:14px;color:#888;margin-bottom:10px;}
-#controls {display:flex;justify-content:space-around;margin-top:25px;}
-.match-btn {width:45%;padding:15px 10px;font-size:16px;font-weight:bold;border-radius:8px;border:2px solid;cursor:pointer;transition:all 0.2s;background-color:#fff;}
+#controls {display:flex;justify-content:space-around;margin-top:25px;flex-wrap:wrap;gap:10px;}
+.match-btn {flex:1;padding:10px;font-size:14px;font-weight:bold;border-radius:8px;border:2px solid;cursor:pointer;transition:all 0.2s;background-color:#fff;min-width:90px;}
 #visual-match-btn {border-color:#2196f3;color:#2196f3;}
-#visual-match-btn.responded {background-color:#e3f2fd;}
 #audio-match-btn {border-color:#f44336;color:#f44336;}
-#audio-match-btn.responded {background-color:#ffebee;}
+#color-match-btn {border-color:#4caf50;color:#4caf50;}
+.match-btn.responded {opacity:0.8;}
 .match-btn:hover {transform:translateY(-2px);box-shadow:0 4px 8px rgba(0,0,0,0.1);}
-.match-btn:active {transform:translateY(0);}
-.match-btn:disabled {opacity:0.6;cursor:not-allowed;transform:none;box-shadow:none;}
-#feedback-container {height:50px;margin-top:15px;display:flex;flex-direction:column;justify-content:center;align-items:center;}
+.match-btn:disabled {opacity:0.6;cursor:not-allowed;}
+#feedback-container {min-height:50px;margin-top:15px;display:flex;flex-direction:column;justify-content:center;align-items:center;}
 .feedback-item {padding:5px 15px;border-radius:15px;color:white;font-weight:bold;opacity:0;transition:opacity 0.5s;margin-top:5px;}
 .feedback-item.correct {background-color:#4caf50;}
 .feedback-item.incorrect {background-color:#f44336;}
@@ -45,8 +48,8 @@ p {margin-bottom:20px;line-height:1.6;}
 </head>
 <body>
 <div class="container" id="main-container">
-<h2>🧠 デュアルNバック トレーニングDX</h2>
-<p>視覚（位置）と聴覚（文字）がN回前と同じか判断します。</p>
+<h2>🧠 デュアルNバック トレーニングDX（色対応）</h2>
+<p>位置・音声（文字）・色のいずれか1つがN回前と同じかを判断します。</p>
 <div class="settings">
 <label for="n-level">Nレベル:</label>
 <select id="n-level">
@@ -64,12 +67,24 @@ p {margin-bottom:20px;line-height:1.6;}
 <div class="progress-container"><div id="progress-bar"></div></div>
 <div id="game-board"></div>
 <div id="controls">
-<button id="visual-match-btn" class="match-btn" disabled>位置が一致</button>
-<button id="audio-match-btn" class="match-btn" disabled>音声が一致</button>
+<button id="visual-match-btn" class="match-btn" disabled>位置一致</button>
+<button id="audio-match-btn" class="match-btn" disabled>音声一致</button>
+<button id="color-match-btn" class="match-btn" disabled>色一致</button>
 </div>
 <div id="feedback-container"></div>
 </div>
 <script>
+const GRID_SIZE=9;
+const LETTERS=['C','H','K','L','Q','R','S','T'];
+const COLORS=['red','green','blue','orange','purple','pink','yellow','brown','cyan'];
+const STIMULUS_INTERVAL=3000;
+const TOTAL_TRIALS_BASE=20;
+let nLevel=2,totalTrials=0,currentTrial=0;
+let visualScore=0,audioScore=0,colorScore=0;
+let stimuliHistory=[];
+let userResponses={visual:null,audio:null,color:null};
+let gameInterval=null,isGameRunning=false,trialStartTime=0;
+
 const mainContainer=document.getElementById('main-container');
 const startBtn=document.getElementById('start-btn');
 const endBtn=document.getElementById('end-btn');
@@ -77,169 +92,194 @@ const nLevelSelect=document.getElementById('n-level');
 const gameBoard=document.getElementById('game-board');
 const visualMatchBtn=document.getElementById('visual-match-btn');
 const audioMatchBtn=document.getElementById('audio-match-btn');
+const colorMatchBtn=document.getElementById('color-match-btn');
 const statusBar=document.getElementById('status-bar');
 const feedbackContainer=document.getElementById('feedback-container');
 const progressBar=document.getElementById('progress-bar');
 const highScoreElem=document.getElementById('high-score');
-const GRID_SIZE=9;
-const LETTERS=['C','H','K','L','Q','R','S','T'];
-const STIMULUS_INTERVAL=3000;
-const TOTAL_TRIALS_BASE=20;
-let nLevel=2,totalTrials=0,currentTrial=0,visualScore=0,audioScore=0,totalMatches=0,stimuliHistory=[],userResponses={visual:null,audio:null},gameInterval=null,isGameRunning=false,trialStartTime=0;
 
 function init(){
-  createGameBoard();
-  setupEventListeners();
-  updateHighScoreDisplay();
-  updateStatusBar();
+ createGameBoard();
+ setupEventListeners();
+ updateHighScoreDisplay();
+ updateStatusBar();
 }
 function createGameBoard(){
-  gameBoard.innerHTML='';
-  for(let i=0;i<GRID_SIZE;i++){
-    const cell=document.createElement('div');
-    cell.classList.add('grid-cell');
-    cell.id=`cell-${i}`;
-    gameBoard.appendChild(cell);
-  }
+ gameBoard.innerHTML='';
+ for(let i=0;i<GRID_SIZE;i++){
+   const cell=document.createElement('div');
+   cell.classList.add('grid-cell');
+   cell.id=`cell-${i}`;
+   gameBoard.appendChild(cell);
+ }
 }
 function setupEventListeners(){
-  startBtn.addEventListener('click',startGame);
-  endBtn.addEventListener('click',endGame);
-  visualMatchBtn.addEventListener('click',()=>recordResponse('visual'));
-  audioMatchBtn.addEventListener('click',()=>recordResponse('audio'));
-  nLevelSelect.addEventListener('change',updateHighScoreDisplay);
+ startBtn.addEventListener('click',startGame);
+ endBtn.addEventListener('click',endGame);
+ visualMatchBtn.addEventListener('click',()=>recordResponse('visual'));
+ audioMatchBtn.addEventListener('click',()=>recordResponse('audio'));
+ colorMatchBtn.addEventListener('click',()=>recordResponse('color'));
+ nLevelSelect.addEventListener('change',updateHighScoreDisplay);
 }
 function updateHighScoreDisplay(){
-  const currentN=parseInt(nLevelSelect.value);
-  const score=localStorage.getItem(`highScore-N${currentN}`);
-  highScoreElem.textContent = score ? `N=${currentN} ハイスコア: ${score}点` : `N=${currentN} ハイスコア: N/A`;
+ const currentN=parseInt(nLevelSelect.value);
+ const score=localStorage.getItem(`highScore-N${currentN}`);
+ highScoreElem.textContent=score?`N=${currentN} ハイスコア: ${score}点`:`N=${currentN} ハイスコア: N/A`;
 }
 function startGame(){
- try{
-  if(isGameRunning)return;
-  isGameRunning=true;
-  mainContainer.classList.add('game-active');
-  nLevel=parseInt(nLevelSelect.value);
-  totalTrials=TOTAL_TRIALS_BASE+nLevel;
-  currentTrial=0;visualScore=0;audioScore=0;totalMatches=0;stimuliHistory=[];
-  startBtn.style.display='none'; endBtn.style.display='inline-block';
-  nLevelSelect.disabled=true;
-  visualMatchBtn.disabled=false; audioMatchBtn.disabled=false;
-  feedbackContainer.innerHTML='';
-  gameInterval=setInterval(runTrial,STIMULUS_INTERVAL);
- }catch(e){console.error(e);}
+ if(isGameRunning)return;
+ isGameRunning=true;
+ mainContainer.classList.add('game-active');
+ nLevel=parseInt(nLevelSelect.value);
+ totalTrials=TOTAL_TRIALS_BASE+nLevel;
+ currentTrial=0; visualScore=audioScore=colorScore=0; stimuliHistory=[];
+ startBtn.style.display='none'; endBtn.style.display='inline-block';
+ nLevelSelect.disabled=true;
+ visualMatchBtn.disabled=false; audioMatchBtn.disabled=false; colorMatchBtn.disabled=false;
+ feedbackContainer.innerHTML='';
+ gameInterval=setInterval(runTrial,STIMULUS_INTERVAL);
 }
 function runTrial(){
- try{
-  if(currentTrial>=totalTrials){endGame();return;}
-  if(currentTrial>=nLevel){evaluateResponse();}
-  currentTrial++;
-  resetUserResponses();
-  const position=Math.floor(Math.random()*GRID_SIZE);
-  const letter=LETTERS[Math.floor(Math.random()*LETTERS.length)];
-  stimuliHistory.push({position,letter});
-  presentStimulus(position,letter);
-  updateStatusBar();
-  updateProgressBar();
-  trialStartTime=Date.now();
- }catch(e){console.error("runTrial error:",e);}
+ if(currentTrial>=totalTrials){endGame();return;}
+ if(currentTrial>=nLevel){evaluateResponse();}
+ currentTrial++;
+ resetUserResponses();
+ let position, letter, color;
+
+ if(currentTrial>nLevel){
+     // いずれか1つのみ一致設定
+     const matchType=['visual','audio','color'][Math.floor(Math.random()*3)];
+     const prevStim=stimuliHistory[currentTrial-1-nLevel];
+     position = (matchType==='visual')? prevStim.position: getDifferentValue(prevStim.position, GRID_SIZE);
+     letter = (matchType==='audio')? prevStim.letter: getDifferentValue(prevStim.letter, LETTERS);
+     color = (matchType==='color')? prevStim.color: getDifferentValue(prevStim.color, COLORS);
+ } else {
+     position = Math.floor(Math.random()*GRID_SIZE);
+     letter = LETTERS[Math.floor(Math.random()*LETTERS.length)];
+     color = COLORS[Math.floor(Math.random()*COLORS.length)];
+ }
+ stimuliHistory.push({position,letter,color});
+ presentStimulus(position,letter,color);
+ updateStatusBar();
+ updateProgressBar();
+ trialStartTime=Date.now();
 }
-function presentStimulus(position,letter){
- try{
-  document.querySelectorAll('.grid-cell').forEach(c=>c.classList.remove('active'));
-  const activeCell=document.getElementById(`cell-${position}`);
-  if(activeCell)activeCell.classList.add('active');
-  if('speechSynthesis'in window&&typeof SpeechSynthesisUtterance!=='undefined'){
-    window.speechSynthesis.cancel();
-    const utterance=new SpeechSynthesisUtterance(letter);
-    utterance.lang='en-US'; utterance.rate=0.9;
-    window.speechSynthesis.speak(utterance);
-  }
- }catch(e){console.error("presentStimulus error:",e);}
+function getDifferentValue(current, arrOrLen){
+ if(typeof arrOrLen==='number'){
+   let v;
+   do{v=Math.floor(Math.random()*arrOrLen);}while(v===current);
+   return v;
+ } else {
+   let v;
+   do{v=arrOrLen[Math.floor(Math.random()*arrOrLen.length)];}while(v===current);
+   return v;
+ }
+}
+function presentStimulus(position,letter,color){
+ document.querySelectorAll('.grid-cell').forEach(c=>{
+   c.classList.remove('active');
+   c.style.backgroundColor='white';
+   c.textContent='';
+ });
+ const activeCell=document.getElementById(`cell-${position}`);
+ if(activeCell){
+   activeCell.classList.add('active');
+   activeCell.style.backgroundColor=color;
+   activeCell.textContent=letter;
+ }
+ if('speechSynthesis'in window&&typeof SpeechSynthesisUtterance!=='undefined'){
+   window.speechSynthesis.cancel();
+   const utterance=new SpeechSynthesisUtterance(letter);
+   utterance.lang='en-US'; utterance.rate=0.9;
+   speechSynthesis.speak(utterance);
+ }
 }
 function recordResponse(type){
- try{
-  if(!isGameRunning||userResponses[type]!==false&&userResponses[type]!==null)return;
-  userResponses[type]=true;
-  const responseTime=Date.now()-trialStartTime;
-  if(type==='visual'){visualMatchBtn.classList.add('responded');visualMatchBtn.disabled=true;}
-  else{audioMatchBtn.classList.add('responded');audioMatchBtn.disabled=true;}
-  const feedbackElem=document.createElement('div');
-  feedbackElem.id='response-time';
-  feedbackElem.textContent=`${type==='visual'?'位置':'音声'}応答時間: ${responseTime}ms`;
-  feedbackContainer.appendChild(feedbackElem);
- }catch(e){console.error(e);}
+ if(!isGameRunning||userResponses[type]!==false&&userResponses[type]!==null)return;
+ userResponses[type]=true;
+ const btnMap={visual:visualMatchBtn,audio:audioMatchBtn,color:colorMatchBtn};
+ btnMap[type].classList.add('responded');
+ btnMap[type].disabled=true;
+ const responseTime=Date.now()-trialStartTime;
+ const feedbackElem=document.createElement('div');
+ feedbackElem.id='response-time';
+ feedbackElem.textContent=`${type==='visual'?'位置':type==='audio'?'音声':'色'}応答時間: ${responseTime}ms`;
+ feedbackContainer.appendChild(feedbackElem);
 }
 function resetUserResponses(){
-  userResponses={visual:false,audio:false};
-  visualMatchBtn.classList.remove('responded'); audioMatchBtn.classList.remove('responded');
-  visualMatchBtn.disabled=false; audioMatchBtn.disabled=false;
-  feedbackContainer.innerHTML='';
+ userResponses={visual:false,audio:false,color:false};
+ [visualMatchBtn,audioMatchBtn,colorMatchBtn].forEach(btn=>{
+     btn.classList.remove('responded'); btn.disabled=false;
+ });
+ feedbackContainer.innerHTML='';
 }
 function evaluateResponse(){
- try{
-  if(currentTrial<=nLevel)return;
-  const currentStimulus=stimuliHistory[currentTrial-1];
-  const nBackStimulus=stimuliHistory[currentTrial-1-nLevel];
-  if(!currentStimulus||!nBackStimulus)return;
-  const isVisualMatch=currentStimulus.position===nBackStimulus.position;
-  const isAudioMatch=currentStimulus.letter===nBackStimulus.letter;
-  const userVisualResponse=userResponses.visual;
-  const userAudioResponse=userResponses.audio;
-  const correctVisual=(isVisualMatch===userVisualResponse);
-  const correctAudio=(isAudioMatch===userAudioResponse);
-  let feedbackText='',feedbackClass='';
-  if(correctVisual&&correctAudio){visualScore++;audioScore++;feedbackText='👍 パーフェクト！';feedbackClass='correct';}
-  else{feedbackClass='incorrect';
-    if(correctVisual){visualScore++;feedbackText='位置は正解、音声はミス';}
-    else if(correctAudio){audioScore++;feedbackText='音声は正解、位置はミス';}
-    else{feedbackText='👎 どちらもミス';}
-  }
-  showFeedback(feedbackText,feedbackClass);
- }catch(e){console.error("evaluateResponse error:",e);}
+ if(currentTrial<=nLevel)return;
+ const currentStim=stimuliHistory[currentTrial-1];
+ const prevStim=stimuliHistory[currentTrial-1-nLevel];
+ if(!currentStim||!prevStim)return;
+ const isVisualMatch=currentStim.position===prevStim.position;
+ const isAudioMatch=currentStim.letter===prevStim.letter;
+ const isColorMatch=currentStim.color===prevStim.color;
+ const goodVisual=(isVisualMatch===userResponses.visual);
+ const goodAudio=(isAudioMatch===userResponses.audio);
+ const goodColor=(isColorMatch===userResponses.color);
+ if(goodVisual)visualScore++;
+ if(goodAudio)audioScore++;
+ if(goodColor)colorScore++;
+ let feedbackText,feedbackClass;
+ if(goodVisual&&goodAudio&&goodColor){
+   feedbackText='✅ 正解！';
+   feedbackClass='correct';
+ } else {
+   feedbackClass='incorrect';
+   feedbackText=`❌ 不正解 | 正答: 位置=${isVisualMatch?'一致':'不一致'}, 音声=${isAudioMatch?'一致':'不一致'}, 色=${isColorMatch?'一致':'不一致'}`;
+ }
+ showFeedback(feedbackText,feedbackClass);
 }
 function showFeedback(text,className){
-  const feedbackElem=document.createElement('span');
-  feedbackElem.classList.add('feedback-item',className);
-  feedbackElem.textContent=text;
-  feedbackContainer.prepend(feedbackElem);
-  setTimeout(()=>{feedbackElem.style.opacity=1;},50);
-  setTimeout(()=>{feedbackElem.style.opacity=0;},STIMULUS_INTERVAL/2);
+ const feedbackElem=document.createElement('span');
+ feedbackElem.classList.add('feedback-item',className);
+ feedbackElem.textContent=text;
+ feedbackContainer.prepend(feedbackElem);
+ setTimeout(()=>feedbackElem.style.opacity=1,50);
+ setTimeout(()=>feedbackElem.style.opacity=0,STIMULUS_INTERVAL/2);
 }
 function endGame(){
- try{
-  clearInterval(gameInterval);
-  isGameRunning=false;
-  mainContainer.classList.remove('game-active');
-  startBtn.style.display='inline-block'; endBtn.style.display='none';
-  nLevelSelect.disabled=false;
-  visualMatchBtn.disabled=true; audioMatchBtn.disabled=true;
-  visualMatchBtn.classList.remove('responded'); audioMatchBtn.classList.remove('responded');
-  document.querySelectorAll('.grid-cell').forEach(cell=>cell.classList.remove('active'));
-  const totalScore=visualScore+audioScore;
-  const totalPossibleScore=(totalTrials-nLevel)*2;
-  const accuracy=totalPossibleScore>0?((totalScore/totalPossibleScore)*100).toFixed(1):0;
-  statusBar.textContent=`ゲーム終了！スコア: ${totalScore} / ${totalPossibleScore}、正答率: ${accuracy}%`;
-  saveHighScore(totalScore);
-  updateHighScoreDisplay();
-  progressBar.style.width='0';
-  feedbackContainer.innerHTML='';
- }catch(e){console.error("endGame error:",e);}
+ clearInterval(gameInterval);
+ isGameRunning=false;
+ mainContainer.classList.remove('game-active');
+ startBtn.style.display='inline-block'; endBtn.style.display='none';
+ nLevelSelect.disabled=false;
+ [visualMatchBtn,audioMatchBtn,colorMatchBtn].forEach(btn=>{
+     btn.disabled=true; btn.classList.remove('responded');
+ });
+ document.querySelectorAll('.grid-cell').forEach(cell=>{
+     cell.classList.remove('active'); cell.style.backgroundColor='white'; cell.textContent='';
+ });
+ const totalScore=visualScore+audioScore+colorScore;
+ const totalPossibleScore=(totalTrials-nLevel)*3;
+ const accuracy=totalPossibleScore>0?((totalScore/totalPossibleScore)*100).toFixed(1):0;
+ statusBar.textContent=`ゲーム終了！スコア: ${totalScore} / ${totalPossibleScore}、正答率: ${accuracy}%`;
+ saveHighScore(totalScore);
+ updateHighScoreDisplay();
+ progressBar.style.width='0';
+ feedbackContainer.innerHTML='';
 }
 function saveHighScore(newScore){
-  const currentN=parseInt(nLevelSelect.value);
-  const storedScore=localStorage.getItem(`highScore-N${currentN}`);
-  if(!storedScore||newScore>parseInt(storedScore)){localStorage.setItem(`highScore-N${currentN}`,newScore);}
+ const currentN=parseInt(nLevelSelect.value);
+ const stored=localStorage.getItem(`highScore-N${currentN}`);
+ if(!stored||newScore>parseInt(stored))localStorage.setItem(`highScore-N${currentN}`,newScore);
 }
 function updateStatusBar(){
-  const totalScoreableTrials=totalTrials-nLevel;
-  const scoreableTrial=currentTrial>nLevel?currentTrial-nLevel:0;
-  const totalScore=visualScore+audioScore;
-  statusBar.textContent=`N=${nLevel} | 試行: ${scoreableTrial} / ${totalScoreableTrials} | スコア: ${totalScore}`;
+ const totalScoreableTrials=totalTrials-nLevel;
+ const scoreableTrial=currentTrial>nLevel?currentTrial-nLevel:0;
+ const totalScore=visualScore+audioScore+colorScore;
+ statusBar.textContent=`N=${nLevel} | 試行: ${scoreableTrial} / ${totalScoreableTrials} | スコア: ${totalScore}`;
 }
 function updateProgressBar(){
-  const progress=(currentTrial/totalTrials)*100;
-  progressBar.style.width=`${progress}%`;
+ const progress=(currentTrial/totalTrials)*100;
+ progressBar.style.width=`${progress}%`;
 }
 init();
 </script>
