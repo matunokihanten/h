@@ -97,8 +97,8 @@
             font-weight: bold;
             cursor: pointer;
             user-select: none;
-            transition: background-color 0.2s;
-            line-height: 1; /* 余分な余白を削除 */
+            transition: background-color 0.2s, transform 0.2s;
+            line-height: 1;
             transform: scale(0);
             animation: cell-pop-in 0.3s forwards;
             animation-delay: var(--delay);
@@ -107,14 +107,9 @@
         @keyframes cell-pop-in {
             to { transform: scale(1); }
         }
-
+        
         .cell:hover {
             background-color: #ccc;
-        }
-
-        .cell.correct {
-            background-color: #99c;
-            animation: none;
         }
 
         .cell.wrong {
@@ -212,13 +207,11 @@
             gameState.mode = modeSelector.value;
             
             if (gameState.mode === 'extreme' && gameState.gameActive) {
-                // 進化モードでゲーム継続中の場合、レベルを上げる
                 gameState.level++;
                 gameState.maxNumber++;
                 gameState.cellAnimDuration = Math.max(10, gameState.cellAnimDuration - 2);
                 document.getElementById('message').textContent = `レベル${gameState.level - 4}へ！`;
             } else {
-                // 新しいゲーム開始時
                 gameState.level = parseInt(levelSelector.value);
                 gameState.maxNumber = initialNumberCounts[gameState.level];
                 gameState.cellAnimDuration = 30;
@@ -276,14 +269,13 @@
             const number = gameState.numbers[index];
             
             if (number === gameState.currentNumber) {
-                cell.classList.add('correct');
-                
+                // 正解時のロジックを即座に実行
                 gameState.currentNumber++;
                 document.getElementById('nextNumber').textContent = gameState.currentNumber;
                 
                 gameState.numbers[index] = null;
-                cell.textContent = '';
-                
+                cell.style.visibility = 'hidden';
+
                 if (gameState.currentNumber > gameState.maxNumber) {
                     gameComplete();
                 }
