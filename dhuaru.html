@@ -137,7 +137,6 @@ function startGame() {
     gameInterval = setInterval(runTrial, STIMULUS_INTERVAL);
 }
 function runTrial() {
-    // 前回の試行で応答されなかったボタンの評価
     if (currentTrial > nLevel) {
         evaluateUnansweredResponses();
     }
@@ -152,16 +151,12 @@ function runTrial() {
 
     let position, letter, color;
     if (currentTrial > nLevel) {
-        const matchTypes = [];
-        if (Math.random() > 0.5) matchTypes.push('visual');
-        if (Math.random() > 0.5) matchTypes.push('audio');
-        if (Math.random() > 0.5) matchTypes.push('color');
-        
+        const matchType = ['visual', 'audio', 'color'][Math.floor(Math.random() * 3)];
         const prev = stimuliHistory[currentTrial - 1 - nLevel];
         
-        position = (matchTypes.includes('visual')) ? prev.position : getDifferentValue(prev.position, GRID_SIZE);
-        letter = (matchTypes.includes('audio')) ? prev.letter : getDifferentValue(prev.letter, LETTERS);
-        color = (matchTypes.includes('color')) ? prev.color : getDifferentValue(prev.color, COLORS);
+        position = (matchType === 'visual') ? prev.position : getDifferentValue(prev.position, GRID_SIZE);
+        letter = (matchType === 'audio') ? prev.letter : getDifferentValue(prev.letter, LETTERS);
+        color = (matchType === 'color') ? prev.color : getDifferentValue(prev.color, COLORS);
     } else {
         position = Math.floor(Math.random() * GRID_SIZE);
         letter = LETTERS[Math.floor(Math.random() * LETTERS.length)];
@@ -213,8 +208,7 @@ function recordResponse(type) {
     const prev = stimuliHistory[currentTrial - 1 - nLevel];
     if (!cur || !prev) return;
     
-    let isMatch, feedbackText;
-    let typeName;
+    let isMatch, typeName, correctText;
     
     if(type === 'visual') {
         isMatch = cur.position === prev.position;
@@ -227,15 +221,17 @@ function recordResponse(type) {
         typeName = '色';
     }
     
-    const isCorrect = isMatch === userResponses[type];
-    
+    const isCorrect = isMatch; // ユーザーは一致ボタンを押しているので、一致していれば正解
+    correctText = isCorrect ? '一致' : '不一致';
+
+    let feedbackText;
     if (isCorrect) {
         feedbackText = `✅ ${typeName} 正解！`;
         if (type === 'visual') visualScore++;
         else if (type === 'audio') audioScore++;
         else if (type === 'color') colorScore++;
     } else {
-        feedbackText = `❌ ${typeName} 不正解`;
+        feedbackText = `❌ ${typeName} 不正解 | 正解は "${correctText}" でした。`;
     }
     
     showFeedback(feedbackText, isCorrect ? 'correct' : 'incorrect');
@@ -258,15 +254,26 @@ function evaluateUnansweredResponses() {
     const isAudioMatch = cur.letter === prev.letter;
     const isColorMatch = cur.color === prev.color;
     
-    // 未応答のボタンに対する評価
     if (userResponses.visual === null) {
-        if (!isVisualMatch) visualScore++; // 不一致で応答しなかった場合は正解
+        if (!isVisualMatch) {
+            visualScore++;
+        } else {
+            showFeedback(`❌ 位置 不正解 | 正解は "一致" でした。`, 'incorrect');
+        }
     }
     if (userResponses.audio === null) {
-        if (!isAudioMatch) audioScore++; // 不一致で応答しなかった場合は正解
+        if (!isAudioMatch) {
+            audioScore++;
+        } else {
+            showFeedback(`❌ 音声 不正解 | 正解は "一致" でした。`, 'incorrect');
+        }
     }
     if (userResponses.color === null) {
-        if (!isColorMatch) colorScore++; // 不一致で応答しなかった場合は正解
+        if (!isColorMatch) {
+            colorScore++;
+        } else {
+            showFeedback(`❌ 色 不正解 | 正解は "一致" でした。`, 'incorrect');
+        }
     }
     
     updateStatusBar();
@@ -313,7 +320,6 @@ function endGame() {
     saveHighScore(totalScore);
     updateHighScoreDisplay();
     progressBar.style.width = '0';
-    feedbackContainer.innerHTML = '';
 }
 function saveHighScore(newScore) {
     const currentN = parseInt(nLevelSelect.value);
