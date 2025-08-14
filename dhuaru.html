@@ -10,8 +10,9 @@ body { font-family: sans-serif; display:flex;justify-content:center;align-items:
 .container {width:90%;max-width:450px;padding:20px;background-color:#fff;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.1);}
 h2 {color:#1a237e;}
 p {margin-bottom:20px;line-height:1.6;}
-.settings {display:flex;justify-content:center;align-items:center;gap:15px;margin-bottom:20px;}
+.settings {display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:15px;margin-bottom:20px;}
 .settings select,.settings button {padding:8px 12px;border-radius:5px;border:1px solid #ccc;font-size:16px;}
+.radio-group {display:flex;align-items:center;gap:5px;font-size:14px;}
 #start-btn,#end-btn {background-color:#4caf50;color:white;border:none;cursor:pointer;}
 #start-btn:hover,#end-btn:hover {opacity:0.8;}
 #end-btn {background-color:#f44336;display:none;}
@@ -49,6 +50,13 @@ p {margin-bottom:20px;line-height:1.6;}
 <option value="4">4-Back</option>
 <option value="5">5-Back</option>
 </select>
+<div class="radio-group">
+<label>文字表示:</label>
+<input type="radio" id="show-letter-yes" name="show-letter" value="true">
+<label for="show-letter-yes">はい</label>
+<input type="radio" id="show-letter-no" name="show-letter" value="false" checked>
+<label for="show-letter-no">いいえ</label>
+</div>
 <button id="start-btn">スタート</button>
 <button id="end-btn">終了</button>
 </div>
@@ -79,6 +87,7 @@ const mainContainer = document.getElementById('main-container');
 const startBtn = document.getElementById('start-btn');
 const endBtn = document.getElementById('end-btn');
 const nLevelSelect = document.getElementById('n-level');
+const showLetterRadios = document.getElementsByName('show-letter');
 const gameBoard = document.getElementById('game-board');
 const visualMatchBtn = document.getElementById('visual-match-btn');
 const audioMatchBtn = document.getElementById('audio-match-btn');
@@ -128,6 +137,9 @@ function startGame() {
     startBtn.style.display = 'none';
     endBtn.style.display = 'inline-block';
     nLevelSelect.disabled = true;
+    for (const radio of showLetterRadios) {
+        radio.disabled = true;
+    }
     visualMatchBtn.disabled = false;
     audioMatchBtn.disabled = false;
     colorMatchBtn.disabled = false;
@@ -189,7 +201,10 @@ function presentStimulus(position, letter, color) {
     if (active) {
         active.classList.add('active');
         active.style.backgroundColor = color;
-        active.textContent = letter;
+        const showLetter = document.querySelector('input[name="show-letter"]:checked').value === 'true';
+        if (showLetter) {
+            active.textContent = letter;
+        }
     }
     if ('speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined') {
         speechSynthesis.cancel();
@@ -301,6 +316,9 @@ function endGame() {
     startBtn.style.display = 'inline-block';
     endBtn.style.display = 'none';
     nLevelSelect.disabled = false;
+    for (const radio of showLetterRadios) {
+        radio.disabled = false;
+    }
     [visualMatchBtn, audioMatchBtn, colorMatchBtn].forEach(btn => {
         btn.disabled = true;
         btn.classList.remove('responded');
