@@ -97,15 +97,8 @@
             font-weight: bold;
             cursor: pointer;
             user-select: none;
-            transition: background-color 0.2s, transform 0.2s;
+            transition: background-color 0.2s;
             line-height: 1;
-            transform: scale(0);
-            animation: cell-pop-in 0.3s forwards;
-            animation-delay: var(--delay);
-        }
-
-        @keyframes cell-pop-in {
-            to { transform: scale(1); }
         }
         
         .cell:hover {
@@ -114,13 +107,6 @@
 
         .cell.wrong {
             background-color: #ff9999;
-            animation: shake 0.5s;
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-3px); }
-            75% { transform: translateX(3px); }
         }
 
         .message {
@@ -253,9 +239,10 @@
                 
                 if (gameState.numbers[i] !== null) {
                     cell.textContent = gameState.numbers[i];
+                } else {
+                    cell.style.visibility = 'hidden';
                 }
                 
-                cell.style.setProperty('--delay', `${i * gameState.cellAnimDuration}ms`);
                 grid.appendChild(cell);
             }
             
@@ -269,7 +256,6 @@
             const number = gameState.numbers[index];
             
             if (number === gameState.currentNumber) {
-                // 正解時のロジックを即座に実行
                 gameState.currentNumber++;
                 document.getElementById('nextNumber').textContent = gameState.currentNumber;
                 
@@ -331,7 +317,8 @@
             
             const cells = document.querySelectorAll('.cell');
             cells.forEach(cell => {
-                cell.classList.remove('correct', 'wrong');
+                cell.classList.remove('wrong');
+                cell.style.visibility = 'visible';
             });
             
             if (document.getElementById('mode').value === 'extreme') {
