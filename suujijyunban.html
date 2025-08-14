@@ -1,340 +1,218 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>数字順番押しゲーム - シンプル版</title>
-    <style>
-        body {
-            font-family: sans-serif;
-            background-color: #f0f0f0;
-            color: #333;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 10px;
-            text-align: center;
-        }
-
-        .game-container {
-            width: 100%;
-            max-width: 450px;
-            padding: 20px;
-            border: 2px solid #333;
-            border-radius: 5px;
-            background-color: #fff;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .title {
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 20px;
-        }
-
-        .controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            margin-bottom: 15px;
-            gap: 10px;
-        }
-
-        .control-group {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .control-group label, .info span {
-            font-weight: bold;
-        }
-
-        select, button {
-            padding: 8px;
-            border: 1px solid #333;
-            border-radius: 3px;
-            font-size: 14px;
-            cursor: pointer;
-        }
-
-        button {
-            background-color: #333;
-            color: #fff;
-            border: none;
-            transition: background-color 0.2s;
-        }
-
-        button:hover {
-            background-color: #555;
-        }
-
-        .info {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 15px;
-            font-size: 16px;
-        }
-
-        .game-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            grid-auto-rows: 1fr;
-            gap: 5px;
-            aspect-ratio: 1;
-        }
-
-        .cell {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #ddd;
-            border: 1px solid #aaa;
-            font-size: 20px;
-            font-weight: bold;
-            cursor: pointer;
-            user-select: none;
-            transition: background-color 0.2s;
-            line-height: 1;
-        }
-        
-        .cell:hover {
-            background-color: #ccc;
-        }
-
-        .cell.wrong {
-            background-color: #ff9999;
-        }
-
-        .message {
-            margin-top: 15px;
-            font-weight: bold;
-            min-height: 20px;
-            font-size: 16px;
-        }
-
-        .success {
-            color: #008000;
-        }
-        
-        @media (max-width: 480px) {
-            .controls {
-                justify-content: center;
-                gap: 5px;
-            }
-            .info {
-                font-size: 14px;
-            }
-            .cell {
-                font-size: 18px;
-            }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>数字順番押しゲーム - スマホ縦画面対応</title>
+<style>
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: #f0f0f0;
+    font-family: sans-serif;
+}
+body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.game-container {
+    width: 100%;
+    max-width: 100%;
+    padding: 5px;
+    box-sizing: border-box;
+    background: #fff;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+.title { font-size: 18px; font-weight: bold; margin-bottom: 4px; text-align: center; }
+.controls {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 4px;
+    font-size: 12px;
+}
+.control-group { display: flex; align-items: center; gap: 3px; }
+select, button { padding: 4px; font-size: 12px; cursor: pointer; }
+button { background: #000; color: #fff; border: none; }
+.info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+    font-size: 12px;
+}
+.game-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(5, 1fr);
+    gap: 2px;
+    width: 100%;
+    aspect-ratio: 1/1;
+    max-height: calc(100vh - 110px); /* 上部UI高さ分差し引き */
+    margin: 0 auto;
+}
+.cell {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #ddd;
+    border: 1px solid #aaa;
+    font-size: calc(20vmin / 5);
+    font-weight: 900;
+    cursor: pointer;
+    user-select: none;
+    line-height: 1;
+}
+.cell.wrong { background: #f99; }
+.message {
+    margin-top: 4px;
+    font-weight: bold;
+    font-size: 14px;
+    min-height: 18px;
+    text-align: center;
+}
+.success { color: green; }
+</style>
 </head>
 <body>
-    <div class="game-container">
-        <div class="header">
-            <div class="title">数字順番押しゲーム - シンプル版</div>
+<div class="game-container">
+    <div class="title">数字順番押しゲーム</div>
+    <div class="controls">
+        <div class="control-group">
+            <label for="level">初期レベル:</label>
+            <select id="level">
+                <option value="1">1 (8個)</option>
+                <option value="2">2 (12個)</option>
+                <option value="3">3 (16個)</option>
+                <option value="4">4 (20個)</option>
+                <option value="5" selected>5 (25個)</option>
+            </select>
         </div>
-        
-        <div class="controls">
-            <div class="control-group">
-                <label for="level">初期レベル:</label>
-                <select id="level">
-                    <option value="1">1 (8個)</option>
-                    <option value="2">2 (12個)</option>
-                    <option value="3">3 (16個)</option>
-                    <option value="4">4 (20個)</option>
-                    <option value="5" selected>5 (25個)</option>
-                </select>
-            </div>
-            <div class="control-group">
-                <label for="mode">モード:</label>
-                <select id="mode">
-                    <option value="normal" selected>ノーマル</option>
-                    <option value="extreme">進化</option>
-                </select>
-            </div>
-            <button class="new-game-btn" onclick="startNewGame()">新しいゲーム</button>
+        <div class="control-group">
+            <label for="mode">モード:</label>
+            <select id="mode">
+                <option value="normal" selected>ノーマル</option>
+                <option value="extreme">進化</option>
+            </select>
         </div>
-
-        <div class="info">
-            <span>次の数字: <span id="nextNumber">1</span></span>
-            <span>時間: <span id="timer">0.000</span>秒</span>
-        </div>
-
-        <div class="game-grid" id="gameGrid"></div>
-
-        <div class="message" id="message"></div>
+        <button onclick="startNewGame()">新しいゲーム</button>
     </div>
+    <div class="info">
+        <span>次の数字: <span id="nextNumber">1</span></span>
+        <span>時間: <span id="timer">0.000</span>秒</span>
+    </div>
+    <div class="game-grid" id="gameGrid"></div>
+    <div class="message" id="message"></div>
+</div>
+<script>
+let gameState = {
+    level: 5, mode: 'normal', numbers: [], currentNumber: 1,
+    maxNumber: 25, startTime: null, gameActive: false, timer: null
+};
+const initialNumberCounts = { 1: 8, 2: 12, 3: 16, 4: 20, 5: 25 };
 
-    <script>
-        let gameState = {
-            level: 5,
-            mode: 'normal',
-            numbers: [],
-            currentNumber: 1,
-            maxNumber: 25,
-            startTime: null,
-            gameActive: false,
-            timer: null,
-            cellAnimDuration: 30
-        };
+function initGame() {
+    const levelSelector = document.getElementById('level');
+    const modeSelector = document.getElementById('mode');
+    gameState.mode = modeSelector.value;
+    if (gameState.mode === 'extreme' && gameState.gameActive) {
+        gameState.level++; gameState.maxNumber++;
+        document.getElementById('message').textContent = `レベル${gameState.level - 4}へ！`;
+    } else {
+        gameState.level = parseInt(levelSelector.value);
+        gameState.maxNumber = initialNumberCounts[gameState.level];
+        document.getElementById('message').textContent = '';
+    }
+    if (gameState.maxNumber > 25) { gameComplete(true); return; }
+    const positions = Array.from({length: 25}, (_, i) => i);
+    for (let i = positions.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [positions[i], positions[j]] = [positions[j], positions[i]];
+    }
+    gameState.numbers = new Array(25).fill(null);
+    for (let i = 0; i < gameState.maxNumber; i++) {
+        gameState.numbers[positions[i]] = i + 1;
+    }
+    gameState.currentNumber = 1;
+    gameState.gameActive = true;
+    gameState.startTime = performance.now();
+    updateDisplay();
+    startTimer();
+}
 
-        const initialNumberCounts = { 1: 8, 2: 12, 3: 16, 4: 20, 5: 25 };
+function updateDisplay() {
+    const grid = document.getElementById('gameGrid');
+    grid.innerHTML = '';
+    for (let i = 0; i < 25; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.onclick = () => cellClick(i);
+        if (gameState.numbers[i] !== null) cell.textContent = gameState.numbers[i];
+        else cell.style.visibility = 'hidden';
+        grid.appendChild(cell);
+    }
+    document.getElementById('nextNumber').textContent = gameState.currentNumber;
+}
 
-        function initGame() {
-            const levelSelector = document.getElementById('level');
-            const modeSelector = document.getElementById('mode');
-            
-            gameState.mode = modeSelector.value;
-            
-            if (gameState.mode === 'extreme' && gameState.gameActive) {
-                gameState.level++;
-                gameState.maxNumber++;
-                gameState.cellAnimDuration = Math.max(10, gameState.cellAnimDuration - 2);
-                document.getElementById('message').textContent = `レベル${gameState.level - 4}へ！`;
-            } else {
-                gameState.level = parseInt(levelSelector.value);
-                gameState.maxNumber = initialNumberCounts[gameState.level];
-                gameState.cellAnimDuration = 30;
-                document.getElementById('message').textContent = '';
-            }
+function cellClick(index) {
+    if (!gameState.gameActive) return;
+    const cell = document.querySelector(`#gameGrid .cell:nth-child(${index + 1})`);
+    const number = gameState.numbers[index];
+    if (number === gameState.currentNumber) {
+        gameState.currentNumber++;
+        document.getElementById('nextNumber').textContent = gameState.currentNumber;
+        gameState.numbers[index] = null;
+        cell.style.visibility = 'hidden';
+        if (gameState.currentNumber > gameState.maxNumber) gameComplete();
+    } else if (number !== null) {
+        cell.classList.add('wrong');
+        setTimeout(() => cell.classList.remove('wrong'), 300);
+        document.getElementById('message').textContent = '順番が違います！';
+        setTimeout(() => document.getElementById('message').textContent = '', 1000);
+    }
+}
 
-            if (gameState.maxNumber > 25) {
-                gameComplete(true);
-                return;
-            }
-            
-            const positions = Array.from({length: 25}, (_, i) => i);
-            for (let i = positions.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [positions[i], positions[j]] = [positions[j], positions[i]];
-            }
-            
-            gameState.numbers = new Array(25).fill(null);
-            for (let i = 0; i < gameState.maxNumber; i++) {
-                gameState.numbers[positions[i]] = i + 1;
-            }
-            
-            gameState.currentNumber = 1;
-            gameState.gameActive = true;
-            gameState.startTime = performance.now();
-            
-            updateDisplay();
-            startTimer();
+function gameComplete(isMaxLevel = false) {
+    gameState.gameActive = false;
+    clearInterval(gameState.timer);
+    const totalTime = ((performance.now() - gameState.startTime) / 1000).toFixed(3);
+    if (isMaxLevel)
+        document.getElementById('message').innerHTML = `<span class="success">🎉 全レベルクリア！最終タイム: ${totalTime}秒</span>`;
+    else
+        document.getElementById('message').innerHTML = `<span class="success">🎉 クリア！ ${totalTime}秒！</span>`;
+    if (gameState.mode === 'extreme' && !isMaxLevel) setTimeout(initGame, 1500);
+}
+
+function startTimer() {
+    clearInterval(gameState.timer);
+    gameState.timer = setInterval(() => {
+        if (gameState.gameActive) {
+            const elapsed = ((performance.now() - gameState.startTime) / 1000).toFixed(3);
+            document.getElementById('timer').textContent = elapsed;
         }
+    }, 50);
+}
 
-        function updateDisplay() {
-            const grid = document.getElementById('gameGrid');
-            grid.innerHTML = '';
-            
-            for (let i = 0; i < 25; i++) {
-                const cell = document.createElement('div');
-                cell.className = 'cell';
-                cell.onclick = () => cellClick(i);
-                
-                if (gameState.numbers[i] !== null) {
-                    cell.textContent = gameState.numbers[i];
-                } else {
-                    cell.style.visibility = 'hidden';
-                }
-                
-                grid.appendChild(cell);
-            }
-            
-            document.getElementById('nextNumber').textContent = gameState.currentNumber;
-        }
+function startNewGame() {
+    clearInterval(gameState.timer);
+    document.getElementById('message').textContent = '';
+    const cells = document.querySelectorAll('.cell');
+    cells.forEach(cell => { cell.classList.remove('wrong'); cell.style.visibility = 'visible'; });
+    if (document.getElementById('mode').value === 'extreme') {
+        gameState.level = parseInt(document.getElementById('level').value);
+        gameState.maxNumber = initialNumberCounts[gameState.level];
+    }
+    initGame();
+}
 
-        function cellClick(index) {
-            if (!gameState.gameActive) return;
-            
-            const cell = document.querySelector(`#gameGrid .cell:nth-child(${index + 1})`);
-            const number = gameState.numbers[index];
-            
-            if (number === gameState.currentNumber) {
-                gameState.currentNumber++;
-                document.getElementById('nextNumber').textContent = gameState.currentNumber;
-                
-                gameState.numbers[index] = null;
-                cell.style.visibility = 'hidden';
-
-                if (gameState.currentNumber > gameState.maxNumber) {
-                    gameComplete();
-                }
-            } else if (number !== null) {
-                cell.classList.add('wrong');
-                setTimeout(() => {
-                    cell.classList.remove('wrong');
-                }, 500);
-                
-                document.getElementById('message').textContent = '順番が違います！';
-                setTimeout(() => {
-                    document.getElementById('message').textContent = '';
-                }, 2000);
-            }
-        }
-
-        function gameComplete(isMaxLevel = false) {
-            gameState.gameActive = false;
-            clearInterval(gameState.timer);
-            
-            const endTime = performance.now();
-            const totalTime = ((endTime - gameState.startTime) / 1000).toFixed(3);
-            
-            if (isMaxLevel) {
-                document.getElementById('message').innerHTML = 
-                    `<span class="success">🎉 全レベルクリア！最終タイム: ${totalTime}秒でした！</span>`;
-            } else {
-                document.getElementById('message').innerHTML = 
-                    `<span class="success">🎉 クリア！ ${totalTime}秒！</span>`;
-            }
-            
-            if (gameState.mode === 'extreme' && !isMaxLevel) {
-                setTimeout(() => {
-                    initGame();
-                }, 2500);
-            }
-        }
-
-        function startTimer() {
-            clearInterval(gameState.timer);
-            gameState.timer = setInterval(() => {
-                if (gameState.gameActive) {
-                    const currentTime = performance.now();
-                    const elapsed = ((currentTime - gameState.startTime) / 1000).toFixed(3);
-                    document.getElementById('timer').textContent = elapsed;
-                }
-            }, 10);
-        }
-
-        function startNewGame() {
-            clearInterval(gameState.timer);
-            document.getElementById('message').textContent = '';
-            
-            const cells = document.querySelectorAll('.cell');
-            cells.forEach(cell => {
-                cell.classList.remove('wrong');
-                cell.style.visibility = 'visible';
-            });
-            
-            if (document.getElementById('mode').value === 'extreme') {
-                 gameState.level = parseInt(document.getElementById('level').value);
-                 gameState.maxNumber = initialNumberCounts[gameState.level];
-            }
-            
-            initGame();
-        }
-
-        document.getElementById('level').addEventListener('change', startNewGame);
-        document.getElementById('mode').addEventListener('change', startNewGame);
-
-        window.onload = () => {
-            initGame();
-        };
-    </script>
+document.getElementById('level').addEventListener('change', startNewGame);
+document.getElementById('mode').addEventListener('change', startNewGame);
+window.onload = initGame;
+</script>
 </body>
 </html>
