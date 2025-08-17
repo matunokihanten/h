@@ -113,7 +113,7 @@ h1 {
 .dot {
   width: 12px;
   height: 12px;
-  background: #111; /* Changed to black for better contrast on white background */
+  background: #111;
   border-radius: 50%;
   position: absolute;
   box-shadow: 0 1px 2px rgba(0,0,0,0.3);
@@ -198,7 +198,7 @@ button:active {
   font-size: 1.2em;
   font-weight: bold;
   text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-  min-height: 2em; /* Ensure space is reserved */
+  min-height: 2em;
 }
 
 .correct {
@@ -363,7 +363,6 @@ button:active {
       <label for="answer">合計の目は？</label>
       <input type="number" id="answer" min="1" max="600" placeholder="?">
       <button id="submit-btn" onclick="checkAnswer()">答える</button>
-      <button class="next-button" id="next-btn" onclick="nextLevel()" style="display:none;">次のレベル</button>
     </div>
   </div>
 
@@ -395,7 +394,6 @@ const diceContainer = document.getElementById('dice-container');
 const answerInput = document.getElementById('answer');
 const resultEl = document.getElementById('result');
 const submitBtn = document.getElementById('submit-btn');
-const nextBtn = document.getElementById('next-btn');
 const endTitle = document.getElementById('end-title');
 const endMessage = document.getElementById('end-message');
 const finalScore = document.getElementById('final-score');
@@ -420,7 +418,6 @@ let gameActive = false;
 startBtn.addEventListener('click', startGame);
 restartBtn.addEventListener('click', startGame);
 submitBtn.addEventListener('click', checkAnswer);
-nextBtn.addEventListener('click', nextLevel);
 
 // エンターキーで回答送信
 answerInput.addEventListener('keydown', function(e) {
@@ -481,10 +478,6 @@ function generateLevel() {
   startTimer();
   updateUI();
 
-  // ボタンの表示制御
-  submitBtn.style.display = 'inline-block';
-  nextBtn.style.display = 'none';
-  
   // 入力フィールドにフォーカス
   setTimeout(() => {
     answerInput.focus();
@@ -563,18 +556,13 @@ function showResult(isCorrect, timeUp) {
     resultEl.textContent = `🎉 正解！ +${totalPoints}点${bonusText}`;
     resultEl.className = 'result correct';
     createCelebration();
+    
+    // 0.5秒待ってから次のレベルへ
+    setTimeout(() => {
+      currentLevel++;
+      generateLevel();
+    }, 500);
 
-    submitBtn.style.display = 'none';
-
-    if (currentLevel < MAX_LEVEL) {
-      nextBtn.style.display = 'inline-block';
-      // 次のボタンにフォーカス
-      setTimeout(() => {
-        nextBtn.focus();
-      }, 100);
-    } else {
-      setTimeout(() => showEndScreen('complete'), timeout);
-    }
   } else {
     resultEl.textContent = `❌ 不正解… 正解は ${correctAnswer} でした`;
     resultEl.className = 'result incorrect';
@@ -585,24 +573,12 @@ function showResult(isCorrect, timeUp) {
   updateUI();
 }
 
-// 次のレベルへ
-function nextLevel() {
-  if (currentLevel < MAX_LEVEL) {
-    currentLevel++;
-    generateLevel();
-  }
-}
-
 // 終了画面表示
 function showEndScreen(type) {
   gameContainer.style.display = 'none';
   endScreen.style.display = 'flex';
 
   switch (type) {
-    case 'complete':
-      endTitle.textContent = '🏆 全レベルクリア！ 🏆';
-      endMessage.textContent = 'おめでとうございます！完璧なサイコロマスターです！';
-      break;
     case 'timeout':
       endTitle.textContent = '⏰ 時間切れ';
       endMessage.textContent = 'もう少し速く計算してみよう！';
@@ -619,7 +595,6 @@ function showEndScreen(type) {
     <div>最大連続正解: ${maxStreak}回</div>
   `;
   
-  // リスタートボタンにフォーカス
   setTimeout(() => {
     restartBtn.focus();
   }, 100);
@@ -631,8 +606,8 @@ function updateUI() {
   scoreEl.textContent = score.toLocaleString();
   streakEl.textContent = streak;
 
-  const progress = ((currentLevel - 1) / (MAX_LEVEL - 1)) * 100;
-  progressFill.style.width = `${progress}%`;
+  // MAX_LEVELのプログレスバーを削除
+  progressFill.style.width = `100%`;
 }
 
 // 3Dサイコロ作成
@@ -705,7 +680,7 @@ function createCelebration() {
   const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#6c5ce7', '#a29bfe', '#fd79a8', '#00b894'];
   const particleCount = streak > 5 ? 80 : 50;
 
-  celebration.innerHTML = ''; // 既存の紙吹雪をクリア
+  celebration.innerHTML = '';
 
   for (let i = 0; i < particleCount; i++) {
     const confetti = document.createElement('div');
