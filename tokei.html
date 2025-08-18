@@ -135,7 +135,7 @@
       <button class="num-btn">1</button><button class="num-btn">2</button><button class="num-btn">3</button>
       <button class="num-btn">4</button><button class="num-btn">5</button><button class="num-btn">6</button>
       <button class="num-btn">7</button><button class="num-btn">8</button><button class="num-btn">9</button>
-      <button class="num-btn">0</button><button class="num-btn" id="clearBtn">←</button>
+      <button class="num-btn">0</button><button class="num-btn" id="clearBtn">←</button><button class="num-btn" id="resetBtn">C</button>
     </div>
     <div class="buttons">
       <button id="checkBtn" class="btn btn-primary">答え合わせ</button>
@@ -202,7 +202,9 @@
     newProblemBtn.addEventListener("click",()=>{ result.textContent=""; newProblem(); });
 
     document.querySelectorAll(".num-btn").forEach(b=>{
-      b.addEventListener("click",()=>{ if(b.id==="clearBtn"){ activeField.value=activeField.value.slice(0,-1); return;}
+      b.addEventListener("click",()=>{
+        if(b.id==="clearBtn"){ activeField.value=activeField.value.slice(0,-1); return; }
+        if(b.id==="resetBtn"){ activeField.value=""; return; }
         if(activeField.value.length<2){ activeField.value+=b.textContent; }
         let val=parseInt(activeField.value||"0");
         if(activeField===hourField && val>12) val=12;
