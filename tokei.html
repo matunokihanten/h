@@ -1,313 +1,234 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>時計読み取りゲーム NEO</title>
-    <style>
-        :root {
-            --glow-color: #00ffff;
-            --primary-text: #e0e0e0;
-            --dark-bg: #121828;
-            --accent-color: #ff55a5;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        html, body {
-            height: 100%;
-            overflow: hidden;
-        }
-        
-        body {
-            font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
-            background: linear-gradient(to bottom, #1a2a3a, var(--dark-bg));
-            color: var(--primary-text);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-evenly;
-            align-items: center;
-            padding: 10px;
-        }
-        
-        .header {
-            text-align: center;
-        }
-        
-        .title {
-            font-size: clamp(1.5rem, 6vw, 2rem);
-            font-weight: 700;
-            letter-spacing: 2px;
-            text-shadow: 0 0 5px var(--glow-color), 0 0 10px var(--glow-color);
-        }
-        
-        .score {
-            font-size: clamp(0.9rem, 3.5vw, 1.1rem);
-            opacity: 0.8;
-            margin-top: 8px;
-        }
-        
-        .clock-container {
-            position: relative;
-            width: min(320px, 85vmin);
-            height: min(320px, 85vmin);
-        }
-        
-        .clock {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            position: relative;
-            background: radial-gradient(circle, #2a3a4a, #1a2a3a);
-            border: 3px solid rgba(0, 255, 255, 0.3);
-            box-shadow: 
-                inset 0 0 20px rgba(0,0,0,0.5),
-                0 0 10px var(--glow-color),
-                0 0 25px var(--glow-color),
-                0 0 50px rgba(0, 255, 255, 0.3);
-        }
-
-        .number {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform-origin: center;
-            font-size: clamp(1rem, 6vmin, 1.8rem);
-            font-weight: 500;
-            color: var(--glow-color);
-            text-shadow: 0 0 3px var(--glow-color);
-        }
-        
-        .clock.numbers-hidden .number {
-            display: none;
-        }
-        
-        .hand {
-            position: absolute;
-            transform-origin: bottom center;
-            left: 50%;
-            bottom: 50%;
-            border-radius: 5px;
-            background-color: #ffffff;
-            box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
-        }
-        
-        .hour-hand { width: 8px; height: 28%; margin-left: -4px; z-index: 2; }
-        .minute-hand { width: 6px; height: 38%; margin-left: -3px; z-index: 3; }
-        
-        .second-hand {
-            width: 2px;
-            height: 42%;
-            margin-left: -1px;
-            z-index: 4;
-            background: var(--accent-color);
-            box-shadow: 0 0 10px var(--accent-color);
-        }
-        
-        .center-dot {
-            position: absolute;
-            width: 18px;
-            height: 18px;
-            background: var(--glow-color);
-            border: 3px solid var(--dark-bg);
-            border-radius: 50%;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 5;
-            box-shadow: 0 0 10px var(--glow-color);
-        }
-
-        .display-options {
-            display: flex; gap: 20px; font-size: clamp(0.9rem, 3.5vw, 1rem);
-            background: rgba(0, 0, 0, 0.3); padding: 8px 15px; border-radius: 20px;
-        }
-        .display-options label { cursor: pointer; display: flex; align-items: center; gap: 5px; }
-        
-        .controls { width: 100%; max-width: 400px; text-align: center; }
-        
-        .time-input {
-            display: flex; justify-content: center; align-items: center;
-            margin-bottom: 15px; gap: clamp(5px, 2vw, 10px);
-        }
-        
-        .time-input select {
-            padding: 8px; border: 1px solid var(--glow-color); border-radius: 8px;
-            font-size: clamp(1rem, 4vw, 1.1rem); background: #1a2a3a; color: var(--primary-text);
-        }
-        .time-input span { font-size: clamp(1rem, 4vw, 1.2rem); font-weight: 600; }
-        
-        .buttons { display: flex; gap: 15px; justify-content: center; }
-        
-        .btn {
-            padding: 12px 25px; border: none; border-radius: 30px;
-            font-size: clamp(1rem, 4vw, 1.1rem); cursor: pointer;
-            transition: all 0.2s ease; font-weight: 700;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-        }
-        .btn:disabled { cursor: not-allowed; opacity: 0.5; }
-        
-        .btn-primary { background: var(--accent-color); color: white; }
-        .btn-primary:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(255, 85, 165, 0.3); }
-        .btn-secondary { background: #3a4a5a; color: var(--primary-text); }
-        .btn-secondary:not(:disabled):hover { background: #4a5a6a; transform: translateY(-2px); }
-        
-        .result {
-            margin-top: 15px; font-size: clamp(1.1rem, 4.5vw, 1.2rem); font-weight: 700;
-            min-height: 30px; display: flex; align-items: center; justify-content: center;
-        }
-        
-        .correct { color: #00ffaa; text-shadow: 0 0 5px #00ffaa; }
-        .incorrect { color: #ff5555; text-shadow: 0 0 5px #ff5555; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>時計読み取りゲーム NEO</title>
+  <style>
+    :root {
+      --glow-color: #00ffff;
+      --primary-text: #e0e0e0;
+      --dark-bg: #121828;
+      --accent-color: #ff55a5;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Segoe UI', 'Roboto', sans-serif;
+      background: linear-gradient(to bottom, #1a2a3a, var(--dark-bg));
+      color: var(--primary-text);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-evenly;
+      align-items: center;
+    }
+    .header { text-align: center; }
+    .title {
+      font-size: clamp(1.5rem, 6vw, 2rem);
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-shadow: 0 0 5px var(--glow-color), 0 0 10px var(--glow-color);
+    }
+    .score { font-size: 0.9rem; opacity: 0.8; margin-top: 5px; }
+    .clock-container {
+      width: min(250px, 80vmin);
+      height: min(250px, 80vmin);
+      position: relative;
+    }
+    .clock {
+      width: 100%; height: 100%; border-radius: 50%;
+      background: radial-gradient(circle, #2a3a4a, #1a2a3a);
+      border: 3px solid rgba(0,255,255,0.3);
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 0 15px var(--glow-color);
+      position: relative;
+    }
+    .number {
+      position: absolute; top: 50%; left: 50%;
+      transform-origin: center;
+      font-size: clamp(0.9rem, 4.5vmin, 1.2rem);
+      color: var(--glow-color); text-shadow: 0 0 3px var(--glow-color);
+    }
+    .clock.numbers-hidden .number { display: none; }
+    .hand {
+      position: absolute; transform-origin: bottom center;
+      left: 50%; bottom: 50%; border-radius: 5px; background: #fff;
+    }
+    .hour-hand { width: 6px; height: 28%; margin-left: -3px; z-index: 2; }
+    .minute-hand { width: 4px; height: 38%; margin-left: -2px; z-index: 3; }
+    .second-hand {
+      width: 2px; height: 42%; margin-left: -1px; z-index: 4;
+      background: var(--accent-color); box-shadow: 0 0 5px var(--accent-color);
+    }
+    .center-dot {
+      position: absolute; width: 14px; height: 14px;
+      background: var(--glow-color); border: 2px solid var(--dark-bg);
+      border-radius: 50%; top: 50%; left: 50%;
+      transform: translate(-50%, -50%); z-index: 5;
+    }
+    .display-options {
+      display: flex; gap: 10px; font-size: 0.8rem;
+      background: rgba(0,0,0,0.3); padding: 4px 10px; border-radius: 15px;
+    }
+    .display-options label { cursor: pointer; }
+    .controls { width: 100%; max-width: 350px; text-align: center; }
+    .time-input {
+      display: flex; justify-content: center; gap: 10px; margin-bottom: 5px;
+    }
+    .time-field {
+      width: 50px; padding: 6px; font-size: 1rem;
+      background: #1a2a3a; color: var(--primary-text);
+      border: 1px solid var(--glow-color); border-radius: 8px;
+      text-align: center;
+    }
+    .active-field { border: 2px solid var(--accent-color) !important; }
+    .number-pad {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+      margin: 5px auto; max-width: 200px;
+    }
+    .num-btn {
+      padding: 8px 0; font-size: 1.1rem; font-weight: 700;
+      border-radius: 6px; background: #3a4a5a; color: #fff;
+      border: none; cursor: pointer;
+    }
+    .num-btn:active { background: #4a5a6a; }
+    .buttons { display: flex; gap: 10px; justify-content: center; margin-top: 5px; }
+    .btn {
+      padding: 8px 15px; border: none; border-radius: 20px;
+      font-size: 1rem; cursor: pointer; font-weight: 700;
+    }
+    .btn-primary { background: var(--accent-color); color: #fff; }
+    .btn-secondary { background: #3a4a5a; color: #fff; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .result {
+      margin-top: 5px; font-weight: 700; min-height: 24px;
+      display: flex; justify-content: center; align-items: center;
+    }
+    .correct { color: #00ffaa; }
+    .incorrect { color: #ff5555; }
+  </style>
 </head>
 <body>
-    <div class="header">
-        <div class="title">時計読み取りゲーム</div>
-        <div class="score">正解: <span id="correct">0</span> / 問題: <span id="total">0</span></div>
+  <div class="header">
+    <div class="title">時計読み取りゲーム</div>
+    <div class="score">正解: <span id="correct">0</span> / 問題: <span id="total">0</span></div>
+  </div>
+  <div class="clock-container">
+    <div class="clock" id="clock">
+      <div class="hand hour-hand" id="hourHand"></div>
+      <div class="hand minute-hand" id="minuteHand"></div>
+      <div class="hand second-hand" id="secondHand"></div>
+      <div class="center-dot"></div>
     </div>
-    
-    <div class="clock-container">
-        <div class="clock" id="clock">
-            <div class="hand hour-hand" id="hourHand"></div>
-            <div class="hand minute-hand" id="minuteHand"></div>
-            <div class="hand second-hand" id="secondHand"></div>
-            <div class="center-dot"></div>
-        </div>
+  </div>
+  <div class="display-options">
+    <label><input type="radio" name="numberDisplay" value="show" onchange="toggleNumbers()"> 数字あり</label>
+    <label><input type="radio" name="numberDisplay" value="hide" onchange="toggleNumbers()" checked> 数字なし</label>
+  </div>
+  <div class="controls">
+    <div class="time-input">
+      <input id="hourField" class="time-field" maxlength="2" readonly>時
+      <input id="minuteField" class="time-field" maxlength="2" readonly>分
+      <input id="secondField" class="time-field" maxlength="2" readonly>秒
     </div>
-
-    <div class="display-options">
-        <label><input type="radio" name="numberDisplay" value="show" onchange="toggleNumbers()"> 数字あり</label>
-        <label><input type="radio" name="numberDisplay" value="hide" onchange="toggleNumbers()" checked> 数字なし</label>
+    <div class="number-pad">
+      <button class="num-btn">1</button><button class="num-btn">2</button><button class="num-btn">3</button>
+      <button class="num-btn">4</button><button class="num-btn">5</button><button class="num-btn">6</button>
+      <button class="num-btn">7</button><button class="num-btn">8</button><button class="num-btn">9</button>
+      <button class="num-btn">0</button><button class="num-btn" id="clearBtn">←</button>
     </div>
-    
-    <div class="controls">
-        <div class="time-input">
-            <select id="hourSelect"></select><span>時</span>
-            <select id="minuteSelect"></select><span>分</span>
-            <select id="secondSelect"></select><span>秒</span>
-        </div>
-        
-        <div class="buttons">
-            <button id="checkBtn" class="btn btn-primary">答え合わせ</button>
-            <button id="newProblemBtn" class="btn btn-secondary">新しい問題</button>
-        </div>
-        
-        <div class="result" id="result"></div>
+    <div class="buttons">
+      <button id="checkBtn" class="btn btn-primary">答え合わせ</button>
+      <button id="newProblemBtn" class="btn btn-secondary">新しい問題</button>
     </div>
-    
-    <script>
-        let currentHour, currentMinute, currentSecond;
-        let correctCount = 0;
-        let totalCount = 0;
-        
-        const hourHand = document.getElementById('hourHand');
-        const minuteHand = document.getElementById('minuteHand');
-        const secondHand = document.getElementById('secondHand');
-        const clock = document.getElementById('clock');
-        const hourSelect = document.getElementById('hourSelect');
-        const minuteSelect = document.getElementById('minuteSelect');
-        const secondSelect = document.getElementById('secondSelect');
-        const checkBtn = document.getElementById('checkBtn');
-        const newProblemBtn = document.getElementById('newProblemBtn');
-        const result = document.getElementById('result');
+    <div class="result" id="result"></div>
+  </div>
+  
+  <script>
+    let currentHour, currentMinute, currentSecond;
+    let correctCount = 0, totalCount = 0;
+    const hourHand = document.getElementById('hourHand');
+    const minuteHand = document.getElementById('minuteHand');
+    const secondHand = document.getElementById('secondHand');
+    const clock = document.getElementById('clock');
+    const result = document.getElementById('result');
+    const checkBtn = document.getElementById('checkBtn');
+    const newProblemBtn = document.getElementById('newProblemBtn');
+    const hourField = document.getElementById('hourField');
+    const minuteField = document.getElementById('minuteField');
+    const secondField = document.getElementById('secondField');
+    let activeField = hourField;
 
-        checkBtn.addEventListener('click', checkAnswer);
-        newProblemBtn.addEventListener('click', () => {
-             result.textContent = '';
-             result.className = 'result';
-             newProblem();
-        });
-        
-        function setClockTime(hour, minute, second) {
-            const secondAngle = second * 6;
-            const minuteAngle = minute * 6 + second * 0.1;
-            const hourAngle = (hour % 12) * 30 + minute * 0.5 + second * (0.5 / 60);
-            
-            hourHand.style.transform = `rotate(${hourAngle}deg)`;
-            minuteHand.style.transform = `rotate(${minuteAngle}deg)`;
-            secondHand.style.transform = `rotate(${secondAngle}deg)`;
-        }
-        
-        function newProblem() {
-            currentHour = Math.floor(Math.random() * 12) + 1;
-            currentMinute = Math.floor(Math.random() * 60);
-            currentSecond = Math.floor(Math.random() * 60);
-            
-            setClockTime(currentHour, currentMinute, currentSecond);
-            
-            hourSelect.value = '1';
-            minuteSelect.value = '0';
-            secondSelect.value = '0';
-        }
-        
-        function checkAnswer() {
-            checkBtn.disabled = true;
-            newProblemBtn.disabled = true;
+    [hourField, minuteField, secondField].forEach(f=>{
+      f.addEventListener("click", ()=>{ activeField.classList.remove("active-field"); activeField=f; activeField.classList.add("active-field"); });
+    });
+    hourField.classList.add("active-field");
 
-            const selectedHour = parseInt(hourSelect.value);
-            const selectedMinute = parseInt(minuteSelect.value);
-            const selectedSecond = parseInt(secondSelect.value);
-            
-            totalCount++;
-            
-            const isCorrect = selectedHour === currentHour && selectedMinute === currentMinute && selectedSecond === currentSecond;
+    function setClockTime(hour, minute, second){
+      const sAng = second*6;
+      const mAng = minute*6 + second*0.1;
+      const hAng = (hour%12)*30 + minute*0.5 + second*(0.5/60);
+      hourHand.style.transform=`rotate(${hAng}deg)`;
+      minuteHand.style.transform=`rotate(${mAng}deg)`;
+      secondHand.style.transform=`rotate(${sAng}deg)`;
+    }
 
-            if (isCorrect) {
-                correctCount++;
-                result.textContent = "正解！ 🎉";
-                result.className = 'result correct';
-            } else {
-                const correctTimeStr = `${currentHour}時 ${currentMinute}分 ${currentSecond}秒`;
-                result.textContent = `不正解... 正解は ${correctTimeStr}`;
-                result.className = 'result incorrect';
-            }
-            
-            document.getElementById('correct').textContent = correctCount;
-            document.getElementById('total').textContent = totalCount;
+    function newProblem(){
+      currentHour = Math.floor(Math.random()*12)+1;
+      currentMinute = Math.floor(Math.random()*60);
+      currentSecond = Math.floor(Math.random()*60);
+      setClockTime(currentHour, currentMinute, currentSecond);
+      hourField.value=""; minuteField.value=""; secondField.value="";
+    }
 
-            setTimeout(() => {
-                result.textContent = '';
-                result.className = 'result';
-                newProblem();
-                checkBtn.disabled = false;
-                newProblemBtn.disabled = false;
-            }, 2000);
-        }
+    function checkAnswer(){
+      checkBtn.disabled=true; newProblemBtn.disabled=true;
+      const h=parseInt(hourField.value||"0");
+      const m=parseInt(minuteField.value||"0");
+      const s=parseInt(secondField.value||"0");
+      totalCount++;
+      if(h===currentHour && m===currentMinute && s===currentSecond){
+        correctCount++; result.textContent="正解！🎉"; result.className="result correct";
+      } else {
+        result.textContent=`不正解... 正解は ${currentHour}時${currentMinute}分${currentSecond}秒`;
+        result.className="result incorrect";
+      }
+      document.getElementById('correct').textContent=correctCount;
+      document.getElementById('total').textContent=totalCount;
+      setTimeout(()=>{ result.textContent=""; result.className="result"; newProblem(); checkBtn.disabled=false; newProblemBtn.disabled=false; },2000);
+    }
 
-        function toggleNumbers() {
-            const selectedValue = document.querySelector('input[name="numberDisplay"]:checked').value;
-            clock.classList.toggle('numbers-hidden', selectedValue === 'hide');
-        }
+    checkBtn.addEventListener("click",checkAnswer);
+    newProblemBtn.addEventListener("click",()=>{ result.textContent=""; newProblem(); });
 
-        function initializeGame() {
-            clock.classList.add('numbers-hidden');
+    document.querySelectorAll(".num-btn").forEach(b=>{
+      b.addEventListener("click",()=>{ if(b.id==="clearBtn"){ activeField.value=activeField.value.slice(0,-1); return;}
+        if(activeField.value.length<2){ activeField.value+=b.textContent; }
+        let val=parseInt(activeField.value||"0");
+        if(activeField===hourField && val>12) val=12;
+        if(activeField!==hourField && val>59) val=59;
+        activeField.value=val.toString();
+      });
+    });
 
-            const radius = clock.offsetWidth / 2;
-            for (let i = 1; i <= 12; i++) {
-                const angle = i * 30 * Math.PI / 180;
-                const number = document.createElement('div');
-                number.className = 'number';
-                number.textContent = i;
-                const x = Math.sin(angle) * (radius * 0.82);
-                const y = -Math.cos(angle) * (radius * 0.82);
-                number.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
-                clock.appendChild(number);
-            }
+    function toggleNumbers(){
+      const v=document.querySelector('input[name="numberDisplay"]:checked').value;
+      clock.classList.toggle('numbers-hidden',v==="hide");
+    }
 
-            for (let i = 1; i <= 12; i++) hourSelect.innerHTML += `<option value="${i}">${i}</option>`;
-            for (let i = 0; i < 60; i++) {
-                const val = String(i).padStart(2, '0');
-                minuteSelect.innerHTML += `<option value="${i}">${val}</option>`;
-                secondSelect.innerHTML += `<option value="${i}">${val}</option>`;
-            }
-            newProblem();
-        }
-        document.addEventListener('DOMContentLoaded', initializeGame);
-    </script>
+    function initializeGame(){
+      clock.classList.add('numbers-hidden');
+      const radius=clock.offsetWidth/2;
+      for(let i=1;i<=12;i++){
+        const a=i*30*Math.PI/180;
+        const n=document.createElement('div'); n.className='number'; n.textContent=i;
+        const x=Math.sin(a)*(radius*0.82);
+        const y=-Math.cos(a)*(radius*0.82);
+        n.style.transform=`translate(-50%,-50%) translate(${x}px,${y}px)`; clock.appendChild(n);
+      }
+      newProblem();
+    }
+    document.addEventListener("DOMContentLoaded",initializeGame);
+  </script>
 </body>
 </html>
