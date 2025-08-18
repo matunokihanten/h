@@ -14,6 +14,7 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
       height: 100%;
+      width: 100%;
       overflow: hidden;
       font-family: 'Segoe UI', 'Roboto', sans-serif;
       background: linear-gradient(to bottom, #1a2a3a, var(--dark-bg));
@@ -24,17 +25,15 @@
       align-items: center;
     }
     .header { text-align: center; }
-    .title {
-      font-size: clamp(1.5rem, 6vw, 2rem);
-      font-weight: 700;
-      letter-spacing: 2px;
-      text-shadow: 0 0 5px var(--glow-color), 0 0 10px var(--glow-color);
+    .score {
+      font-size: clamp(0.8rem, 2.5vw, 1rem);
+      opacity: 0.9;
     }
-    .score { font-size: 0.9rem; opacity: 0.8; margin-top: 5px; }
     .clock-container {
-      width: min(250px, 80vmin);
-      height: min(250px, 80vmin);
+      width: min(340px, 75vmin);
+      height: min(340px, 75vmin);
       position: relative;
+      flex-shrink: 0;
     }
     .clock {
       width: 100%; height: 100%; border-radius: 50%;
@@ -46,7 +45,7 @@
     .number {
       position: absolute; top: 50%; left: 50%;
       transform-origin: center;
-      font-size: clamp(0.9rem, 4.5vmin, 1.2rem);
+      font-size: clamp(0.8rem, 3.5vmin, 1.2rem);
       color: var(--glow-color); text-shadow: 0 0 3px var(--glow-color);
     }
     .clock.numbers-hidden .number { display: none; }
@@ -67,42 +66,44 @@
       transform: translate(-50%, -50%); z-index: 5;
     }
     .display-options {
-      display: flex; gap: 10px; font-size: 0.8rem;
+      display: flex; gap: 10px; font-size: clamp(0.7rem, 2vw, 0.85rem);
       background: rgba(0,0,0,0.3); padding: 4px 10px; border-radius: 15px;
     }
-    .display-options label { cursor: pointer; }
-    .controls { width: 100%; max-width: 350px; text-align: center; }
+    .display-options label { cursor: pointer; white-space: nowrap; }
+    .controls { width: 100%; max-width: 320px; text-align: center; flex-shrink: 0; }
     .time-input {
-      display: flex; justify-content: center; gap: 10px; margin-bottom: 5px;
+      display: flex; justify-content: center; gap: 5px; margin-bottom: 4px;
+      font-size: clamp(0.8rem, 2.4vw, 0.9rem);
     }
     .time-field {
-      width: 50px; padding: 6px; font-size: 1rem;
+      width: 42px; padding: 5px; font-size: clamp(0.9rem, 4vw, 1rem);
       background: #1a2a3a; color: var(--primary-text);
-      border: 1px solid var(--glow-color); border-radius: 8px;
+      border: 1px solid var(--glow-color); border-radius: 6px;
       text-align: center;
     }
     .active-field { border: 2px solid var(--accent-color) !important; }
     .number-pad {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
-      margin: 5px auto; max-width: 200px;
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+      margin: 5px auto; max-width: 180px;
     }
     .num-btn {
-      padding: 8px 0; font-size: 1.1rem; font-weight: 700;
+      padding: 8px 0; font-size: clamp(1rem, 4vw, 1.1rem); font-weight: 700;
       border-radius: 6px; background: #3a4a5a; color: #fff;
       border: none; cursor: pointer;
     }
     .num-btn:active { background: #4a5a6a; }
-    .buttons { display: flex; gap: 10px; justify-content: center; margin-top: 5px; }
+    .buttons { display: flex; gap: 8px; justify-content: center; margin-top: 4px; }
     .btn {
-      padding: 8px 15px; border: none; border-radius: 20px;
-      font-size: 1rem; cursor: pointer; font-weight: 700;
+      padding: 6px 12px; border: none; border-radius: 20px;
+      font-size: clamp(0.9rem, 3.5vw, 1rem); cursor: pointer; font-weight: 700;
     }
     .btn-primary { background: var(--accent-color); color: #fff; }
     .btn-secondary { background: #3a4a5a; color: #fff; }
     .btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .result {
-      margin-top: 5px; font-weight: 700; min-height: 24px;
+      margin-top: 4px; font-weight: 700; min-height: 22px;
       display: flex; justify-content: center; align-items: center;
+      font-size: clamp(0.85rem, 3vw, 1rem);
     }
     .correct { color: #00ffaa; }
     .incorrect { color: #ff5555; }
@@ -110,7 +111,6 @@
 </head>
 <body>
   <div class="header">
-    <div class="title">時計読み取りゲーム</div>
     <div class="score">正解: <span id="correct">0</span> / 問題: <span id="total">0</span></div>
   </div>
   <div class="clock-container">
