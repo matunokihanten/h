@@ -157,12 +157,22 @@
     const hourField = document.getElementById('hourField');
     const minuteField = document.getElementById('minuteField');
     const secondField = document.getElementById('secondField');
+    const timeFields = [hourField, minuteField, secondField];
     let activeField = hourField;
 
-    [hourField, minuteField, secondField].forEach(f=>{
-      f.addEventListener("click", ()=>{ activeField.classList.remove("active-field"); activeField=f; activeField.classList.add("active-field"); });
+    timeFields.forEach(f=>{
+      f.addEventListener("click", ()=>{
+        activeField.classList.remove("active-field");
+        activeField=f;
+        activeField.classList.add("active-field");
+      });
     });
-    hourField.classList.add("active-field");
+    
+    function setActiveField(field) {
+        activeField.classList.remove("active-field");
+        activeField = field;
+        activeField.classList.add("active-field");
+    }
 
     function setClockTime(hour, minute, second){
       const sAng = second*6;
@@ -179,6 +189,7 @@
       currentSecond = Math.floor(Math.random()*60);
       setClockTime(currentHour, currentMinute, currentSecond);
       hourField.value=""; minuteField.value=""; secondField.value="";
+      setActiveField(hourField);
     }
 
     function checkAnswer(){
