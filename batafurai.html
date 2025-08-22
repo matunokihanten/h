@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>リアル・バタフライナイフ反応速度トレーニング</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(120deg, #242b33, #596471 80%);
+      color: #fff;
+      font-family: "Segoe UI", "Yu Gothic", sans-serif;
+      overscroll-behavior-y: contain;
+      touch-action: manipulation;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100vw;
+      height: 100vh;
+      max-width: 100vw;
+      max-height: 100vh;
+      box-sizing: border-box;
+      overflow: hidden;
+      padding: 0;
+    }
+    h1 {
+      margin: 3vh 0 1vh 0;
+      font-size: 1.7em;
+      line-height: 1.2;
+      letter-spacing: 0.04em;
+      user-select: none;
+    }
+    #knifeSvg {
+      width: 50vw;
+      max-width: 270px;
+      min-width: 110px;
+      height: 44vh;
+      max-height: 360px;
+      min-height: 120px;
+      margin: 1vh 0 0.5vh 0;
+      display: block;
+      user-select: none;
+      pointer-events: none;
+      transition: filter 0.2s;
+      flex-shrink: 0;
+    }
+    #actionBtn {
+      padding: 1.4vh 6vw;
+      font-size: min(4.8vw,22px);
+      background: #29b6f6;
+      border: none;
+      color: #fff;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 3px 13px #2226a333;
+      margin: 2vh 0 1vh 0;
+      transition: background 0.2s;
+      flex-shrink: 0;
+      user-select: none;
+    }
+    #actionBtn:active {
+      background: #1976d2;
+    }
+    #info {
+      margin: 0.2vh 0 0 0;
+      line-height: 1.6;
+      font-size: min(4vw,1.16em);
+      flex-shrink: 1;
+      user-select: none;
+    }
+    #recentList {
+      display: flex;
+      gap: 1vw;
+      justify-content: center;
+      margin-bottom: 6px;
+      user-select: none;
+    }
+    .bar {
+      width: min(8vw,26px);
+      height: 54px;
+      background: linear-gradient(135deg, #fbc02d 45%, #fffde7 90%);
+      border-radius: 7px 7px 0 0;
+      margin-top: 6px;
+      box-shadow: 0 2px 5px #3338;
+      position: relative;
+      overflow: visible;
+      flex-shrink: 1;
+      cursor: default;
+      transition: background 0.3s;
+    }
+    .best {
+      background: linear-gradient(135deg, #29b6f6 45%, #add8ff 90%);
+      box-shadow: 0 3px 9px #1a86d1bb;
+    }
+    .bar:hover {
+      filter: brightness(1.1);
+    }
+    .barNum {
+      position: absolute;
+      top: -1.6em;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.75em;
+      color: #fffa;
+      font-weight: 700;
+      text-shadow: 0 0 2px #0008;
+      white-space: nowrap;
+      user-select: none;
+      pointer-events: none;
+    }
+    #message {
+      margin-top: 0.8vh;
+      min-height: 2em;
+      font-size: 1.11em;
+      font-weight: bold;
+      letter-spacing: 0.02em;
+      flex-shrink: 1;
+      user-select: none;
+      text-shadow: 0 0 6px #0009;
+    }
+    @media (max-width: 370px) {
+      h1 { font-size: 1.2em; }
+      #knifeSvg { min-width: 80px; min-height:74px;}
+    }
+    @media (max-height: 540px) {
+      #knifeSvg { height:30vh; min-height:74px;}
+      #actionBtn { font-size: min(4vw,18px);}
+      #info { font-size: min(3.4vw,1.02em);}
+    }
+  </style>
+</head>
+<body>
+<div class="container" role="main" aria-label="リアル・バタフライナイフ反応速度トレーニング">
+  <h1>リアル・バタフライナイフ<br>反応速度トレーニング</h1>
+  <svg id="knifeSvg" viewBox="0 0 220 440" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="bladeGradient1" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#f5f7fa" />
+        <stop offset="25%" stop-color="#e2e6eb" />
+        <stop offset="50%" stop-color="#c1c9d1" />
+        <stop offset="75%" stop-color="#a4b0bc" />
+        <stop offset="100%" stop-color="#a4b1bd" />
+      </linearGradient>
+      <linearGradient id="bladeGradient2" x1="1" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#f5f7fa" />
+        <stop offset="25%" stop-color="#e2e6eb" />
+        <stop offset="50%" stop-color="#c1c9d1" />
+        <stop offset="75%" stop-color="#a4b0bc" />
+        <stop offset="100%" stop-color="#a4b1bd" />
+      </linearGradient>
+      <radialGradient id="highlight" cx="0.5" cy="0.3" r="0.8" fx="0.4" fy="0.2">
+        <stop offset="0%" stop-color="white" stop-opacity="0.9" />
+        <stop offset="60%" stop-color="white" stop-opacity="0.3" />
+        <stop offset="100%" stop-color="white" stop-opacity="0" />
+      </radialGradient>
+      <linearGradient id="handleGradient" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#d9d7d4" />
+        <stop offset="30%" stop-color="#f4f4f2" />
+        <stop offset="60%" stop-color="#c5c4c2" />
+        <stop offset="100%" stop-color="#a9a8a6" />
+      </linearGradient>
+      <filter id="bladeShadow" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+        <feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#000" flood-opacity="0.3"/>
+      </filter>
+    </defs>
+    <g id="blade1Group" filter="url(#bladeShadow)">
+      <path id="blade1" fill="url(#bladeGradient1)" />
+      <path id="blade1Highlight" fill="url(#highlight)" />
+    </g>
+    <g id="blade2Group" filter="url(#bladeShadow)">
+      <path id="blade2" fill="url(#bladeGradient2)" />
+      <path id="blade2Highlight" fill="url(#highlight)" />
+    </g>
+    <rect id="handle" x="98" y="205" width="24" height="110" rx="10" fill="url(#handleGradient)" stroke="#6b6049" stroke-width="3"/>
+    <circle cx="110" cy="218" r="9" fill="#444" stroke="#aaa" stroke-width="2"/>
+    <ellipse cx="110" cy="260" rx="16" ry="7" fill="#bdbdbd"/>
+    <circle cx="110" cy="295" r="3" fill="#aaa"/>
+    <circle cx="110" cy="315" r="3" fill="#aaa"/>
+    <circle cx="110" cy="335" r="3" fill="#aaa"/>
+  </svg>
+  <button id="actionBtn" aria-live="polite" aria-atomic="true">開始</button>
+  <div id="info" aria-live="polite" aria-atomic="true">
+    <div>スコア: <span id="score">0</span>　|　自己ベスト: <span id="best">—</span> ms</div>
+    <div id="recentList" aria-label="直近5回の反応時間の履歴"></div>
+    <div id="message">「開始」ボタンを押してください</div>
+  </div>
+</div>
+<script>
+  // --- これ以降ロジックは一切変更禁止 ---
+
+  function setBladePaths(open=false) {
+    document.getElementById('blade1').setAttribute('d',
+      open ?
+      "M110,220 l65,-180 q12,-18 15,12 l18,120 q2,15 -12,12 l-88,25 z" :
+      "M110,220 l0,-210 q0,-22 15,-20 l12,1 q10,1 10,20 l0,210 z"
+    );
+    document.getElementById('blade2').setAttribute('d',
+      open ?
+      "M110,220 l-65,-180 q-12,-18 -15,12 l-18,120 q-2,15 12,12 l88,25 z" :
+      "M110,220 l0,-210 q0,-22 -15,-20 l-12,1 q-10,1 -10,20 l0,210 z"
+    );
+    // ハイライト用パスは刃形状とほぼ同じ、僅かに小さくして光沢感表現
+    const hOffset = 4;
+    document.getElementById('blade1Highlight').setAttribute('d',
+      open ?
+      "M110,220 l60,-175 q11,-16 14,10 l16,110 q2,13 -11,11 l-82,22 z" :
+      "M110,220 l0,-200 q0,-20 13,-18 l11,1 q9,1 9,18 l0,200 z"
+    );
+    document.getElementById('blade2Highlight').setAttribute('d',
+      open ?
+      "M110,220 l-60,-175 q-11,-16 -14,10 l-16,110 q-2,13 11,11 l82,22 z" :
+      "M110,220 l0,-200 q0,-20 -13,-18 l-11,1 q-9,1 -9,18 l0,200 z"
+    );
+  }
+  function bladeTransform(gid, deg){
+    document.getElementById(gid).setAttribute('transform',
+      `rotate(${deg},110,220)`);
+  }
+
+  const btn     = document.getElementById('actionBtn');
+  const scoreEl = document.getElementById('score');
+  const bestEl  = document.getElementById('best');
+  const msgEl   = document.getElementById('message');
+  const recentList = document.getElementById('recentList');
+
+  // localStorage履歴
+  function saveHistory(best, records){
+    const data = { best: best, records: records };
+    localStorage.setItem('knifeGameHistory', JSON.stringify(data));
+  }
+  function loadHistory(){
+    try {
+      return JSON.parse(localStorage.getItem('knifeGameHistory')) || {best: Infinity, records: []};
+    } catch { return {best: Infinity, records:[]}; }
+  }
+
+  let state = 'idle';
+  let openTime = 0;
+  let windowTime = 550;
+  let delayTimer, closeTimer;
+  let score = 0;
+  let bestReaction = loadHistory().best;
+  let recentRecords = loadHistory().records.slice();
+
+  bestEl.textContent = bestReaction !== Infinity ? bestReaction : '—';
+
+  setBladePaths(false);
+  bladeTransform('blade1Group', 0);
+  bladeTransform('blade2Group', 0);
+
+  function setRecentBars() {
+    recentList.innerHTML = '';
+    let arr = recentRecords.slice(-5);
+    arr.forEach(d=>{
+      let h = Math.max(6, 54 - Math.min(50, d/7));
+      let isBest = d === bestReaction;
+      let colClass = isBest ? 'best' : '';
+      recentList.innerHTML +=
+        `<div class="bar ${colClass}" style="height:${h}px;" title="${d} ms">
+          <div class="barNum">${d}</div>
+        </div>`;
+    });
+  }
+  setRecentBars();
+
+  function resetKnifeSvg() {
+    bladeTransform('blade1Group', 0);
+    bladeTransform('blade2Group', 0);
+    setBladePaths(false);
+  }
+
+  function openKnifeSvg() {
+    bladeTransform('blade1Group', 65);
+    bladeTransform('blade2Group', -65);
+    setBladePaths(true);
+  }
+
+  function startRound() {
+    resetKnifeSvg();
+    state = 'waiting';
+    msgEl.textContent = '…開くまで待とう';
+    btn.textContent = '待機中';
+    btn.disabled = true;
+    setTimeout(()=>btn.disabled=false,600);
+    const delay = 1000 + Math.random()*1700;
+    clearTimeout(delayTimer);
+    delayTimer = setTimeout(openKnife, delay);
+  }
+
+  function openKnife() {
+    state = 'open';
+    openKnifeSvg();
+    openTime = performance.now();
+    msgEl.textContent = '「クリックorタップ」!';
+    btn.textContent = '反応する';
+    clearTimeout(closeTimer);
+    closeTimer = setTimeout(closeKnife, windowTime);
+  }
+
+  function closeKnife() {
+    if (state !== 'open') return;
+    state = 'closed';
+    resetKnifeSvg();
+    msgEl.textContent = '遅すぎ…ナイフが閉じた！';
+    btn.textContent = '再挑戦';
+    setTimeout(startRound, 2000); // 遅延して次のラウンドを開始
+  }
+
+  function handleAction() {
+    const now = performance.now();
+    if (state === 'idle') {
+      score = 0;
+      scoreEl.textContent = score;
+      windowTime = 550;
+      msgEl.textContent = '…開くまで待とう';
+      startRound();
+      setRecentBars();
+      return;
+    }
+    if (state === 'waiting') {
+      clearTimeout(delayTimer);
+      state = 'closed';
+      resetKnifeSvg();
+      msgEl.textContent = '早すぎ！ナイフが閉じる';
+      btn.textContent = '再挑戦';
+      setTimeout(startRound, 2000); // 遅延して次のラウンドを開始
+      return;
+    }
+    if (state === 'open') {
+      const reaction = Math.round(now - openTime);
+      score++;
+      scoreEl.textContent = score;
+      recentRecords.push(reaction);
+      bestReaction = Math.min(bestReaction, reaction);
+      bestEl.textContent = bestReaction;
+      setRecentBars();
+      saveHistory(bestReaction, recentRecords);
+      msgEl.textContent = `成功！反応: ${reaction} ms`;
+      btn.textContent = '次へ';
+      clearTimeout(closeTimer);
+      state = 'closed';
+      windowTime = Math.max(100, windowTime - 19);
+      resetKnifeSvg();
+      setTimeout(startRound, 2000); // 遅延して次のラウンドを開始
+      return;
+    }
+  }
+
+  btn.addEventListener('click', handleAction);
+  btn.addEventListener('touchend', function(e){
+    e.preventDefault();
+    handleAction();
+  }, {passive:false});
+</script>
+</body>
+</html>
