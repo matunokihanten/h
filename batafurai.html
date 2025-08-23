@@ -360,8 +360,8 @@
     }
   }
 
-  btn.addEventListener('click', handleAction);
-  btn.addEventListener('touchend', function(e){
+  document.body.addEventListener('click', handleAction);
+  document.body.addEventListener('touchend', function(e){
     e.preventDefault();
     handleAction();
   }, {passive:false});
