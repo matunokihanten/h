@@ -132,6 +132,28 @@
       user-select: none;
       text-shadow: 0 0 6px #0009;
     }
+    .mode-switch {
+      margin-top: 1vh;
+      display: flex;
+      gap: 1vw;
+    }
+    .mode-btn {
+      padding: 0.8vh 4vw;
+      font-size: min(3.8vw,18px);
+      background: #78909c;
+      border: none;
+      color: #fff;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .mode-btn:active {
+      background: #546e7a;
+    }
+    .mode-btn.active {
+      background: #4caf50;
+      box-shadow: 0 3px 10px #2e7d32;
+    }
     @media (max-width: 370px) {
       h1 { font-size: 1.2em; }
       #knifeSvg { min-width: 80px; min-height:74px;}
@@ -193,8 +215,13 @@
     <circle cx="110" cy="335" r="3" fill="#aaa"/>
   </svg>
   <button id="actionBtn" aria-live="polite" aria-atomic="true">開始</button>
+  <div class="mode-switch">
+    <button id="normalModeBtn" class="mode-btn active">ランダム</button>
+    <button id="fixedModeBtn" class="mode-btn">5秒モード</button>
+  </div>
   <div id="info" aria-live="polite" aria-atomic="true">
     <div>スコア: <span id="score">0</span>　|　自己ベスト: <span id="best">—</span> ms</div>
+    <div id="difficulty">難易度: レベル 1</div>
     <div id="recentList" aria-label="直近5回の反応時間の履歴"></div>
     <div id="message">「開始」ボタンを押してください</div>
   </div>
@@ -231,11 +258,14 @@
       `rotate(${deg},110,220)`);
   }
 
-  const btn     = document.getElementById('actionBtn');
-  const scoreEl = document.getElementById('score');
-  const bestEl  = document.getElementById('best');
-  const msgEl   = document.getElementById('message');
-  const recentList = document.getElementById('recentList');
+  const btn           = document.getElementById('actionBtn');
+  const scoreEl       = document.getElementById('score');
+  const bestEl        = document.getElementById('best');
+  const msgEl         = document.getElementById('message');
+  const recentList    = document.getElementById('recentList');
+  const difficultyEl  = document.getElementById('difficulty');
+  const normalModeBtn = document.getElementById('normalModeBtn');
+  const fixedModeBtn  = document.getElementById('fixedModeBtn');
 
   // localStorage履歴
   function saveHistory(best, records){
@@ -251,10 +281,11 @@
   let state = 'idle';
   let openTime = 0;
   let windowTime = 550;
-  let delayTimer, closeTimer;
+  let delayTimer, closeTimer, fixedTimer;
   let score = 0;
   let bestReaction = loadHistory().best;
   let recentRecords = loadHistory().records.slice();
+  let isFixedMode = false;
 
   bestEl.textContent = bestReaction !== Infinity ? bestReaction : '—';
 
@@ -276,6 +307,17 @@
     });
   }
   setRecentBars();
+  updateDifficulty();
+
+  function updateDifficulty() {
+    // windowTime (550) から 100 までの範囲を 1-100 に変換
+    const maxWindowTime = 550;
+    const minWindowTime = 100;
+    const range = maxWindowTime - minWindowTime;
+    const invertedWindowTime = maxWindowTime - windowTime;
+    const level = Math.ceil((invertedWindowTime / range) * 99) + 1;
+    difficultyEl.textContent = `難易度: レベル ${Math.min(100, level)}`;
+  }
 
   function resetKnifeSvg() {
     bladeTransform('blade1Group', 0);
@@ -296,9 +338,21 @@
     btn.textContent = '待機中';
     btn.disabled = true;
     setTimeout(()=>btn.disabled=false,600);
-    const delay = 1000 + Math.random()*1700;
     clearTimeout(delayTimer);
-    delayTimer = setTimeout(openKnife, delay);
+    clearTimeout(fixedTimer);
+
+    if (isFixedMode) {
+      fixedTimer = setInterval(() => {
+        if (state === 'waiting') {
+            openKnife();
+        } else {
+            closeKnife();
+        }
+      }, 5000);
+    } else {
+        const delay = 1000 + Math.random()*1700;
+        delayTimer = setTimeout(openKnife, delay);
+    }
   }
 
   function openKnife() {
@@ -307,8 +361,10 @@
     openTime = performance.now();
     msgEl.textContent = '「クリックorタップ」!';
     btn.textContent = '反応する';
-    clearTimeout(closeTimer);
-    closeTimer = setTimeout(closeKnife, windowTime);
+    if (!isFixedMode) {
+      clearTimeout(closeTimer);
+      closeTimer = setTimeout(closeKnife, windowTime);
+    }
   }
 
   function closeKnife() {
@@ -317,7 +373,9 @@
     resetKnifeSvg();
     msgEl.textContent = '遅すぎ…ナイフが閉じた！';
     btn.textContent = '再挑戦';
-    setTimeout(startRound, 2000); // 遅延して次のラウンドを開始
+    if (!isFixedMode) {
+        setTimeout(startRound, 2000); // 遅延して次のラウンドを開始
+    }
   }
 
   function handleAction() {
@@ -326,6 +384,7 @@
       score = 0;
       scoreEl.textContent = score;
       windowTime = 550;
+      updateDifficulty();
       msgEl.textContent = '…開くまで待とう';
       startRound();
       setRecentBars();
@@ -333,6 +392,7 @@
     }
     if (state === 'waiting') {
       clearTimeout(delayTimer);
+      clearTimeout(fixedTimer);
       state = 'closed';
       resetKnifeSvg();
       msgEl.textContent = '早すぎ！ナイフが閉じる';
@@ -353,13 +413,35 @@
       btn.textContent = '次へ';
       clearTimeout(closeTimer);
       state = 'closed';
-      windowTime = Math.max(100, windowTime - 19);
+      if (!isFixedMode) {
+          windowTime = Math.max(100, windowTime - 19);
+          updateDifficulty();
+      }
       resetKnifeSvg();
       setTimeout(startRound, 2000); // 遅延して次のラウンドを開始
       return;
     }
   }
 
+  function switchMode(mode) {
+      if (state !== 'idle') {
+          // プレイ中はモード変更不可
+          msgEl.textContent = 'プレイ中はモード変更できません';
+          return;
+      }
+      isFixedMode = (mode === 'fixed');
+      normalModeBtn.classList.toggle('active', !isFixedMode);
+      fixedModeBtn.classList.toggle('active', isFixedMode);
+      msgEl.textContent = isFixedMode ? '5秒モードに設定しました' : 'ランダムモードに設定しました';
+      // 再開時に難易度リセット
+      score = 0;
+      scoreEl.textContent = score;
+      windowTime = 550;
+      updateDifficulty();
+  }
+
+  normalModeBtn.addEventListener('click', () => switchMode('normal'));
+  fixedModeBtn.addEventListener('click', () => switchMode('fixed'));
   document.body.addEventListener('click', handleAction);
   document.body.addEventListener('touchend', function(e){
     e.preventDefault();
