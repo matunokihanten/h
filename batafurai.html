@@ -35,7 +35,6 @@
       max-height: 100vh;
       box-sizing: border-box;
       overflow: hidden;
-      padding: 0;
     }
     h1 {
       margin: 3vh 0 1vh 0;
@@ -328,6 +327,7 @@
   let recentRecords = loadHistory().records.slice();
   let isFixedMode = false;
   let playerName = 'プレイヤー'; // プレイヤー名を固定
+  let isProcessing = false; // 処理中のフラグ
 
   bestEl.textContent = bestReaction !== Infinity ? bestReaction : '—';
 
@@ -433,6 +433,9 @@
   }
 
   function handleAction() {
+    if (isProcessing) return; // 処理中なら何もしない
+    isProcessing = true;
+
     const now = performance.now();
     if (state === 'idle') {
       score = 0;
@@ -445,9 +448,7 @@
       updateDifficulty();
       msgEl.textContent = '…開くまで待とう';
       startRound();
-      return;
-    }
-    if (state === 'waiting') {
+    } else if (state === 'waiting') {
       clearTimeout(delayTimer);
       clearTimeout(fixedTimer);
       state = 'closed';
@@ -455,9 +456,7 @@
       msgEl.textContent = '早すぎ！ナイフが閉じる';
       btn.textContent = '再挑戦';
       setTimeout(startRound, 2000); // 遅延して次のラウンドを開始
-      return;
-    }
-    if (state === 'open') {
+    } else if (state === 'open') {
       const reaction = Math.round(now - openTime);
       score++;
       scoreEl.textContent = score;
@@ -473,13 +472,13 @@
       if (!isFixedMode) {
           windowTime = Math.max(50, windowTime - 19);
           updateDifficulty();
-      } else {
-          // 固定モードでは難易度は上昇しない
       }
       resetKnifeSvg();
       setTimeout(startRound, 2000); // 遅延して次のラウンドを開始
-      return;
     }
+
+    // 処理が完了したらフラグをリセット
+    setTimeout(() => { isProcessing = false; }, 300); // 300ms後にリセット
   }
 
   function switchMode(mode) {
@@ -488,7 +487,6 @@
       fixedModeBtn.classList.toggle('active', isFixedMode);
       
       if (state !== 'idle') {
-          // プレイ中にモードを切り替えた場合、新しいラウンドを開始
           clearTimeout(delayTimer);
           clearTimeout(fixedTimer);
           msgEl.textContent = 'モードを変更しました';
@@ -504,8 +502,8 @@
           const level = getDifficultyLevel();
           let rankings = loadRanking();
           
-          // 新しいプレイヤーとして追加
-          rankings.push({ name: playerName, bestTime: bestReaction, level: level });
+          let nextPlayerNum = rankings.length + 1;
+          rankings.push({ name: `${playerName}`, bestTime: bestReaction, level: level });
           
           saveRanking(rankings);
           updateRankingTable();
@@ -521,20 +519,18 @@
     return Math.min(200, level);
   }
 
-  // ページ読み込み時にランキングを更新
   window.onload = function() {
       updateRankingTable();
-      // ゲーム終了時やページを離れるときにスコアを保存
       window.addEventListener('beforeunload', savePlayerScore);
   };
 
-  normalModeBtn.addEventListener('click', () => switchMode('normal'));
-  fixedModeBtn.addEventListener('click', () => switchMode('fixed'));
   document.body.addEventListener('click', handleAction);
   document.body.addEventListener('touchend', function(e){
     e.preventDefault();
     handleAction();
   }, {passive:false});
+  normalModeBtn.addEventListener('click', () => switchMode('normal'));
+  fixedModeBtn.addEventListener('click', () => switchMode('fixed'));
 </script>
 </body>
 </html>
