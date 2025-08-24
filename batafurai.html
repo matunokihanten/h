@@ -35,6 +35,7 @@
       max-height: 100vh;
       box-sizing: border-box;
       overflow: hidden;
+      padding: 0;
     }
     h1 {
       margin: 3vh 0 1vh 0;
@@ -153,26 +154,6 @@
       background: #4caf50;
       box-shadow: 0 3px 10px #2e7d32;
     }
-    .rank-table {
-      width: 90vw;
-      max-width: 400px;
-      margin-top: 1vh;
-      font-size: min(3.8vw, 16px);
-      border-collapse: collapse;
-      color: #fff;
-      text-align: left;
-    }
-    .rank-table th, .rank-table td {
-      padding: 8px;
-      border-bottom: 1px solid #78909c;
-    }
-    .rank-table th {
-      background-color: #3e4854;
-      font-weight: normal;
-    }
-    .rank-table tr:hover {
-      background-color: #4e5a66;
-    }
     @media (max-width: 370px) {
       h1 { font-size: 1.2em; }
       #knifeSvg { min-width: 80px; min-height:74px;}
@@ -244,16 +225,6 @@
     <div id="recentList" aria-label="直近5回の反応時間の履歴"></div>
     <div id="message">「開始」ボタンを押してください</div>
   </div>
-  <table class="rank-table">
-    <thead>
-      <tr>
-        <th>プレイヤー</th>
-        <th>ベストタイム</th>
-        <th>レベル</th>
-      </tr>
-    </thead>
-    <tbody id="rankingTableBody"></tbody>
-  </table>
 </div>
 <script>
   // --- これ以降ロジックは一切変更禁止 ---
@@ -287,15 +258,14 @@
       `rotate(${deg},110,220)`);
   }
 
-  const btn             = document.getElementById('actionBtn');
-  const scoreEl         = document.getElementById('score');
-  const bestEl          = document.getElementById('best');
-  const msgEl           = document.getElementById('message');
-  const recentList      = document.getElementById('recentList');
-  const difficultyEl    = document.getElementById('difficulty');
-  const normalModeBtn   = document.getElementById('normalModeBtn');
-  const fixedModeBtn    = document.getElementById('fixedModeBtn');
-  const rankingTable    = document.getElementById('rankingTableBody');
+  const btn           = document.getElementById('actionBtn');
+  const scoreEl       = document.getElementById('score');
+  const bestEl        = document.getElementById('best');
+  const msgEl         = document.getElementById('message');
+  const recentList    = document.getElementById('recentList');
+  const difficultyEl  = document.getElementById('difficulty');
+  const normalModeBtn = document.getElementById('normalModeBtn');
+  const fixedModeBtn  = document.getElementById('fixedModeBtn');
 
   // localStorage履歴
   function saveHistory(best, records){
@@ -308,16 +278,6 @@
     } catch { return {best: Infinity, records:[]}; }
   }
 
-  // localStorageランキング
-  function saveRanking(ranking){
-      localStorage.setItem('knifeGameRanking', JSON.stringify(ranking));
-  }
-  function loadRanking(){
-      try {
-          return JSON.parse(localStorage.getItem('knifeGameRanking')) || [];
-      } catch { return []; }
-  }
-
   let state = 'idle';
   let openTime = 0;
   let windowTime = 550;
@@ -326,8 +286,6 @@
   let bestReaction = loadHistory().best;
   let recentRecords = loadHistory().records.slice();
   let isFixedMode = false;
-  let playerName = 'プレイヤー'; // プレイヤー名を固定
-  let isProcessing = false; // 処理中のフラグ
 
   bestEl.textContent = bestReaction !== Infinity ? bestReaction : '—';
 
@@ -350,27 +308,15 @@
   }
   setRecentBars();
   updateDifficulty();
-  updateRankingTable();
 
   function updateDifficulty() {
-    // 難易度を1-200に調整
+    // windowTime (550) から 100 までの範囲を 1-100 に変換
     const maxWindowTime = 550;
-    const minWindowTime = 50; // より速い難易度
+    const minWindowTime = 100;
     const range = maxWindowTime - minWindowTime;
     const invertedWindowTime = maxWindowTime - windowTime;
-    const level = Math.ceil((invertedWindowTime / range) * 199) + 1;
-    difficultyEl.textContent = `難易度: レベル ${Math.min(200, level)}`;
-  }
-  
-  function updateRankingTable(){
-      let rankings = loadRanking();
-      rankings.sort((a, b) => a.bestTime - b.bestTime);
-      rankingTable.innerHTML = '';
-      rankings.slice(0, 10).forEach((r, index) => {
-          const row = rankingTable.insertRow();
-          const playerNumber = index + 1;
-          row.innerHTML = `<td>${r.name}${playerNumber}</td><td>${r.bestTime} ms</td><td>Lv.${r.level}</td>`;
-      });
+    const level = Math.ceil((invertedWindowTime / range) * 99) + 1;
+    difficultyEl.textContent = `難易度: レベル ${Math.min(100, level)}`;
   }
 
   function resetKnifeSvg() {
@@ -433,22 +379,18 @@
   }
 
   function handleAction() {
-    if (isProcessing) return; // 処理中なら何もしない
-    isProcessing = true;
-
     const now = performance.now();
     if (state === 'idle') {
       score = 0;
       scoreEl.textContent = score;
       windowTime = 550;
-      bestReaction = Infinity;
-      bestEl.textContent = '—';
-      recentRecords = [];
-      setRecentBars();
       updateDifficulty();
       msgEl.textContent = '…開くまで待とう';
       startRound();
-    } else if (state === 'waiting') {
+      setRecentBars();
+      return;
+    }
+    if (state === 'waiting') {
       clearTimeout(delayTimer);
       clearTimeout(fixedTimer);
       state = 'closed';
@@ -456,7 +398,9 @@
       msgEl.textContent = '早すぎ！ナイフが閉じる';
       btn.textContent = '再挑戦';
       setTimeout(startRound, 2000); // 遅延して次のラウンドを開始
-    } else if (state === 'open') {
+      return;
+    }
+    if (state === 'open') {
       const reaction = Math.round(now - openTime);
       score++;
       scoreEl.textContent = score;
@@ -470,67 +414,39 @@
       clearTimeout(closeTimer);
       state = 'closed';
       if (!isFixedMode) {
-          windowTime = Math.max(50, windowTime - 19);
+          windowTime = Math.max(100, windowTime - 19);
           updateDifficulty();
       }
       resetKnifeSvg();
       setTimeout(startRound, 2000); // 遅延して次のラウンドを開始
+      return;
     }
-
-    // 処理が完了したらフラグをリセット
-    setTimeout(() => { isProcessing = false; }, 300); // 300ms後にリセット
   }
 
   function switchMode(mode) {
+      if (state !== 'idle') {
+          // プレイ中はモード変更不可
+          msgEl.textContent = 'プレイ中はモード変更できません';
+          return;
+      }
       isFixedMode = (mode === 'fixed');
       normalModeBtn.classList.toggle('active', !isFixedMode);
       fixedModeBtn.classList.toggle('active', isFixedMode);
-      
-      if (state !== 'idle') {
-          clearTimeout(delayTimer);
-          clearTimeout(fixedTimer);
-          msgEl.textContent = 'モードを変更しました';
-          state = 'closed';
-          resetKnifeSvg();
-          setTimeout(startRound, 2000);
-      }
       msgEl.textContent = isFixedMode ? '5秒モードに設定しました' : 'ランダムモードに設定しました';
+      // 再開時に難易度リセット
+      score = 0;
+      scoreEl.textContent = score;
+      windowTime = 550;
+      updateDifficulty();
   }
 
-  function savePlayerScore() {
-      if (bestReaction !== Infinity) {
-          const level = getDifficultyLevel();
-          let rankings = loadRanking();
-          
-          let nextPlayerNum = rankings.length + 1;
-          rankings.push({ name: `${playerName}`, bestTime: bestReaction, level: level });
-          
-          saveRanking(rankings);
-          updateRankingTable();
-      }
-  }
-
-  function getDifficultyLevel() {
-    const maxWindowTime = 550;
-    const minWindowTime = 50;
-    const range = maxWindowTime - minWindowTime;
-    const invertedWindowTime = maxWindowTime - windowTime;
-    const level = Math.ceil((invertedWindowTime / range) * 199) + 1;
-    return Math.min(200, level);
-  }
-
-  window.onload = function() {
-      updateRankingTable();
-      window.addEventListener('beforeunload', savePlayerScore);
-  };
-
+  normalModeBtn.addEventListener('click', () => switchMode('normal'));
+  fixedModeBtn.addEventListener('click', () => switchMode('fixed'));
   document.body.addEventListener('click', handleAction);
   document.body.addEventListener('touchend', function(e){
     e.preventDefault();
     handleAction();
   }, {passive:false});
-  normalModeBtn.addEventListener('click', () => switchMode('normal'));
-  fixedModeBtn.addEventListener('click', () => switchMode('fixed'));
 </script>
 </body>
 </html>
