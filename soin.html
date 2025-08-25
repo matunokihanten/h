@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>素因数分解トレーナー</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    
+    .container {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 20px;
+      padding: 2rem;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(10px);
+      max-width: 600px;
+      width: 100%;
+      text-align: center;
+    }
+    
+    h1 {
+      color: #333;
+      margin-bottom: 2rem;
+      font-size: 2.5rem;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .question-section {
+      background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
+      color: white;
+      padding: 2rem;
+      border-radius: 15px;
+      margin-bottom: 2rem;
+      box-shadow: 0 10px 20px rgba(240, 147, 251, 0.3);
+    }
+    
+    .question-text {
+      font-size: 1.3rem;
+      margin-bottom: 1rem;
+    }
+    
+    .number-display {
+      font-size: 3rem;
+      font-weight: bold;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      margin: 1rem 0;
+    }
+    
+    .factor-input-section {
+      background: #f8f9ff;
+      padding: 2rem;
+      border-radius: 15px;
+      margin-bottom: 2rem;
+      border: 2px solid #e0e7ff;
+    }
+    
+    .input-display {
+      background: white;
+      border: 2px solid #667eea;
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .factor-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 2rem;
+      max-width: 300px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    
+    .factor-button {
+      padding: 1.5rem;
+      background: linear-gradient(45deg, #a8edea 0%, #fed6e3 100%);
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      font-size: 1.5rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      user-select: none;
+    }
+    
+    .factor-button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    }
+    
+    .selected-factors {
+      background: white;
+      border: 2px solid #667eea;
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    
+    .factor-tag {
+      background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: popIn 0.3s ease;
+    }
+    
+    @keyframes popIn {
+      from { transform: scale(0); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    
+    .remove-factor {
+      background: rgba(255, 255, 255, 0.3);
+      border: none;
+      color: white;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+    }
+    
+    .controls {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+    
+    .btn {
+      padding: 1rem 2rem;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      min-width: 120px;
+    }
+
+    .btn-add {
+      background: linear-gradient(45deg, #4ade80 0%, #22c55e 100%);
+      color: white;
+      box-shadow: 0 8px 16px rgba(74, 222, 128, 0.3);
+    }
+    
+    .btn-primary {
+      background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+    }
+    
+    .btn-secondary {
+      background: linear-gradient(45deg, #ffecd2 0%, #fcb69f 100%);
+      color: #333;
+      box-shadow: 0 8px 16px rgba(252, 182, 159, 0.3);
+    }
+    
+    .btn-danger {
+      background: linear-gradient(45deg, #ff9a9e 0%, #fecfef 100%);
+      color: #333;
+      box-shadow: 0 8px 16px rgba(255, 154, 158, 0.3);
+    }
+    
+    .btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+    }
+    
+    .btn:active {
+      transform: translateY(0);
+    }
+    
+    .result {
+      padding: 1.5rem;
+      border-radius: 15px;
+      margin-bottom: 2rem;
+      font-size: 1.2rem;
+      font-weight: bold;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.5s ease;
+    }
+    
+    .result.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    .result.correct {
+      background: linear-gradient(45deg, #a8edea 0%, #fed6e3 100%);
+      color: #2d5016;
+      border: 2px solid #4ade80;
+    }
+    
+    .result.incorrect {
+      background: linear-gradient(45deg, #ff9a9e 0%, #fecfef 100%);
+      color: #7f1d1d;
+      border: 2px solid #f87171;
+    }
+    
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    
+    .stat-item {
+      background: white;
+      padding: 1rem;
+      border-radius: 10px;
+      border: 2px solid #e0e7ff;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .stat-value {
+      font-size: 2rem;
+      font-weight: bold;
+      color: #667eea;
+    }
+    
+    .stat-label {
+      color: #666;
+      font-size: 0.9rem;
+    }
+    
+    .difficulty-selector {
+      margin-bottom: 2rem;
+    }
+    
+    .difficulty-buttons {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    
+    .difficulty-btn {
+      padding: 0.5rem 1rem;
+      border: 2px solid #ccc;
+      background: white;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .difficulty-btn.active {
+      background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-color: #667eea;
+    }
+    
+    .explanation {
+      background: #f0f4ff;
+      border: 2px solid #c7d2fe;
+      border-radius: 10px;
+      padding: 1rem;
+      margin-top: 1rem;
+      text-align: left;
+      font-family: 'Courier New', monospace;
+      line-height: 1.6;
+    }
+    
+    @media (max-width: 768px) {
+      .container {
+        padding: 1rem;
+      }
+      
+      .number-display {
+        font-size: 2rem;
+      }
+      
+      .factor-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      
+      .controls {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧠 素因数分解トレーナー</h1>
+    
+    <div class="difficulty-selector">
+      <h3>難易度を選択:</h3>
+      <div class="difficulty-buttons">
+        <div class="difficulty-btn active" onclick="setDifficulty('easy')">簡単 (10-50)</div>
+        <div class="difficulty-btn" onclick="setDifficulty('medium')">普通 (50-200)</div>
+        <div class="difficulty-btn" onclick="setDifficulty('hard')">難しい (200-500)</div>
+        <div class="difficulty-btn" onclick="setDifficulty('very_hard')">超難しい (500-1000)</div>
+      </div>
+    </div>
+    
+    <div class="question-section">
+      <div class="question-text">この数を素因数分解してください:</div>
+      <div class="number-display" id="numberDisplay">読み込み中...</div>
+    </div>
+    
+    <div class="factor-input-section">
+      <h3>素因数を入力してください:</h3>
+      <div class="input-display" id="inputDisplay"></div>
+      <div class="factor-grid" id="factorGrid"></div>
+      
+      <div class="selected-factors" id="selectedFactors">
+        <span style="color: #999;">ここに選択した素因数が表示されます</span>
+      </div>
+      
+      <div class="controls">
+        <button class="btn btn-primary" onclick="checkAnswer()">回答する</button>
+        <button class="btn btn-secondary" onclick="clearFactors()">クリア</button>
+        <button class="btn btn-danger" onclick="generateQuestion()">次の問題</button>
+      </div>
+    </div>
+    
+    <div class="result" id="result"></div>
+    
+    <div class="stats">
+      <div class="stat-item">
+        <div class="stat-value" id="scoreValue">0</div>
+        <div class="stat-label">正解数</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="totalValue">0</div>
+        <div class="stat-label">総問題数</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="accuracyValue">0%</div>
+        <div class="stat-label">正答率</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentNumber = 0;
+    let score = 0;
+    let total = 0;
+    let selectedFactors = [];
+    let currentInput = '';
+    let difficulty = 'easy';
+    
+    const difficultyRanges = {
+      easy: { min: 10, max: 50 },
+      medium: { min: 50, max: 200 },
+      hard: { min: 200, max: 500 },
+      very_hard: { min: 500, max: 1000 } // 新しい難易度を追加
+    };
+
+    function setDifficulty(level) {
+      difficulty = level;
+      document.querySelectorAll('.difficulty-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      generateQuestion();
+    }
+    
+    function updateFactorGrid() {
+      const grid = document.getElementById('factorGrid');
+      grid.innerHTML = '';
+      
+      const numbers = [7, 8, 9, 4, 5, 6, 1, 2, 3, 0];
+      
+      numbers.forEach(number => {
+        const button = document.createElement('div');
+        button.className = 'factor-button';
+        button.textContent = number;
+        button.onclick = () => appendNumber(number);
+        grid.appendChild(button);
+      });
+      
+      // Add 'C' and 'Add' buttons
+      const clearButton = document.createElement('div');
+      clearButton.className = 'factor-button';
+      clearButton.textContent = 'C';
+      clearButton.onclick = () => clearInput();
+      grid.appendChild(clearButton);
+
+      const addButton = document.createElement('div');
+      addButton.className = 'factor-button btn-add';
+      addButton.textContent = '追加';
+      addButton.onclick = () => addFactor();
+      grid.appendChild(addButton);
+    }
+    
+    function appendNumber(number) {
+      currentInput += number;
+      updateInputDisplay();
+    }
+
+    function clearInput() {
+      currentInput = '';
+      updateInputDisplay();
+    }
+    
+    function addFactor() {
+      const factor = parseInt(currentInput, 10);
+      if (!isNaN(factor) && factor > 1) {
+        selectedFactors.push(factor);
+        selectedFactors.sort((a, b) => a - b);
+        updateSelectedFactorsDisplay();
+        clearInput();
+      } else {
+        alert("有効な素因数を入力してください (2以上の整数)。");
+      }
+    }
+    
+    function updateInputDisplay() {
+      const display = document.getElementById('inputDisplay');
+      display.textContent = currentInput || '数字を入力...';
+    }
+    
+    function updateSelectedFactorsDisplay() {
+      const container = document.getElementById('selectedFactors');
+      
+      if (selectedFactors.length === 0) {
+        container.innerHTML = '<span style="color: #999;">ここに選択した素因数が表示されます</span>';
+        return;
+      }
+      
+      container.innerHTML = '';
+      selectedFactors.forEach((factor, index) => {
+        const tag = document.createElement('div');
+        tag.className = 'factor-tag';
+        tag.innerHTML = `
+          ${factor}
+          <button class="remove-factor" onclick="removeFactor(${index})">×</button>
+        `;
+        container.appendChild(tag);
+      });
+    }
+    
+    function removeFactor(index) {
+      selectedFactors.splice(index, 1);
+      updateSelectedFactorsDisplay();
+    }
+    
+    function clearFactors() {
+      selectedFactors = [];
+      updateSelectedFactorsDisplay();
+      clearInput();
+    }
+    
+    function generateQuestion() {
+      const range = difficultyRanges[difficulty];
+      currentNumber = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
+      document.getElementById('numberDisplay').textContent = currentNumber;
+      clearFactors();
+      hideResult();
+    }
+    
+    function primeFactors(n) {
+      const factors = [];
+      let divisor = 2;
+      while (n >= 2) {
+        if (n % divisor === 0) {
+          factors.push(divisor);
+          n /= divisor;
+        } else {
+          divisor++;
+        }
+      }
+      return factors.sort((a, b) => a - b);
+    }
+    
+    function checkAnswer() {
+      if (selectedFactors.length === 0) {
+        showResult(false, "素因数を選択してください！", []);
+        return;
+      }
+      
+      const correctFactors = primeFactors(currentNumber);
+      const userFactors = [...selectedFactors].sort((a, b) => a - b);
+      
+      const isCorrect = JSON.stringify(userFactors) === JSON.stringify(correctFactors);
+      
+      total++;
+      if (isCorrect) {
+        score++;
+      }
+      
+      showResult(isCorrect, isCorrect ? "正解！よくできました！" : "不正解です。", correctFactors);
+      updateStats();
+      
+      if (isCorrect) {
+        setTimeout(() => {
+          generateQuestion();
+        }, 2000);
+      }
+    }
+    
+    function showResult(correct, message, correctFactors) {
+      const resultDiv = document.getElementById('result');
+      let content = `<div>${message}</div>`;
+      
+      if (!correct && correctFactors.length > 0) {
+        content += `<div>正しくは: ${correctFactors.join(' × ')}</div>`;
+        content += `<div class="explanation">計算過程:<br>${getFactorizationSteps(currentNumber)}</div>`;
+      }
+      
+      resultDiv.innerHTML = content;
+      resultDiv.className = `result ${correct ? 'correct' : 'incorrect'} show`;
+    }
+    
+    function hideResult() {
+      const resultDiv = document.getElementById('result');
+      resultDiv.classList.remove('show');
+    }
+    
+    function getFactorizationSteps(n) {
+      let steps = [];
+      let current = n;
+      let divisor = 2;
+      
+      steps.push(`${n} を素因数分解:`);
+      
+      while (current > 1) {
+        if (current % divisor === 0) {
+          steps.push(`${current} ÷ ${divisor} = ${current / divisor}`);
+          current /= divisor;
+        } else {
+          divisor++;
+        }
+      }
+      
+      return steps.join('<br>');
+    }
+    
+    function updateStats() {
+      document.getElementById('scoreValue').textContent = score;
+      document.getElementById('totalValue').textContent = total;
+      const accuracy = total > 0 ? Math.round((score / total) * 100) : 0;
+      document.getElementById('accuracyValue').textContent = accuracy + '%';
+    }
+    
+    // 初期化
+    updateFactorGrid();
+    generateQuestion();
+    updateStats();
+  </script>
+</body>
+</html>
