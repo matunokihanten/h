@@ -298,21 +298,48 @@
       line-height: 1.6;
     }
     
+    /* モバイル最適化のための追加CSS */
     @media (max-width: 768px) {
       .container {
         padding: 1rem;
+      }
+      
+      h1 {
+        font-size: 2rem;
       }
       
       .number-display {
         font-size: 2rem;
       }
       
+      .difficulty-buttons {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .difficulty-btn {
+        width: 100%;
+        max-width: 250px;
+        margin-bottom: 0.5rem;
+      }
+      
       .factor-grid {
         grid-template-columns: repeat(3, 1fr);
+        max-width: 250px;
       }
       
       .controls {
         flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .btn {
+        width: 100%;
+      }
+
+      .stats {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
       }
     }
   </style>
@@ -382,7 +409,7 @@
       easy: { min: 10, max: 50 },
       medium: { min: 50, max: 200 },
       hard: { min: 200, max: 500 },
-      very_hard: { min: 500, max: 1000 } // 新しい難易度を追加
+      very_hard: { min: 500, max: 1000 }
     };
 
     function setDifficulty(level) {
