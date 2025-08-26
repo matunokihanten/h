@@ -1,248 +1,896 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ディレクトリ構成ZIPツール</title>
-    <!-- Tailwind CSSを読み込み -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- JSZipライブラリを読み込み -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <meta charset="UTF-8"/>
+    <title>🌟 完全版構造エディタ＋豪華PDF/CSV/FS/ZIP</title>
     <style>
-        /* 簡単なスタイル調整 */
-        body {
-            font-family: 'Inter', sans-serif;
+        body { font-family: sans-serif; padding: 1rem; background: #f9f9f9; }
+        #controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, auto));
+            gap: 8px;
+            margin-bottom: 1rem;
         }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
+        #controls > *, #color-picker > * { font-size: 0.9rem; padding: 6px 12px; }
+        #color-picker {
+            grid-column: 1 / -1; /* Take full width */
+            border: 1px solid #ccc;
+            padding: 8px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        #color-picker label { font-weight: bold; }
+        #color-picker input[type="radio"] { margin-left: 2px; }
+        #tree { list-style: none; padding-left: 0; }
+        li { margin: 4px 0; position: relative; }
+        li::before {
+            content: ""; position: absolute; top: 12px; left: -10px;
+            width: 10px; height: 1px; background: #ccc;
+        }
+        .children {
+            border-left: 1px solid #ccc; margin-left: 10px; padding-left: 10px;
+        }
+        .node, .node-input {
+            display: inline-block; padding: 4px 8px;
+            border: 1px solid #aaa; border-radius: 4px; background: #fff;
+            font-family: monospace;
+            transition: background-color 0.3s;
+        }
+        .node { cursor: pointer; }
+        .node.selected {
+            outline: 2px solid #007bff;
+            outline-offset: 1px;
+        }
+        .node-input { padding: 2px 4px; width: auto; }
+        .actions button { margin-left: 4px; font-size: 0.8rem; }
+        .over > .node { background: #def; }
+        #modal-bg {
+            position: fixed; left:0; top:0; width:100vw; height:100vh;
+            background: rgba(0,0,0,0.3); z-index: 1000; display: none;
+            align-items: center; justify-content: center;
+        }
+        #modal {
+            background: #fff; border-radius: 8px; padding: 24px; min-width: 400px;
+            box-shadow: 0 4px 24px #0002;
+        }
+        #modal textarea {
+            width: 100%; height: 500px; font-family: monospace; font-size: 1rem;
+            margin-bottom: 1em;
+        }
+        #modal label { font-weight: bold; }
+        #modal .modal-btns { text-align: right; }
+        #modal .modal-btns button { margin-left: 10px; }
+        #fav-list { margin: 0 0 1em 0; }
+        #fav-list button { margin-right: 6px; }
+        #txt-preview { white-space: pre; background: #fff; border: 1px solid #ccc; padding: 1em; margin: 1em 0; }
+
+        /* Drag & Drop Visual Feedback */
+        .drop-before { border-top: 2px solid #4D96FF !important; }
+        .drop-after { border-bottom: 2px solid #4D96FF !important; }
+        .over > .node { background: #e0f2f7 !important; outline: 2px solid #4D96FF; outline-offset: 1px;}
+        .dragging { opacity: 0.5; }
+
+        /* PNG生成時にボタンを非表示にするためのスタイル */
+        body.hide-for-capture .actions {
+            display: none !important;
         }
     </style>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
 </head>
-<body class="bg-gray-100 text-gray-800 p-4 sm:p-8 font-[Noto Sans JP]">
-    <div class="container bg-white rounded-2xl shadow-xl p-6 sm:p-10">
-        <header class="text-center mb-10">
-            <h1 class="text-3xl sm:text-4xl font-bold text-gray-900">ディレクトリ構成ZIPツール</h1>
-            <p class="mt-3 text-gray-600">テキストからZIPを生成したり、ZIPから構成を読み込んだりできます。</p>
-        </header>
+<body>
+    <h2>🗂️ 完全版構造エディタ・CSV保存/読込・FS読込・ZIP・豪華PDF・画像・プリセット</h2>
+    <div id="controls">
+        <select id="templateSelect">
+            <option value="empty">— 空 —</option>
+            <option value="js">JavaScript プロジェクト</option>
+            <option value="html">HTML ファイル構成</option>
+        </select>
+        <button id="addRootFolder">ルートにフォルダ追加</button>
+        <button id="addRootFile">ルートにファイル追加</button>
+        <button id="addRootTxt">ルートにTXT追加</button>
+        <button id="saveCsv">CSVを保存</button>
+        <button id="loadCsv">CSVを読込</button>
+        <button id="importFs">フォルダから読込</button>
+        <button id="parseTextBtn">テキストから構造生成</button>
+        <button id="downloadZip">ZIPをダウンロード</button>
+        <button id="downloadPng">PNG画像でダウンロード</button>
+        <button id="txtPreviewBtn">TXTプレビュー</button>
+        <button id="undoBtn">元に戻す</button>
+        <button id="redoBtn">やり直し</button>
+        <button id="saveAllBtn">全保存</button>
+        <button id="loadAllBtn">全読込</button>
+        <button id="addFavBtn">お気に入り保存</button>
+        <button id="clearAllBtn">全て削除</button>
+        <div id="color-picker">
+            <label>🎨 色:</label>
+            <input type="radio" name="color" value="#FFFFFF" checked> 白
+            <input type="radio" name="color" value="#ffdddd"> 赤
+            <input type="radio" name="color" value="#ddffdd"> 緑
+            <input type="radio" name="color" value="#ddddff"> 青
+            <input type="radio" name="color" value="#ffffdd"> 黄
+            <input type="radio" name="color" value="#ffddff"> 紫
+            <input type="radio" name="color" value="#ddffff"> 水色
+            <input type="radio" name="color" value="#f0f0f0"> 灰
+        </div>
+    </div>
+    <div id="fav-list"></div>
+    <ul id="tree"></ul>
+    <div id="txt-preview" style="display:none"></div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-
-            <!-- 左側: テキストからZIPを生成 -->
-            <div class="flex flex-col bg-gray-50 p-6 rounded-xl border border-gray-200">
-                <h2 class="text-2xl font-semibold mb-4 text-gray-800">1. テキストからZIPを生成</h2>
-                <p class="mb-4 text-gray-500">下のテキストエリアにディレクトリ構成を入力し、「ZIP生成」ボタンを押してください。</p>
-                <textarea id="structureInput" class="w-full h-80 p-4 border border-gray-300 rounded-lg resize-y focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="my-project/
-├── src/
-│   ├── index.js
-│   └── style.css
-├── public/
-│   └── index.html
-└── package.json"></textarea>
-                <button id="generateBtn" class="mt-4 w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform transform hover:scale-105 shadow-md">
-                    ZIPを生成してダウンロード
-                </button>
-                <div id="generateMessage" class="mt-3 text-sm text-green-600"></div>
-            </div>
-
-            <!-- 右側: ZIPから構成を読み込み -->
-            <div class="flex flex-col bg-gray-50 p-6 rounded-xl border border-gray-200">
-                <h2 class="text-2xl font-semibold mb-4 text-gray-800">2. ZIPから構成を読み込み</h2>
-                <p class="mb-4 text-gray-500">ZIPファイルを選択すると、下のエリアにディレクトリ構成が表示されます。</p>
-                <div class="relative">
-                    <input type="file" id="zipInput" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" accept=".zip">
-                    <label for="zipInput" class="w-full flex justify-center items-center bg-white text-blue-600 font-semibold py-3 px-4 rounded-lg border-2 border-dashed border-blue-400 hover:bg-blue-50 cursor-pointer transition">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                        </svg>
-                        ZIPファイルを選択
-                    </label>
-                </div>
-                <pre id="structureOutput" class="w-full h-80 mt-4 p-4 border bg-white border-gray-300 rounded-lg overflow-auto whitespace-pre-wrap break-words text-sm"></pre>
-                <div id="readMessage" class="mt-3 text-sm text-red-600"></div>
+    <div id="modal-bg">
+        <div id="modal">
+            <label id="modal-label"></label>
+            <textarea id="modal-text"></textarea>
+            <div class="modal-btns">
+                <button id="modal-cancel">キャンセル</button>
+                <button id="modal-ok">保存</button>
             </div>
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <script>
-        // --- DOM要素の取得 ---
-        const structureInput = document.getElementById('structureInput');
-        const generateBtn = document.getElementById('generateBtn');
-        const generateMessage = document.getElementById('generateMessage');
-        const zipInput = document.getElementById('zipInput');
-        const structureOutput = document.getElementById('structureOutput');
-        const readMessage = document.getElementById('readMessage');
+        //―― テンプレート ――
+        const templates = {
+            empty: ``,
+            js: `
+/my-app
+├── src/
+│   └── index.js
+├── package.json
+└── README.md`.trim(),
+            html: `
+/site
+├── index.html
+├── style.css
+└── script.js`.trim()
+        };
 
-        // --- ZIP生成機能 (バグ修正済み) ---
-        generateBtn.addEventListener('click', () => {
-            const text = structureInput.value;
-            if (!text.trim()) {
-                generateMessage.textContent = 'テキストが入力されていません。';
-                generateMessage.className = 'mt-3 text-sm text-red-600';
+        //―― ユーティリティ ――
+        let idCounter = 1;
+        function genId() { return 'n'+(idCounter++); }
+        function createNode(name, type, color = '#FFFFFF') {
+            return { id: genId(), name, type, children: [], content: '', color: color };
+        }
+        function getFileTemplate(name){
+            if(name.endsWith('.html')){
+                const t=name.replace(/\.html$/,'');
+                return `<!DOCTYPE html>
+<html lang="ja">
+<head><meta charset="UTF-8"><title>${t}</title></head>
+<body>
+
+</body>
+</html>`;
+            }
+            return '';
+        }
+        function getContrastYIQ(hexcolor){
+            hexcolor = hexcolor.replace("#", "");
+            var r = parseInt(hexcolor.substr(0,2),16);
+            var g = parseInt(hexcolor.substr(2,2),16);
+            var b = parseInt(hexcolor.substr(4,2),16);
+            var yiq = ((r*299)+(g*587)+(b*114))/1000;
+            return (yiq >= 128) ? 'black' : 'white';
+        }
+
+
+        //―― Undo/Redo用履歴管理 ――
+        let history = [];
+        let future = [];
+        function saveHistory(){
+            history.push(JSON.stringify(root));
+            if(history.length>100) history.shift();
+            future = [];
+            updateUndoRedoBtn();
+        }
+        function undo(){
+            if(history.length<=1) return; // Keep the initial state
+            future.push(JSON.stringify(root));
+            history.pop(); // Pop current state
+            root = JSON.parse(history[history.length-1]); // Peek at new current state
+            idCounter = getMaxId(root)+1;
+            selectedId = null; // Deselect on undo
+            render();
+            updateUndoRedoBtn();
+        }
+        function redo(){
+            if(future.length===0) return;
+            const nextState = future.pop();
+            history.push(nextState);
+            root = JSON.parse(nextState);
+            idCounter = getMaxId(root)+1;
+            selectedId = null; // Deselect on redo
+            render();
+            updateUndoRedoBtn();
+        }
+        function getMaxId(node){
+            let max = 0;
+            function walk(n){
+                const num = parseInt(n.id.replace('n',''), 10);
+                if(num > max) max = num;
+                if(n.children) n.children.forEach(walk);
+            }
+            if(node.children) node.children.forEach(walk);
+            return max;
+        }
+        function updateUndoRedoBtn(){
+            document.getElementById('undoBtn').disabled = history.length <= 1;
+            document.getElementById('redoBtn').disabled = future.length === 0;
+        }
+
+        //―― グローバル状態 ――
+        let root = createNode('/', 'folder');
+        let editingId = null;
+        let selectedId = null;
+        let draggedId = null;
+
+        //―― テンプレート読み込み ――
+        function loadTemplate(key){
+            root = createNode('/', 'folder');
+            idCounter = 1; editingId = null; selectedId = null;
+            if(key!=='empty'){
+                const lines=templates[key].split('\n'), stack=[];
+                lines.forEach(raw=>{
+                    const depth=(raw.match(/^(\s*[│├└─]+)?/)?.[0]||'').replace(/[│├└─]/g,'').length/2;
+                    const txt=raw.replace(/^[\s│├└─]+/,'').trim();
+                    if(!txt) return;
+                    const isDir=txt.endsWith('/');
+                    const name=txt.replace(/\/$/,'');
+                    const node=createNode(name, isDir ? 'folder' : 'file');
+                    while(stack.length > depth) stack.pop();
+                    const parent = stack[stack.length-1] || root;
+                    parent.children.push(node);
+                    if(isDir) stack.push(node);
+                });
+            }
+            saveHistory();
+            render();
+        }
+
+        //―― ファイル内容編集用（モーダル）
+        let modalNode = null;
+        function editFileContent(node) {
+            modalNode = node;
+            document.getElementById('modal-label').textContent = `「${node.name}」の内容を編集`;
+            document.getElementById('modal-text').value = node.content || '';
+            document.getElementById('modal-bg').style.display = 'flex';
+            document.getElementById('modal-text').focus();
+        }
+        document.getElementById('modal-cancel').onclick = ()=>{
+            document.getElementById('modal-bg').style.display = 'none';
+            modalNode = null;
+        };
+        document.getElementById('modal-ok').onclick = ()=>{
+            if(modalNode){
+                modalNode.content = document.getElementById('modal-text').value;
+                saveHistory();
+                render();
+            }
+            document.getElementById('modal-bg').style.display = 'none';
+            modalNode = null;
+        };
+        
+        //✨ --- 修正された機能：ここから --- ✨
+        //―― テキストからの構造解析 ――
+        function parseTextToTree(text) {
+            const newRoot = createNode('/', 'folder');
+            const lines = text.split('\n');
+            const stack = [newRoot];
+            const levelStack = [-1]; // インデントレベルのスタック（ルートの仮想レベルは-1）
+
+            for (const line of lines) {
+                if (line.trim() === '') continue;
+
+                // スペースとツリー記号（│、├、└、─）を考慮してインデントを計算
+                const indent = line.match(/^[ \t│├└─]*/)[0].length;
+                let trimmedLine = line.trim();
+
+                // 記号とスペースをすべて削除してノード名を取得
+                trimmedLine = trimmedLine.replace(/^[│├└─\s]*/, '');
+                if (!trimmedLine) continue;
+
+                const isDir = trimmedLine.endsWith('/');
+                const name = isDir ? trimmedLine.slice(0, -1) : trimmedLine;
+                const newNode = createNode(name, isDir ? 'folder' : 'file');
+
+                // インデントに基づいて親ノードを見つける
+                while (indent <= levelStack[levelStack.length - 1] && stack.length > 1) {
+                    stack.pop();
+                    levelStack.pop();
+                }
+
+                // 修正：親ノードが存在するか確認
+                const parent = stack[stack.length - 1];
+                if (parent) {
+                    parent.children.push(newNode);
+                }
+
+                // ディレクトリの場合、次の項目の親になる可能性があるためスタックに追加
+                if (isDir) {
+                    stack.push(newNode);
+                    levelStack.push(indent);
+                }
+            }
+            return newRoot;
+        }
+
+        //―― テキスト解析用モーダル ――
+        let modalOkOriginalOnClick = null;
+        let modalCancelOriginalOnClick = null;
+
+        function showParseTextModal() {
+            // 元のイベントハンドラを保存
+            const okBtn = document.getElementById('modal-ok');
+            const cancelBtn = document.getElementById('modal-cancel');
+            modalOkOriginalOnClick = okBtn.onclick;
+            modalCancelOriginalOnClick = cancelBtn.onclick;
+            
+            const modal = document.getElementById('modal-bg');
+            const label = document.getElementById('modal-label');
+            const textarea = document.getElementById('modal-text');
+            
+            label.textContent = '階層構造テキストを貼り付け';
+            textarea.value = `my-project/
+├── src/
+│   └── main.js
+├── package.json
+└── index.html`;
+            textarea.placeholder = 'インデントで階層を表現したテキストを入力...';
+            
+            okBtn.textContent = '生成';
+            okBtn.onclick = () => {
+                const text = textarea.value;
+                if (text.trim()) {
+                    if (confirm('現在の構造を破棄して、テキストから新しい構造を生成しますか？')) {
+                        root = parseTextToTree(text);
+                        idCounter = getMaxId(root) + 1;
+                        saveHistory();
+                        render();
+                    }
+                }
+                hideParseTextModal();
+            };
+
+            cancelBtn.onclick = hideParseTextModal;
+            
+            modal.style.display = 'flex';
+            textarea.focus();
+            textarea.select();
+        }
+        
+        function hideParseTextModal() {
+            const modal = document.getElementById('modal-bg');
+            const okBtn = document.getElementById('modal-ok');
+            const cancelBtn = document.getElementById('modal-cancel');
+            
+            modal.style.display = 'none';
+            
+            // 元のモーダル機能を復元
+            okBtn.textContent = '保存';
+            okBtn.onclick = modalOkOriginalOnClick;
+            cancelBtn.onclick = modalCancelOriginalOnClick;
+            modalNode = null;
+        }
+        //✨ --- 修正された機能：ここまで --- ✨
+
+        //―― HTMLファイル実行用 ――
+        function executeHtmlFile(node) {
+            if (node.type === 'file' && node.name.endsWith('.html')) {
+                const blob = new Blob([node.content], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                window.open(url, '_blank');
+            } else {
+                alert('これはHTMLファイルではありません。');
+            }
+        }
+
+        //―― レンダリング ――
+        function render(){
+            const ul=document.getElementById('tree');
+            ul.innerHTML='';
+            function build(node, container){
+                node.children.forEach((ch, idx)=>{
+                    const li=document.createElement('li');
+                    li.draggable=true;
+                    li.dataset.id=ch.id;
+                    li.dataset.parentId = node.id; // Store parent ID for easier lookup
+
+                    if(ch.id===editingId){
+                        const inp=document.createElement('input');
+                        inp.value=ch.name; inp.className='node-input';
+                        inp.onblur=()=>commitEdit(inp.value);
+                        inp.onkeydown=e=>{ if(e.key==='Enter') inp.blur(); };
+                        li.appendChild(inp);
+                        setTimeout(()=>inp.select(),0);
+                    } else {
+                        const sp=document.createElement('span');
+                        sp.className='node';
+                        if (ch.id === selectedId) {
+                            sp.classList.add('selected');
+                        }
+                        sp.style.backgroundColor = ch.color || '#FFFFFF';
+                        sp.style.color = getContrastYIQ(ch.color || '#FFFFFF');
+                        sp.textContent=ch.name+(ch.type==='folder'?'/':'');
+                        sp.ondblclick=()=>{ editingId=ch.id; render(); };
+                        sp.onclick = (e) => {
+                            e.stopPropagation();
+                            selectedId = ch.id;
+                            const selectedNode = findNode(root, selectedId);
+                            const colorRadios = document.querySelectorAll('#color-picker input[name="color"]');
+                            colorRadios.forEach(radio => {
+                                radio.checked = radio.value === (selectedNode.color || '#FFFFFF');
+                            });
+                            render();
+                        };
+                        li.appendChild(sp);
+                    }
+
+                    const act=document.createElement('span');
+                    act.className='actions';
+                    const btns=[
+                        {t:'✎',fn:()=>{ editingId=ch.id; selectedId=null; render(); }},
+                        {t:'+フォルダー',fn:()=>{ const newNode=createNode('新しいフォルダ','folder', ch.color); ch.children.push(newNode); saveHistory(); render(); },cond:ch.type==='folder'},
+                        {t:'+html',fn:()=>{ const newNode=createNode('新しいファイル.html','file', ch.color); ch.children.push(newNode); saveHistory(); render(); },cond:ch.type==='folder'},
+                        {t:'+txt',fn:()=>{ const newNode=createNode('新しいファイル.txt','file', ch.color); ch.children.push(newNode); saveHistory(); render(); },cond:ch.type==='folder'},
+                        {t:'✕',fn:()=>{ removeNode(root,ch.id); saveHistory(); render(); }},
+                        {t:'📝',fn:() => editFileContent(ch), cond:ch.type==='file'},
+                        {t:'▶',fn:() => executeHtmlFile(ch), cond:ch.type==='file' && ch.name.endsWith('.html')} // HTML実行ボタンを追加
+                    ];
+                    btns.forEach(b=>{
+                        if(b.cond===false) return;
+                        const btn=document.createElement('button');
+                        btn.textContent=b.t; btn.onclick=b.fn;
+                        act.appendChild(btn);
+                    });
+                    li.appendChild(act);
+
+                    li.addEventListener('dragstart', onDragStart);
+                    li.addEventListener('dragover', onDragOver);
+                    li.addEventListener('dragleave', onDragLeave);
+                    li.addEventListener('drop', onDrop);
+                    li.addEventListener('dragend', onDragEnd); // Clean up on drag end
+
+                    container.appendChild(li);
+                    if(ch.type==='folder'){
+                        const sub=document.createElement('ul');
+                        sub.className='children';
+                        li.appendChild(sub);
+                        build(ch,sub);
+                    }
+                });
+            }
+            build(root,ul);
+            updateUndoRedoBtn();
+            renderFavList();
+        }
+
+        function commitEdit(val){
+            if(val.trim()) findNode(root,editingId).name=val.trim();
+            editingId=null; saveHistory(); render();
+        }
+
+        function removeNode(p,id){
+            for (let i = 0; i < p.children.length; i++) {
+                if (p.children[i].id === id) {
+                    p.children.splice(i, 1);
+                    return true;
+                }
+                if (removeNode(p.children[i], id)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function findNode(p,id){
+            if(p.id===id) return p;
+            for(const c of p.children){ const r=findNode(c,id); if(r) return r; }
+            return null;
+        }
+        function findParent(p,id){
+            for(const c of p.children){
+                if(c.id===id) return p;
+                const r=findParent(c,id);
+                if(r) return r;
+            }
+            return null;
+        }
+
+        //―― Drag & Drop ――
+        let dropPosition = 'inside'; // 'before', 'after', 'inside'
+
+        function onDragStart(e) {
+            draggedId = e.currentTarget.dataset.id;
+            e.dataTransfer.effectAllowed = 'move';
+            e.currentTarget.classList.add('dragging');
+        }
+
+        function onDragOver(e) {
+            e.preventDefault();
+            const targetLi = e.currentTarget;
+            const targetNode = findNode(root, targetLi.dataset.id);
+            const draggedNode = findNode(root, draggedId);
+
+            document.querySelectorAll('#tree li.over, #tree li.drop-before, #tree li.drop-after').forEach(li => {
+                li.classList.remove('over', 'drop-before', 'drop-after');
+            });
+
+            if (!targetNode || !draggedNode || draggedId === targetLi.dataset.id) {
+                e.dataTransfer.dropEffect = 'none';
                 return;
             }
 
-            generateMessage.textContent = 'ZIPファイルを生成中...';
-            generateMessage.className = 'mt-3 text-sm text-blue-600';
-
-            try {
-                const zip = new JSZip();
-                const lines = text.split('\n');
-                // pathStackは現在のディレクトリ階層を保持します
-                const pathStack = [];
-
-                lines.forEach(line => {
-                    // Webからコピーした際などに含まれる特殊な空白文字を正規化し、行末の空白を削除
-                    const cleanedLine = line.replace(/[\u00A0\u202F\u205F\u3000]/g, ' ').trimEnd();
-                    if (cleanedLine.trim() === '') return;
-
-                    // 行から構造部分（インデントや接続詞）と名前部分を分離
-                    const lineMatch = cleanedLine.match(/^([\s│├└─]*)(.*)$/);
-                    if (!lineMatch) return;
-
-                    const name = lineMatch[2].trim();
-                    if (!name) return;
-
-                    // 階層の深さ（depth）を名前の開始位置から算出。これにより、より正確に階層を判断
-                    // 1階層あたり約4文字のインデント幅と仮定
-                    const depth = Math.round(cleanedLine.indexOf(name) / 4);
-
-                    // 現在の行の階層に合わせて、pathStackを調整（浅い階層に戻る場合）
-                    while (depth < pathStack.length) {
-                        pathStack.pop();
-                    }
-
-                    const isDirectory = name.endsWith('/');
-                    const cleanName = isDirectory ? name.slice(0, -1) : name;
-
-                    // 現在のファイル/フォルダのフルパスを生成
-                    const currentPath = pathStack.join('/');
-                    const fullPath = currentPath ? `${currentPath}/${cleanName}` : cleanName;
-
-                    if (isDirectory) {
-                        zip.folder(fullPath);
-                        pathStack.push(cleanName); // ディレクトリの場合、次の階層としてスタックに追加
-                    } else {
-                        zip.file(fullPath, ''); // ファイルは空の内容で作成
-                    }
-                });
-
-                // ZIPファイルを生成してダウンロード
-                zip.generateAsync({ type: "blob" })
-                    .then(function(content) {
-                        const link = document.createElement('a');
-                        link.href = URL.createObjectURL(content);
-                        link.download = "structure.zip";
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        URL.revokeObjectURL(link.href); // メモリリークを防ぐ
-                        generateMessage.textContent = 'ZIPファイルの生成が完了しました！';
-                        generateMessage.className = 'mt-3 text-sm text-green-600';
-                    });
-
-            } catch (error) {
-                console.error("ZIP generation error:", error);
-                generateMessage.textContent = 'ZIPファイルの生成に失敗しました。入力形式を確認してください。';
-                generateMessage.className = 'mt-3 text-sm text-red-600';
+            let current = targetNode;
+            while(current) {
+                if (current.id === draggedId) {
+                    e.dataTransfer.dropEffect = 'none';
+                    return;
+                }
+                current = findParent(root, current.id);
             }
-        });
+            e.dataTransfer.dropEffect = 'move';
 
-        // --- ZIP読み込み機能 ---
-        zipInput.addEventListener('change', (event) => {
-            const file = event.target.files[0];
-            if (!file) return;
+            const rect = targetLi.getBoundingClientRect();
+            const y = e.clientY - rect.top;
+            const third = rect.height / 3;
 
-            readMessage.textContent = '';
-            structureOutput.textContent = 'ZIPファイルを読み込み中...';
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                JSZip.loadAsync(e.target.result)
-                    .then(function(zip) {
-                        // フォルダもパスとして含めるためにフィルタリング
-                        const filePaths = Object.keys(zip.files).filter(path => !path.startsWith('__MACOSX'));
-                        if (filePaths.length === 0) {
-                            structureOutput.textContent = 'ZIPファイルは空か、対応していないファイルです。';
-                            return;
-                        }
-                        const tree = buildTree(filePaths);
-                        structureOutput.textContent = formatTree(tree);
-                    })
-                    .catch(function(err) {
-                        console.error("ZIP reading error:", err);
-                        structureOutput.textContent = '';
-                        readMessage.textContent = 'ZIPファイルの読み込みに失敗しました。ファイルが破損している可能性があります。';
-                    });
-            };
-            reader.readAsArrayBuffer(file);
-        });
-
-        /**
-         * ファイルパスのリストからツリー構造のオブジェクトを生成するヘルパー関数
-         * @param {string[]} paths - ファイルパスの配列
-         * @returns {object} - ツリー構造のオブジェクト
-         */
-        function buildTree(paths) {
-            const tree = {};
-            // パスをソートして、親ディレクトリが先に処理されるようにする
-            paths.sort();
-            paths.forEach(path => {
-                // 末尾の/を削除して、ファイルとディレクトリを統一的に扱う
-                const cleanPath = path.endsWith('/') ? path.slice(0, -1) : path;
-                if (!cleanPath) return;
-
-                const parts = cleanPath.split('/');
-                let currentLevel = tree;
-                parts.forEach((part, index) => {
-                    const isLastPart = index === parts.length - 1;
-                    const isDirectoryInZip = path.endsWith('/');
-
-                    if (!currentLevel[part]) {
-                        // パスの最後で、かつZIP内でディレクトリとして定義されている場合、または途中のパスの場合
-                        if ((isLastPart && isDirectoryInZip) || !isLastPart) {
-                            currentLevel[part] = {};
-                        } else {
-                            currentLevel[part] = null; // ファイル
-                        }
-                    }
-                    if (typeof currentLevel[part] === 'object' && currentLevel[part] !== null) {
-                        currentLevel = currentLevel[part];
-                    }
-                });
-            });
-            return tree;
+            if (targetNode.type === 'folder') {
+                if (y < third) {
+                    dropPosition = 'before';
+                    targetLi.classList.add('drop-before');
+                } else if (y > third * 2) {
+                    dropPosition = 'after';
+                    targetLi.classList.add('drop-after');
+                } else {
+                    dropPosition = 'inside';
+                    targetLi.classList.add('over');
+                }
+            } else {
+                if (y < rect.height / 2) {
+                    dropPosition = 'before';
+                    targetLi.classList.add('drop-before');
+                } else {
+                    dropPosition = 'after';
+                    targetLi.classList.add('drop-after');
+                }
+            }
         }
 
-        /**
-         * ツリー構造のオブジェクトを整形されたテキストに変換するヘルパー関数
-         * @param {object} node - ツリー構造のノード
-         * @param {string} prefix - インデント用の接頭辞
-         * @returns {string} - 整形されたツリーテキスト
-         */
-        function formatTree(node, prefix = '') {
-            let result = '';
-            const entries = Object.entries(node);
-            entries.forEach(([key, value], index) => {
-                const isLast = index === entries.length - 1;
-                const connector = isLast ? '└── ' : '├── ';
-                const newPrefix = prefix + (isLast ? '    ' : '│   ');
-                
-                const isDirectory = value !== null && typeof value === 'object';
-                const displayName = isDirectory ? `${key}/` : key;
-                
-                result += prefix + connector + displayName + '\n';
+        function onDragLeave(e) {
+            e.currentTarget.classList.remove('over', 'drop-before', 'drop-after');
+        }
 
-                if (isDirectory) {
-                    result += formatTree(value, newPrefix);
+        function onDrop(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            document.querySelectorAll('#tree li.dragging, #tree li.over, #tree li.drop-before, #tree li.drop-after').forEach(li => {
+                li.classList.remove('dragging', 'over', 'drop-before', 'drop-after');
+            });
+
+            const targetId = e.currentTarget.dataset.id;
+            if (draggedId === targetId) return;
+
+            const draggedNode = findNode(root, draggedId);
+            if (!draggedNode) return;
+
+            const sourceParent = findParent(root, draggedId);
+            if (sourceParent) {
+                removeNode(sourceParent, draggedId);
+            } else {
+                console.error("Dragged node's parent not found.");
+                draggedId = null;
+                return;
+            }
+
+            const targetNode = findNode(root, targetId);
+            if (!targetNode) return;
+
+            if (dropPosition === 'inside' && targetNode.type === 'folder') {
+                targetNode.children.push(draggedNode);
+            } else {
+                const targetParent = findParent(root, targetId);
+                const parentToInsertInto = targetParent || root;
+                const targetIndex = parentToInsertInto.children.findIndex(c => c.id === targetId);
+
+                if (targetIndex > -1) {
+                    if (dropPosition === 'before') {
+                        parentToInsertInto.children.splice(targetIndex, 0, draggedNode);
+                    } else { // after
+                        parentToInsertInto.children.splice(targetIndex + 1, 0, draggedNode);
+                    }
+                } else {
+                    parentToInsertInto.children.push(draggedNode);
+                }
+            }
+            draggedId = null;
+            saveHistory();
+            render();
+        }
+
+        function onDragEnd(e) {
+            document.querySelectorAll('#tree li.dragging, #tree li.over, #tree li.drop-before, #tree li.drop-after').forEach(li => {
+                li.classList.remove('dragging', 'over', 'drop-before', 'drop-after');
+            });
+            draggedId = null;
+        }
+
+
+        //―― CSV 保存/読込 ――
+        function treeToCsv(){
+            const rows=[['path','type','content','color']];
+            (function w(n,p){
+                n.children.forEach(c=>{
+                    const path=p+'/'+c.name;
+                    rows.push([path,c.type,c.type==='file'?btoa(unescape(encodeURIComponent(c.content||''))):'', c.color || '#FFFFFF']);
+                    if(c.type==='folder') w(c,path);
+                });
+            })(root,'');
+            return rows.map(r=>r.map(x=>`"${(x||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+        }
+        document.getElementById('saveCsv').onclick = () => {
+            const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+            const csv = treeToCsv();
+            const blob = new Blob([bom, csv], {type:'text/csv'});
+            const a=document.createElement('a');
+            a.href=URL.createObjectURL(blob);
+            a.download='structure.csv';
+            a.click();
+        };
+        document.getElementById('loadCsv').onclick = async () => {
+            try {
+                const [f]=await window.showOpenFilePicker({types:[{accept:{'text/csv':['.csv']}}]});
+                const txt=await (await f.getFile()).text();
+                const lines=txt.split('\n').filter(l=>l.trim());
+                root=createNode('/','folder'); idCounter = 1;
+                lines.slice(1).forEach(l=>{
+                    const parts = [];
+                    let inQuote = false;
+                    let currentPart = '';
+                    for (let i = 0; i < l.length; i++) {
+                        const char = l[i];
+                        if (char === '"') {
+                            if (i + 1 < l.length && l[i+1] === '"') {
+                                currentPart += '"';
+                                i++;
+                            } else {
+                                inQuote = !inQuote;
+                            }
+                        } else if (char === ',' && !inQuote) {
+                            parts.push(currentPart);
+                            currentPart = '';
+                        } else {
+                            currentPart += char;
+                        }
+                    }
+                    parts.push(currentPart);
+
+                    if (parts.length < 2) return;
+                    const [path, type, contentStr, color] = parts;
+                    const content = (contentStr && type === 'file') ? decodeURIComponent(escape(atob(contentStr))) : '';
+                    const seg=path.split('/').filter(Boolean);
+                    let p=root;
+                    seg.forEach((n,i)=>{
+                        const last=i===seg.length-1;
+                        const nodeType = last ? type : 'folder';
+                        let d=p.children.find(c=>c.name===n&&c.type===nodeType);
+                        if(!d){
+                            d=createNode(n, nodeType, color);
+                            if(last && type === 'file') d.content = content;
+                            p.children.push(d);
+                        }
+                        p=d;
+                    });
+                });
+                saveHistory();
+                render();
+            } catch (e) {
+                if(e.name !== 'AbortError') alert('CSVファイルの読み込みに失敗しました。');
+            }
+        };
+
+        //―― フォルダから読込 ――
+        document.getElementById('importFs').onclick = async () => {
+            try {
+                const dh=await window.showDirectoryPicker();
+                idCounter=1; root=createNode('/','folder');
+                await readFsRecursive(dh, root);
+                saveHistory();
+                render();
+            } catch (e) {
+                if(e.name !== 'AbortError') alert('フォルダの読み込みに失敗しました。');
+            }
+        };
+        async function readFsRecursive(dh, parentNode){
+            for await(const [name,ent] of dh.entries()){
+                if(ent.kind==='directory') {
+                    const folderNode = createNode(name,'folder');
+                    parentNode.children.push(folderNode);
+                    await readFsRecursive(ent, folderNode);
+                } else {
+                    const fileNode = createNode(name,'file');
+                    parentNode.children.push(fileNode);
+                    try {
+                        const file = await ent.getFile();
+                        fileNode.content = await file.text();
+                    } catch (e) { fileNode.content = `ERROR: ${e.message}`; }
+                }
+            }
+        }
+
+        //―― ZIP 出力 ――
+        document.getElementById('downloadZip').onclick = () => {
+            const zip=new JSZip();
+            (function add(n, f){
+                n.children.forEach(c => {
+                    if(c.type==='folder') {
+                        add(c, f.folder(c.name));
+                    } else {
+                        f.file(c.name, c.content ?? getFileTemplate(c.name));
+                    }
+                });
+            })(root, zip);
+            zip.generateAsync({type:'blob'}).then(b=>{
+                const a=document.createElement('a');
+                a.href=URL.createObjectURL(b); a.download='structure.zip';
+                a.click();
+            });
+        };
+
+        //―― PNG画像でダウンロード ――
+        document.getElementById('downloadPng').onclick = () => {
+            const originalBodyPadding = document.body.style.padding;
+            document.body.style.padding = '0';
+            document.body.classList.add('hide-for-capture');
+
+            html2canvas(document.getElementById('tree'), {
+                scale: 2,
+                logging: false,
+                useCORS: true,
+                backgroundColor: '#f8f9fa',
+            }).then(canvas => {
+                const a = document.createElement('a');
+                a.href = canvas.toDataURL('image/png');
+                a.download = 'structure.png';
+                a.click();
+            }).finally(() => {
+                document.body.classList.remove('hide-for-capture');
+                document.body.style.padding = originalBodyPadding;
+            });
+        };
+
+        //―― TXTプレビュー ――
+        document.getElementById('txtPreviewBtn').onclick=()=>{
+            let txt = '';
+            function walk(n, prefix=''){
+                n.children.forEach(c=>{
+                    txt += prefix + c.name + (c.type==='folder'?'/':'') + '\n';
+                    if(c.type==='file' && c.content){
+                        txt += c.content.split(/\r?\n/).map(line=>'  '+line).join('\n')+'\n\n';
+                    }
+                    if(c.type==='folder') walk(c, prefix+'  ');
+                });
+            }
+            walk(root);
+            document.getElementById('txt-preview').textContent = txt;
+            document.getElementById('txt-preview').style.display = 'block';
+        };
+
+
+        //―― 完全保存・読込（JSON）――
+        document.getElementById('saveAllBtn').onclick=()=>{
+            const blob = new Blob([JSON.stringify(root, null, 2)], {type:'application/json'});
+            const a=document.createElement('a');
+            a.href=URL.createObjectURL(blob); a.download='structure.json';
+            a.click();
+        };
+        document.getElementById('loadAllBtn').onclick=async()=>{
+            try {
+                const [f]=await window.showOpenFilePicker({types:[{accept:{'application/json':['.json']}}]});
+                const txt=await (await f.getFile()).text();
+                root=JSON.parse(txt);
+                idCounter = getMaxId(root)+1;
+                saveHistory();
+                render();
+            } catch (e) {
+                if(e.name !== 'AbortError') alert('JSONファイルの読み込みに失敗しました。');
+            }
+        };
+
+        //―― お気に入りテンプレート保存・呼び出し ――
+        function renderFavList(){
+            const favDiv = document.getElementById('fav-list');
+            favDiv.innerHTML = '<b>お気に入り: </b>';
+            const favs = JSON.parse(localStorage.getItem('favTemplates')||'[]');
+            favs.forEach((f,i)=>{
+                const btnContainer = document.createElement('span');
+                const btn = document.createElement('button');
+                btn.textContent = f.name;
+                btn.onclick = ()=>{ root = JSON.parse(f.data); idCounter = getMaxId(root)+1; saveHistory(); render(); };
+                btnContainer.appendChild(btn);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = '✕'; deleteBtn.title = 'お気に入りを削除';
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    if (confirm(`「${f.name}」を削除しますか？`)) { removeFav(i); }
+                };
+                btnContainer.appendChild(deleteBtn);
+                favDiv.appendChild(btnContainer);
+            });
+        }
+
+        function removeFav(index){
+            const favs = JSON.parse(localStorage.getItem('favTemplates')||'[]');
+            favs.splice(index, 1);
+            localStorage.setItem('favTemplates', JSON.stringify(favs));
+            renderFavList();
+        }
+
+        document.getElementById('addFavBtn').onclick=()=>{
+            const name = prompt('お気に入り名を入力してください:');
+            if(!name) return;
+            const favs = JSON.parse(localStorage.getItem('favTemplates')||'[]');
+            favs.push({name, data: JSON.stringify(root)});
+            localStorage.setItem('favTemplates', JSON.stringify(favs));
+            renderFavList();
+        };
+
+        //―― 全て削除ボタン ――
+        document.getElementById('clearAllBtn').onclick = () => {
+            if (confirm('本当にすべて削除しますか？')) {
+                root = createNode('/', 'folder'); idCounter = 1;
+                saveHistory(); render();
+            }
+        };
+
+        // 再帰的に子ノードの色を更新する関数
+        function updateChildrenColor(node, newColor) {
+            node.children.forEach(child => {
+                child.color = newColor;
+                if (child.type === 'folder') {
+                    updateChildrenColor(child, newColor);
                 }
             });
-            return result;
         }
 
+        //―― イベントバインド & 初期化 ――
+        document.getElementById('templateSelect').onchange=e=>loadTemplate(e.target.value);
+        document.getElementById('addRootFolder').onclick=()=>{ root.children.push(createNode('新しいフォルダ','folder')); saveHistory(); render(); };
+        document.getElementById('addRootFile').onclick=()=>{ root.children.push(createNode('新しいファイル.html','file')); saveHistory(); render(); };
+        document.getElementById('addRootTxt').onclick=()=>{ root.children.push(createNode('新しいファイル.txt','file')); saveHistory(); render(); };
+        document.getElementById('parseTextBtn').onclick = showParseTextModal;
+        document.getElementById('undoBtn').onclick=undo;
+        document.getElementById('redoBtn').onclick=redo;
+
+        document.querySelectorAll('#color-picker input[name="color"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                if (selectedId) {
+                    const node = findNode(root, selectedId);
+                    if (node) {
+                        node.color = e.target.value;
+                        if (node.type === 'folder') {
+                            updateChildrenColor(node, e.target.value);
+                        }
+                        saveHistory();
+                        render();
+                    }
+                }
+            });
+        });
+
+        // Initial Load
+        // モーダルイベントハンドラの初期化を修正
+        const okBtn = document.getElementById('modal-ok');
+        const cancelBtn = document.getElementById('modal-cancel');
+        modalOkOriginalOnClick = okBtn.onclick;
+        modalCancelOriginalOnClick = cancelBtn.onclick;
+
+        saveHistory();
+        render();
     </script>
 </body>
 </html>
