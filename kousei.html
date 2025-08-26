@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ディレクトリ構成ZIPツール</title>
+    <!-- Tailwind CSSを読み込み -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- JSZipライブラリを読み込み -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         /* 簡単なスタイル調整 */
@@ -29,21 +31,16 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
+            <!-- 左側: テキストからZIPを生成 -->
             <div class="flex flex-col bg-gray-50 p-6 rounded-xl border border-gray-200">
                 <h2 class="text-2xl font-semibold mb-4 text-gray-800">1. テキストからZIPを生成</h2>
-                <p class="mb-4 text-gray-500">下のテキストエリアにディレクトリ構成を入力し、「ZIP生成」ボタンを押してください。<br><small class="text-gray-400">例: my-project/
-├── src/
-│   ├── index.js(console.log('Hello, World!'))
-│   └── style.css
-├── public/
-│   └── index.html(<h1>Hello, HTML</h1>)
-└── package.json</small></p>
+                <p class="mb-4 text-gray-500">下のテキストエリアにディレクトリ構成を入力し、「ZIP生成」ボタンを押してください。</p>
                 <textarea id="structureInput" class="w-full h-80 p-4 border border-gray-300 rounded-lg resize-y focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" placeholder="my-project/
 ├── src/
-│   ├── index.js(console.log('Hello, World!'))
+│   ├── index.js
 │   └── style.css
 ├── public/
-│   └── index.html(<h1>Hello, HTML</h1>)
+│   └── index.html
 └── package.json"></textarea>
                 <button id="generateBtn" class="mt-4 w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform transform hover:scale-105 shadow-md">
                     ZIPを生成してダウンロード
@@ -51,6 +48,7 @@
                 <div id="generateMessage" class="mt-3 text-sm text-green-600"></div>
             </div>
 
+            <!-- 右側: ZIPから構成を読み込み -->
             <div class="flex flex-col bg-gray-50 p-6 rounded-xl border border-gray-200">
                 <h2 class="text-2xl font-semibold mb-4 text-gray-800">2. ZIPから構成を読み込み</h2>
                 <p class="mb-4 text-gray-500">ZIPファイルを選択すると、下のエリアにディレクトリ構成が表示されます。</p>
@@ -78,10 +76,10 @@
         const structureOutput = document.getElementById('structureOutput');
         const readMessage = document.getElementById('readMessage');
 
-        // --- ZIP生成機能 ---
+        // --- ZIP生成機能 (バグ修正済み) ---
         generateBtn.addEventListener('click', () => {
-            const text = structureInput.value.trim();
-            if (!text) {
+            const text = structureInput.value;
+            if (!text.trim()) {
                 generateMessage.textContent = 'テキストが入力されていません。';
                 generateMessage.className = 'mt-3 text-sm text-red-600';
                 return;
@@ -93,42 +91,42 @@
             try {
                 const zip = new JSZip();
                 const lines = text.split('\n');
+                // pathStackは現在のディレクトリ階層を保持します
                 const pathStack = [];
 
                 lines.forEach(line => {
-                    if (line.trim() === '') return;
+                    // Webからコピーした際などに含まれる特殊な空白文字を正規化し、行末の空白を削除
+                    const cleanedLine = line.replace(/[\u00A0\u202F\u205F\u3000]/g, ' ').trimEnd();
+                    if (cleanedLine.trim() === '') return;
 
-                    // 行からインデントと名前、そしてコンテンツを抽出
-                    const indentationMatch = line.match(/^(\s*│?\s*[├└]──\s*)/);
-                    let rawName = indentationMatch ? line.substring(indentationMatch[0].length) : line;
-                    let content = '';
+                    // 行から構造部分（インデントや接続詞）と名前部分を分離
+                    const lineMatch = cleanedLine.match(/^([\s│├└─]*)(.*)$/);
+                    if (!lineMatch) return;
 
-                    const contentMatch = rawName.match(/\((.*?)\)$/);
-                    if (contentMatch) {
-                        content = contentMatch[1];
-                        rawName = rawName.replace(contentMatch[0], '');
-                    }
+                    const name = lineMatch[2].trim();
+                    if (!name) return;
 
-                    const name = rawName.trim();
-                    const isDirectory = name.endsWith('/');
-                    const cleanName = isDirectory ? name.slice(0, -1) : name;
+                    // 階層の深さ（depth）を名前の開始位置から算出。これにより、より正確に階層を判断
+                    // 1階層あたり約4文字のインデント幅と仮定
+                    const depth = Math.round(cleanedLine.indexOf(name) / 4);
 
-                    // インデントの深さを計算
-                    const depth = indentationMatch ? (indentationMatch[0].replace(/[│├└─\s]/g, '').length + indentationMatch[0].match(/ /g).length) / 4 : 0;
-                    
-                    // パススタックを調整
+                    // 現在の行の階層に合わせて、pathStackを調整（浅い階層に戻る場合）
                     while (depth < pathStack.length) {
                         pathStack.pop();
                     }
 
+                    const isDirectory = name.endsWith('/');
+                    const cleanName = isDirectory ? name.slice(0, -1) : name;
+
+                    // 現在のファイル/フォルダのフルパスを生成
                     const currentPath = pathStack.join('/');
                     const fullPath = currentPath ? `${currentPath}/${cleanName}` : cleanName;
 
                     if (isDirectory) {
                         zip.folder(fullPath);
-                        pathStack.push(cleanName);
+                        pathStack.push(cleanName); // ディレクトリの場合、次の階層としてスタックに追加
                     } else {
-                        zip.file(fullPath, content);
+                        zip.file(fullPath, ''); // ファイルは空の内容で作成
                     }
                 });
 
@@ -141,6 +139,7 @@
                         document.body.appendChild(link);
                         link.click();
                         document.body.removeChild(link);
+                        URL.revokeObjectURL(link.href); // メモリリークを防ぐ
                         generateMessage.textContent = 'ZIPファイルの生成が完了しました！';
                         generateMessage.className = 'mt-3 text-sm text-green-600';
                     });
@@ -164,9 +163,10 @@
             reader.onload = function(e) {
                 JSZip.loadAsync(e.target.result)
                     .then(function(zip) {
-                        const filePaths = Object.keys(zip.files);
+                        // フォルダもパスとして含めるためにフィルタリング
+                        const filePaths = Object.keys(zip.files).filter(path => !path.startsWith('__MACOSX'));
                         if (filePaths.length === 0) {
-                            structureOutput.textContent = 'ZIPファイルは空です。';
+                            structureOutput.textContent = 'ZIPファイルは空か、対応していないファイルです。';
                             return;
                         }
                         const tree = buildTree(filePaths);
@@ -188,14 +188,26 @@
          */
         function buildTree(paths) {
             const tree = {};
+            // パスをソートして、親ディレクトリが先に処理されるようにする
+            paths.sort();
             paths.forEach(path => {
-                const parts = path.split('/').filter(p => p);
+                // 末尾の/を削除して、ファイルとディレクトリを統一的に扱う
+                const cleanPath = path.endsWith('/') ? path.slice(0, -1) : path;
+                if (!cleanPath) return;
+
+                const parts = cleanPath.split('/');
                 let currentLevel = tree;
                 parts.forEach((part, index) => {
+                    const isLastPart = index === parts.length - 1;
+                    const isDirectoryInZip = path.endsWith('/');
+
                     if (!currentLevel[part]) {
-                        // パスの最後か、末尾に'/'がある場合はディレクトリとして扱う
-                        const isDirectory = (index < parts.length - 1) || path.endsWith('/');
-                        currentLevel[part] = isDirectory ? {} : null;
+                        // パスの最後で、かつZIP内でディレクトリとして定義されている場合、または途中のパスの場合
+                        if ((isLastPart && isDirectoryInZip) || !isLastPart) {
+                            currentLevel[part] = {};
+                        } else {
+                            currentLevel[part] = null; // ファイル
+                        }
                     }
                     if (typeof currentLevel[part] === 'object' && currentLevel[part] !== null) {
                         currentLevel = currentLevel[part];
@@ -219,8 +231,12 @@
                 const connector = isLast ? '└── ' : '├── ';
                 const newPrefix = prefix + (isLast ? '    ' : '│   ');
                 
-                result += prefix + connector + key + '\n';
-                if (value !== null && typeof value === 'object') {
+                const isDirectory = value !== null && typeof value === 'object';
+                const displayName = isDirectory ? `${key}/` : key;
+                
+                result += prefix + connector + displayName + '\n';
+
+                if (isDirectory) {
                     result += formatTree(value, newPrefix);
                 }
             });
