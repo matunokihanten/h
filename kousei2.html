@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8"/>
+    <title>🌟 完全版構造エディタ＋豪華PDF/CSV/FS/ZIP</title>
+    <style>
+        body { font-family: sans-serif; padding: 1rem; background: #f9f9f9; }
+        #controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, auto));
+            gap: 8px;
+            margin-bottom: 1rem;
+        }
+        #controls > *, #color-picker > * { font-size: 0.9rem; padding: 6px 12px; }
+        #color-picker {
+            grid-column: 1 / -1; /* Take full width */
+            border: 1px solid #ccc;
+            padding: 8px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        #color-picker label { font-weight: bold; }
+        #color-picker input[type="radio"] { margin-left: 2px; }
+        #tree { list-style: none; padding-left: 0; }
+        li { margin: 4px 0; position: relative; }
+        li::before {
+            content: ""; position: absolute; top: 12px; left: -10px;
+            width: 10px; height: 1px; background: #ccc;
+        }
+        .children {
+            border-left: 1px solid #ccc; margin-left: 10px; padding-left: 10px;
+        }
+        .node, .node-input {
+            display: inline-block; padding: 4px 8px;
+            border: 1px solid #aaa; border-radius: 4px; background: #fff;
+            font-family: monospace;
+            transition: background-color 0.3s;
+        }
+        .node { cursor: pointer; }
+        .node.selected {
+            outline: 2px solid #007bff;
+            outline-offset: 1px;
+        }
+        .node-input { padding: 2px 4px; width: auto; }
+        .actions button { margin-left: 4px; font-size: 0.8rem; }
+        .over > .node { background: #def; }
+        #modal-bg {
+            position: fixed; left:0; top:0; width:100vw; height:100vh;
+            background: rgba(0,0,0,0.3); z-index: 1000; display: none;
+            align-items: center; justify-content: center;
+        }
+        #modal {
+            background: #fff; border-radius: 8px; padding: 24px; min-width: 400px;
+            box-shadow: 0 4px 24px #0002;
+        }
+        #modal textarea {
+            width: 100%; height: 500px; font-family: monospace; font-size: 1rem;
+            margin-bottom: 1em;
+        }
+        #modal label { font-weight: bold; }
+        #modal .modal-btns { text-align: right; }
+        #modal .modal-btns button { margin-left: 10px; }
+        #fav-list { margin: 0 0 1em 0; }
+        #fav-list button { margin-right: 6px; }
+        #txt-preview { white-space: pre; background: #fff; border: 1px solid #ccc; padding: 1em; margin: 1em 0; }
+
+        /* Drag & Drop Visual Feedback */
+        .drop-before { border-top: 2px solid #4D96FF !important; }
+        .drop-after { border-bottom: 2px solid #4D96FF !important; }
+        .over > .node { background: #e0f2f7 !important; outline: 2px solid #4D96FF; outline-offset: 1px;}
+        .dragging { opacity: 0.5; }
+
+        /* PNG生成時にボタンを非表示にするためのスタイル */
+        body.hide-for-capture .actions {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <h2>🗂️ 完全版構造エディタ・CSV保存/読込・FS読込・ZIP・豪華PDF・画像・プリセット</h2>
+    <div id="controls">
+        <select id="templateSelect">
+            <option value="empty">— 空 —</option>
+            <option value="js">JavaScript プロジェクト</option>
+            <option value="html">HTML ファイル構成</option>
+        </select>
+        <button id="addRootFolder">ルートにフォルダ追加</button>
+        <button id="addRootFile">ルートにファイル追加</button>
+        <button id="addRootTxt">ルートにTXT追加</button>
+        <button id="saveCsv">CSVを保存</button>
+        <button id="loadCsv">CSVを読込</button>
+        <button id="importFs">フォルダから読込</button>
+        <button id="parseTextBtn">テキストから構造生成</button>
+        <button id="downloadZip">ZIPをダウンロード</button>
+        <button id="downloadPng">PNG画像でダウンロード</button>
+        <button id="txtPreviewBtn">TXTプレビュー</button>
+        <button id="undoBtn">元に戻す</button>
+        <button id="redoBtn">やり直し</button>
+        <button id="saveAllBtn">全保存</button>
+        <button id="loadAllBtn">全読込</button>
+        <button id="addFavBtn">お気に入り保存</button>
+        <button id="clearAllBtn">全て削除</button>
+        <div id="color-picker">
+            <label>🎨 色:</label>
+            <input type="radio" name="color" value="#FFFFFF" checked> 白
+            <input type="radio" name="color" value="#ffdddd"> 赤
+            <input type="radio" name="color" value="#ddffdd"> 緑
+            <input type="radio" name="color" value="#ddddff"> 青
+            <input type="radio" name="color" value="#ffffdd"> 黄
+            <input type="radio" name="color" value="#ffddff"> 紫
+            <input type="radio" name="color" value="#ddffff"> 水色
+            <input type="radio" name="color" value="#f0f0f0"> 灰
+        </div>
+    </div>
+    <div id="fav-list"></div>
+    <ul id="tree"></ul>
+    <div id="txt-preview" style="display:none"></div>
+
+    <div id="modal-bg">
+        <div id="modal">
+            <label id="modal-label"></label>
+            <textarea id="modal-text"></textarea>
+            <div class="modal-btns">
+                <button id="modal-cancel">キャンセル</button>
+                <button id="modal-ok">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.7.1/jszip.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script>
+        //―― テンプレート ――
+        const templates = {
+            empty: ``,
+            js: `
+/my-app
+├── src/
+│   └── index.js
+├── package.json
+└── README.md`.trim(),
+            html: `
+/site
+├── index.html
+├── style.css
+└── script.js`.trim()
+        };
+
+        //―― ユーティリティ ――
+        let idCounter = 1;
+        function genId() { return 'n'+(idCounter++); }
+        function createNode(name, type, color = '#FFFFFF') {
+            return { id: genId(), name, type, children: [], content: '', color: color };
+        }
+        function getFileTemplate(name){
+            if(name.endsWith('.html')){
+                const t=name.replace(/\.html$/,'');
+                return `<!DOCTYPE html>
+<html lang="ja">
+<head><meta charset="UTF-8"><title>${t}</title></head>
+<body>
+
+</body>
+</html>`;
+            }
+            return '';
+        }
+        function getContrastYIQ(hexcolor){
+            hexcolor = hexcolor.replace("#", "");
+            var r = parseInt(hexcolor.substr(0,2),16);
+            var g = parseInt(hexcolor.substr(2,2),16);
+            var b = parseInt(hexcolor.substr(4,2),16);
+            var yiq = ((r*299)+(g*587)+(b*114))/1000;
+            return (yiq >= 128) ? 'black' : 'white';
+        }
+
+
+        //―― Undo/Redo用履歴管理 ――
+        let history = [];
+        let future = [];
+        function saveHistory(){
+            history.push(JSON.stringify(root));
+            if(history.length>100) history.shift();
+            future = [];
+            updateUndoRedoBtn();
+        }
+        function undo(){
+            if(history.length<=1) return; // Keep the initial state
+            future.push(JSON.stringify(root));
+            history.pop(); // Pop current state
+            root = JSON.parse(history[history.length-1]); // Peek at new current state
+            idCounter = getMaxId(root)+1;
+            selectedId = null; // Deselect on undo
+            render();
+            updateUndoRedoBtn();
+        }
+        function redo(){
+            if(future.length===0) return;
+            const nextState = future.pop();
+            history.push(nextState);
+            root = JSON.parse(nextState);
+            idCounter = getMaxId(root)+1;
+            selectedId = null; // Deselect on redo
+            render();
+            updateUndoRedoBtn();
+        }
+        function getMaxId(node){
+            let max = 0;
+            function walk(n){
+                const num = parseInt(n.id.replace('n',''), 10);
+                if(num > max) max = num;
+                if(n.children) n.children.forEach(walk);
+            }
+            if(node.children) node.children.forEach(walk);
+            return max;
+        }
+        function updateUndoRedoBtn(){
+            document.getElementById('undoBtn').disabled = history.length <= 1;
+            document.getElementById('redoBtn').disabled = future.length === 0;
+        }
+
+        //―― グローバル状態 ――
+        let root = createNode('/', 'folder');
+        let editingId = null;
+        let selectedId = null;
+        let draggedId = null;
+
+        //―― テンプレート読み込み ――
+        function loadTemplate(key){
+            root = createNode('/', 'folder');
+            idCounter = 1; editingId = null; selectedId = null;
+            if(key!=='empty'){
+                const lines=templates[key].split('\n'), stack=[];
+                lines.forEach(raw=>{
+                    const depth=(raw.match(/^(\s*[│├└─]+)?/)?.[0]||'').replace(/[│├└─]/g,'').length/2;
+                    const txt=raw.replace(/^[\s│├└─]+/,'').trim();
+                    if(!txt) return;
+                    const isDir=txt.endsWith('/');
+                    const name=txt.replace(/\/$/,'');
+                    const node=createNode(name, isDir ? 'folder' : 'file');
+                    while(stack.length > depth) stack.pop();
+                    const parent = stack[stack.length-1] || root;
+                    parent.children.push(node);
+                    if(isDir) stack.push(node);
+                });
+            }
+            saveHistory();
+            render();
+        }
+
+        //―― ファイル内容編集用（モーダル）
+        let modalNode = null;
+        function editFileContent(node) {
+            modalNode = node;
+            document.getElementById('modal-label').textContent = `「${node.name}」の内容を編集`;
+            document.getElementById('modal-text').value = node.content || '';
+            document.getElementById('modal-bg').style.display = 'flex';
+            document.getElementById('modal-text').focus();
+        }
+        document.getElementById('modal-cancel').onclick = ()=>{
+            document.getElementById('modal-bg').style.display = 'none';
+            modalNode = null;
+        };
+        document.getElementById('modal-ok').onclick = ()=>{
+            if(modalNode){
+                modalNode.content = document.getElementById('modal-text').value;
+                saveHistory();
+                render();
+            }
+            document.getElementById('modal-bg').style.display = 'none';
+            modalNode = null;
+        };
+        
+        //―― テキストからの構造解析 ――
+        function parseTextToTree(text) {
+            const newRoot = createNode('/', 'folder');
+            const lines = text.split('\n');
+            const stack = [newRoot];
+            const levelStack = [-1]; // インデントレベルのスタック（ルートの仮想レベルは-1）
+
+            for (const line of lines) {
+                if (line.trim() === '') continue;
+
+                // スペースとツリー記号（│、├、└、─）を考慮してインデントを計算
+                const indent = line.match(/^[ \t│├└─]*/)[0].length;
+                let trimmedLine = line.trim();
+
+                // 記号とスペースをすべて削除してノード名を取得
+                trimmedLine = trimmedLine.replace(/^[│├└─\s]*/, '');
+                if (!trimmedLine) continue;
+
+                const isDir = trimmedLine.endsWith('/');
+                const name = isDir ? trimmedLine.slice(0, -1) : trimmedLine;
+                const newNode = createNode(name, isDir ? 'folder' : 'file');
+
+                // インデントに基づいて親ノードを見つける
+                while (indent <= levelStack[levelStack.length - 1] && stack.length > 1) {
+                    stack.pop();
+                    levelStack.pop();
+                }
+
+                const parent = stack[stack.length - 1];
+                if (parent) {
+                    parent.children.push(newNode);
+                }
+
+                if (isDir) {
+                    stack.push(newNode);
+                    levelStack.push(indent);
+                }
+            }
+            return newRoot;
+        }
+
+        //―― テキスト解析用モーダル ――
+        let modalOkOriginalOnClick = null;
+        let modalCancelOriginalOnClick = null;
+
+        function showParseTextModal() {
+            const okBtn = document.getElementById('modal-ok');
+            const cancelBtn = document.getElementById('modal-cancel');
+            modalOkOriginalOnClick = okBtn.onclick;
+            modalCancelOriginalOnClick = cancelBtn.onclick;
+            
+            const modal = document.getElementById('modal-bg');
+            const label = document.getElementById('modal-label');
+            const textarea = document.getElementById('modal-text');
+            
+            label.textContent = '階層構造テキストを貼り付け';
+            textarea.value = `my-project/
+├── src/
+│   └── main.js
+├── package.json
+└── index.html`;
+            textarea.placeholder = 'インデントで階層を表現したテキストを入力...';
+            
+            okBtn.textContent = '生成';
+            okBtn.onclick = () => {
+                const text = textarea.value;
+                if (text.trim()) {
+                    if (confirm('現在の構造を破棄して、テキストから新しい構造を生成しますか？')) {
+                        root = parseTextToTree(text);
+                        idCounter = getMaxId(root) + 1;
+                        saveHistory();
+                        render();
+                    }
+                }
+                hideParseTextModal();
+            };
+
+            cancelBtn.onclick = hideParseTextModal;
+            
+            modal.style.display = 'flex';
+            textarea.focus();
+            textarea.select();
+        }
+        
+        function hideParseTextModal() {
+            const modal = document.getElementById('modal-bg');
+            const okBtn = document.getElementById('modal-ok');
+            const cancelBtn = document.getElementById('modal-cancel');
+            
+            modal.style.display = 'none';
+            
+            okBtn.textContent = '保存';
+            okBtn.onclick = modalOkOriginalOnClick;
+            cancelBtn.onclick = modalCancelOriginalOnClick;
+            modalNode = null;
+        }
+
+        //―― HTMLファイル実行用 ――
+        function executeHtmlFile(node) {
+            if (node.type === 'file' && node.name.endsWith('.html')) {
+                const blob = new Blob([node.content], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                window.open(url, '_blank');
+            } else {
+                alert('これはHTMLファイルではありません。');
+            }
+        }
+
+        //―― レンダリング ――
+        function render(){
+            const ul=document.getElementById('tree');
+            ul.innerHTML='';
+            function build(node, container){
+                node.children.forEach((ch, idx)=>{
+                    const li=document.createElement('li');
+                    li.draggable=true;
+                    li.dataset.id=ch.id;
+                    li.dataset.parentId = node.id; // Store parent ID for easier lookup
+
+                    if(ch.id===editingId){
+                        const inp=document.createElement('input');
+                        inp.value=ch.name; inp.className='node-input';
+                        inp.onblur=()=>commitEdit(inp.value);
+                        inp.onkeydown=e=>{ if(e.key==='Enter') inp.blur(); };
+                        li.appendChild(inp);
+                        setTimeout(()=>inp.select(),0);
+                    } else {
+                        const sp=document.createElement('span');
+                        sp.className='node';
+                        if (ch.id === selectedId) {
+                            sp.classList.add('selected');
+                        }
+                        sp.style.backgroundColor = ch.color || '#FFFFFF';
+                        sp.style.color = getContrastYIQ(ch.color || '#FFFFFF');
+                        sp.textContent=ch.name+(ch.type==='folder'?'/':'');
+                        sp.ondblclick=()=>{ editingId=ch.id; render(); };
+                        sp.onclick = (e) => {
+                            e.stopPropagation();
+                            selectedId = ch.id;
+                            const selectedNode = findNode(root, selectedId);
+                            const colorRadios = document.querySelectorAll('#color-picker input[name="color"]');
+                            colorRadios.forEach(radio => {
+                                radio.checked = radio.value === (selectedNode.color || '#FFFFFF');
+                            });
+                            render();
+                        };
+                        li.appendChild(sp);
+                    }
+
+                    const act=document.createElement('span');
+                    act.className='actions';
+                    const btns=[
+                        {t:'✎',fn:()=>{ editingId=ch.id; selectedId=null; render(); }},
+                        {t:'+フォルダー',fn:()=>{ const newNode=createNode('新しいフォルダ','folder', ch.color); ch.children.push(newNode); saveHistory(); render(); },cond:ch.type==='folder'},
+                        {t:'+html',fn:()=>{ const newNode=createNode('新しいファイル.html','file', ch.color); ch.children.push(newNode); saveHistory(); render(); },cond:ch.type==='folder'},
+                        {t:'+txt',fn:()=>{ const newNode=createNode('新しいファイル.txt','file', ch.color); ch.children.push(newNode); saveHistory(); render(); },cond:ch.type==='folder'},
+                        {t:'✕',fn:()=>{ removeNode(root,ch.id); saveHistory(); render(); }},
+                        {t:'📝',fn:() => editFileContent(ch), cond:ch.type==='file'},
+                        {t:'▶',fn:() => executeHtmlFile(ch), cond:ch.type==='file' && ch.name.endsWith('.html')} // HTML実行ボタンを追加
+                    ];
+                    btns.forEach(b=>{
+                        if(b.cond===false) return;
+                        const btn=document.createElement('button');
+                        btn.textContent=b.t; btn.onclick=b.fn;
+                        act.appendChild(btn);
+                    });
+                    li.appendChild(act);
+
+                    li.addEventListener('dragstart', onDragStart);
+                    li.addEventListener('dragover', onDragOver);
+                    li.addEventListener('dragleave', onDragLeave);
+                    li.addEventListener('drop', onDrop);
+                    li.addEventListener('dragend', onDragEnd); // Clean up on drag end
+
+                    container.appendChild(li);
+                    if(ch.type==='folder'){
+                        const sub=document.createElement('ul');
+                        sub.className='children';
+                        li.appendChild(sub);
+                        build(ch,sub);
+                    }
+                });
+            }
+            build(root,ul);
+            updateUndoRedoBtn();
+            renderFavList();
+        }
+
+        function commitEdit(val){
+            if(val.trim()) findNode(root,editingId).name=val.trim();
+            editingId=null; saveHistory(); render();
+        }
+
+        function removeNode(p,id){
+            for (let i = 0; i < p.children.length; i++) {
+                if (p.children[i].id === id) {
+                    p.children.splice(i, 1);
+                    return true;
+                }
+                if (removeNode(p.children[i], id)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function findNode(p,id){
+            if(p.id===id) return p;
+            for(const c of p.children){ const r=findNode(c,id); if(r) return r; }
+            return null;
+        }
+        function findParent(p,id){
+            for(const c of p.children){
+                if(c.id===id) return p;
+                const r=findParent(c,id);
+                if(r) return r;
+            }
+            return null;
+        }
+
+        //―― Drag & Drop ――
+        let dropPosition = 'inside'; // 'before', 'after', 'inside'
+
+        function onDragStart(e) {
+            draggedId = e.currentTarget.dataset.id;
+            e.dataTransfer.effectAllowed = 'move';
+            e.currentTarget.classList.add('dragging');
+        }
+
+        
