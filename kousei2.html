@@ -502,4 +502,447 @@
             e.currentTarget.classList.add('dragging');
         }
 
-        
+        function onDragOver(e) {
+            e.preventDefault();
+            const targetLi = e.currentTarget;
+            const targetNode = findNode(root, targetLi.dataset.id);
+            const draggedNode = findNode(root, draggedId);
+
+            document.querySelectorAll('#tree li.over, #tree li.drop-before, #tree li.drop-after').forEach(li => {
+                li.classList.remove('over', 'drop-before', 'drop-after');
+            });
+
+            if (!targetNode || !draggedNode || draggedId === targetLi.dataset.id) {
+                e.dataTransfer.dropEffect = 'none';
+                return;
+            }
+
+            let current = targetNode;
+            while(current) {
+                if (current.id === draggedId) {
+                    e.dataTransfer.dropEffect = 'none';
+                    return;
+                }
+                current = findParent(root, current.id);
+            }
+            e.dataTransfer.dropEffect = 'move';
+
+            const rect = targetLi.getBoundingClientRect();
+            const y = e.clientY - rect.top;
+            const third = rect.height / 3;
+
+            if (targetNode.type === 'folder') {
+                if (y < third) {
+                    dropPosition = 'before';
+                    targetLi.classList.add('drop-before');
+                } else if (y > third * 2) {
+                    dropPosition = 'after';
+                    targetLi.classList.add('drop-after');
+                } else {
+                    dropPosition = 'inside';
+                    targetLi.classList.add('over');
+                }
+            } else {
+                if (y < rect.height / 2) {
+                    dropPosition = 'before';
+                    targetLi.classList.add('drop-before');
+                } else {
+                    dropPosition = 'after';
+                    targetLi.classList.add('drop-after');
+                }
+            }
+        }
+
+        function onDragLeave(e) {
+            e.currentTarget.classList.remove('over', 'drop-before', 'drop-after');
+        }
+
+        function onDrop(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            document.querySelectorAll('#tree li.dragging, #tree li.over, #tree li.drop-before, #tree li.drop-after').forEach(li => {
+                li.classList.remove('dragging', 'over', 'drop-before', 'drop-after');
+            });
+
+            const targetId = e.currentTarget.dataset.id;
+            if (draggedId === targetId) return;
+
+            const draggedNode = findNode(root, draggedId);
+            if (!draggedNode) return;
+
+            const sourceParent = findParent(root, draggedId);
+            if (sourceParent) {
+                removeNode(sourceParent, draggedId);
+            } else {
+                console.error("Dragged node's parent not found.");
+                draggedId = null;
+                return;
+            }
+
+            const targetNode = findNode(root, targetId);
+            if (!targetNode) return;
+
+            if (dropPosition === 'inside' && targetNode.type === 'folder') {
+                targetNode.children.push(draggedNode);
+            } else {
+                const targetParent = findParent(root, targetId);
+                const parentToInsertInto = targetParent || root;
+                const targetIndex = parentToInsertInto.children.findIndex(c => c.id === targetId);
+
+                if (targetIndex > -1) {
+                    if (dropPosition === 'before') {
+                        parentToInsertInto.children.splice(targetIndex, 0, draggedNode);
+                    } else { // after
+                        parentToInsertInto.children.splice(targetIndex + 1, 0, draggedNode);
+                    }
+                } else {
+                    parentToInsertInto.children.push(draggedNode);
+                }
+            }
+            draggedId = null;
+            saveHistory();
+            render();
+        }
+
+        function onDragEnd(e) {
+            document.querySelectorAll('#tree li.dragging, #tree li.over, #tree li.drop-before, #tree li.drop-after').forEach(li => {
+                li.classList.remove('dragging', 'over', 'drop-before', 'drop-after');
+            });
+            draggedId = null;
+        }
+
+
+        //―― CSV 保存/読込 ――
+        function treeToCsv(){
+            const rows=[['path','type','content','color']];
+            (function w(n,p){
+                n.children.forEach(c=>{
+                    const path=p+'/'+c.name;
+                    rows.push([path,c.type,c.type==='file'?btoa(unescape(encodeURIComponent(c.content||''))):'', c.color || '#FFFFFF']);
+                    if(c.type==='folder') w(c,path);
+                });
+            })(root,'');
+            return rows.map(r=>r.map(x=>`"${(x||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+        }
+        document.getElementById('saveCsv').onclick = () => {
+            const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+            const csv = treeToCsv();
+            const blob = new Blob([bom, csv], {type:'text/csv'});
+            const a=document.createElement('a');
+            a.href=URL.createObjectURL(blob);
+            a.download='structure.csv';
+            a.click();
+        };
+        document.getElementById('loadCsv').onclick = async () => {
+            try {
+                const [f]=await window.showOpenFilePicker({types:[{accept:{'text/csv':['.csv']}}]});
+                const txt=await (await f.getFile()).text();
+                const lines=txt.split('\n').filter(l=>l.trim());
+                root=createNode('/','folder'); idCounter = 1;
+                lines.slice(1).forEach(l=>{
+                    const parts = [];
+                    let inQuote = false;
+                    let currentPart = '';
+                    for (let i = 0; i < l.length; i++) {
+                        const char = l[i];
+                        if (char === '"') {
+                            if (i + 1 < l.length && l[i+1] === '"') {
+                                currentPart += '"';
+                                i++;
+                            } else {
+                                inQuote = !inQuote;
+                            }
+                        } else if (char === ',' && !inQuote) {
+                            parts.push(currentPart);
+                            currentPart = '';
+                        } else {
+                            currentPart += char;
+                        }
+                    }
+                    parts.push(currentPart);
+
+                    if (parts.length < 2) return;
+                    const [path, type, contentStr, color] = parts;
+                    const content = (contentStr && type === 'file') ? decodeURIComponent(escape(atob(contentStr))) : '';
+                    const seg=path.split('/').filter(Boolean);
+                    let p=root;
+                    seg.forEach((n,i)=>{
+                        const last=i===seg.length-1;
+                        const nodeType = last ? type : 'folder';
+                        let d=p.children.find(c=>c.name===n&&c.type===nodeType);
+                        if(!d){
+                            d=createNode(n, nodeType, color);
+                            if(last && type === 'file') d.content = content;
+                            p.children.push(d);
+                        }
+                        p=d;
+                    });
+                });
+                saveHistory();
+                render();
+            } catch (e) {
+                if(e.name !== 'AbortError') alert('CSVファイルの読み込みに失敗しました。');
+            }
+        };
+
+        //―― フォルダから読込 ――
+        document.getElementById('importFs').onclick = async () => {
+            try {
+                const dh=await window.showDirectoryPicker();
+                idCounter=1; root=createNode('/','folder');
+                await readFsRecursive(dh, root);
+                saveHistory();
+                render();
+            } catch (e) {
+                if(e.name !== 'AbortError') alert('フォルダの読み込みに失敗しました。');
+            }
+        };
+        async function readFsRecursive(dh, parentNode){
+            for await(const [name,ent] of dh.entries()){
+                if(ent.kind==='directory') {
+                    const folderNode = createNode(name,'folder');
+                    parentNode.children.push(folderNode);
+                    await readFsRecursive(ent, folderNode);
+                } else {
+                    const fileNode = createNode(name,'file');
+                    parentNode.children.push(fileNode);
+                    try {
+                        const file = await ent.getFile();
+                        fileNode.content = await file.text();
+                    } catch (e) { fileNode.content = `ERROR: ${e.message}`; }
+                }
+            }
+        }
+
+        //―― ZIP 出力 ――
+        document.getElementById('downloadZip').onclick = () => {
+            const zip=new JSZip();
+            (function add(n, f){
+                n.children.forEach(c => {
+                    if(c.type==='folder') {
+                        add(c, f.folder(c.name));
+                    } else {
+                        f.file(c.name, c.content ?? getFileTemplate(c.name));
+                    }
+                });
+            })(root, zip);
+            zip.generateAsync({type:'blob'}).then(b=>{
+                const a=document.createElement('a');
+                a.href=URL.createObjectURL(b); a.download='structure.zip';
+                a.click();
+            });
+        };
+
+        //―― PNG画像でダウンロード ――
+        document.getElementById('downloadPng').onclick = () => {
+            const originalBodyPadding = document.body.style.padding;
+            document.body.style.padding = '0';
+            document.body.classList.add('hide-for-capture');
+
+            html2canvas(document.getElementById('tree'), {
+                scale: 2,
+                logging: false,
+                useCORS: true,
+                backgroundColor: '#f8f9fa',
+            }).then(canvas => {
+                const a = document.createElement('a');
+                a.href = canvas.toDataURL('image/png');
+                a.download = 'structure.png';
+                a.click();
+            }).finally(() => {
+                document.body.classList.remove('hide-for-capture');
+                document.body.style.padding = originalBodyPadding;
+            });
+        };
+
+        //―― TXTプレビュー ――
+        document.getElementById('txtPreviewBtn').onclick=()=>{
+            let txt = '';
+            function walk(n, prefix=''){
+                n.children.forEach(c=>{
+                    txt += prefix + c.name + (c.type==='folder'?'/':'') + '\n';
+                    if(c.type==='file' && c.content){
+                        txt += c.content.split(/\r?\n/).map(line=>'  '+line).join('\n')+'\n\n';
+                    }
+                    if(c.type==='folder') walk(c, prefix+'  ');
+                });
+            }
+            walk(root);
+            document.getElementById('txt-preview').textContent = txt;
+            document.getElementById('txt-preview').style.display = 'block';
+        };
+
+
+        //✨ --- ここから修正 --- ✨
+        //―― 完全保存・読込（JSON）――
+        document.getElementById('saveAllBtn').onclick = () => {
+            try {
+                // 現在のお気に入りをlocalStorageから取得
+                const favorites = JSON.parse(localStorage.getItem('favTemplates') || '[]');
+                
+                // 保存するデータとして、現在の構造とお気に入りをオブジェクトにまとめる
+                const allData = {
+                    structure: root,
+                    favorites: favorites
+                };
+    
+                // 作成したオブジェクトをJSON文字列に変換
+                const jsonString = JSON.stringify(allData, null, 2);
+                
+                // ダウンロード用のBlobを作成
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                
+                // ダウンロードリンクを作成してクリックイベントを発火させる
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = 'structure_and_favorites.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(a.href); // メモリを解放
+
+            } catch (e) {
+                alert('データの保存に失敗しました。\n' + e.message);
+            }
+        };
+
+        document.getElementById('loadAllBtn').onclick = async () => {
+            try {
+                // ファイルピッカーを開いてJSONファイルを選択させる
+                const [fileHandle] = await window.showOpenFilePicker({
+                    types: [{
+                        description: 'JSONファイル',
+                        accept: { 'application/json': ['.json'] }
+                    }]
+                });
+                const file = await fileHandle.getFile();
+                const jsonString = await file.text();
+                
+                // 読み込んだファイルの内容をJSONとして解析
+                const allData = JSON.parse(jsonString);
+
+                // 読み込んだデータが新しい形式（構造＋お気に入り）かチェック
+                if (allData && typeof allData.structure === 'object' && allData.structure !== null && Array.isArray(allData.favorites)) {
+                    // 新しい形式の場合、構造とお気に入りの両方を復元
+                    root = allData.structure;
+                    localStorage.setItem('favTemplates', JSON.stringify(allData.favorites));
+                } 
+                // 以前の形式（構造のみ）も読み込めるように後方互換性を維持
+                else if (allData && typeof allData.id === 'string' && Array.isArray(allData.children)) {
+                    // 古い形式の場合、構造のみを復元（お気に入りは変更しない）
+                    root = allData;
+                } else {
+                    // 認識できない形式の場合はエラーを投げる
+                    throw new Error('認識できないファイル形式です。');
+                }
+
+                // IDカウンターをリセットし、履歴を保存して再描画
+                idCounter = getMaxId(root) + 1;
+                saveHistory();
+                render();
+            } catch (e) {
+                // ユーザーがファイル選択をキャンセルした場合以外でエラーを表示
+                if (e.name !== 'AbortError') {
+                    console.error('ファイルの読み込みに失敗しました:', e);
+                    alert('ファイルの読み込みに失敗しました。\nエラー: ' + e.message);
+                }
+            }
+        };
+        //✨ --- ここまで修正 --- ✨
+
+
+        //―― お気に入りテンプレート保存・呼び出し ――
+        function renderFavList(){
+            const favDiv = document.getElementById('fav-list');
+            favDiv.innerHTML = '<b>お気に入り: </b>';
+            const favs = JSON.parse(localStorage.getItem('favTemplates')||'[]');
+            favs.forEach((f,i)=>{
+                const btnContainer = document.createElement('span');
+                const btn = document.createElement('button');
+                btn.textContent = f.name;
+                btn.onclick = ()=>{ root = JSON.parse(f.data); idCounter = getMaxId(root)+1; saveHistory(); render(); };
+                btnContainer.appendChild(btn);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = '✕'; deleteBtn.title = 'お気に入りを削除';
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    if (confirm(`「${f.name}」を削除しますか？`)) { removeFav(i); }
+                };
+                btnContainer.appendChild(deleteBtn);
+                favDiv.appendChild(btnContainer);
+            });
+        }
+
+        function removeFav(index){
+            const favs = JSON.parse(localStorage.getItem('favTemplates')||'[]');
+            favs.splice(index, 1);
+            localStorage.setItem('favTemplates', JSON.stringify(favs));
+            renderFavList();
+        }
+
+        document.getElementById('addFavBtn').onclick=()=>{
+            const name = prompt('お気に入り名を入力してください:');
+            if(!name) return;
+            const favs = JSON.parse(localStorage.getItem('favTemplates')||'[]');
+            favs.push({name, data: JSON.stringify(root)});
+            localStorage.setItem('favTemplates', JSON.stringify(favs));
+            renderFavList();
+        };
+
+        //―― 全て削除ボタン ――
+        document.getElementById('clearAllBtn').onclick = () => {
+            if (confirm('本当にすべて削除しますか？')) {
+                root = createNode('/', 'folder'); idCounter = 1;
+                saveHistory(); render();
+            }
+        };
+
+        // 再帰的に子ノードの色を更新する関数
+        function updateChildrenColor(node, newColor) {
+            node.children.forEach(child => {
+                child.color = newColor;
+                if (child.type === 'folder') {
+                    updateChildrenColor(child, newColor);
+                }
+            });
+        }
+
+        //―― イベントバインド & 初期化 ――
+        document.getElementById('templateSelect').onchange=e=>loadTemplate(e.target.value);
+        document.getElementById('addRootFolder').onclick=()=>{ root.children.push(createNode('新しいフォルダ','folder')); saveHistory(); render(); };
+        document.getElementById('addRootFile').onclick=()=>{ root.children.push(createNode('新しいファイル.html','file')); saveHistory(); render(); };
+        document.getElementById('addRootTxt').onclick=()=>{ root.children.push(createNode('新しいファイル.txt','file')); saveHistory(); render(); };
+        document.getElementById('parseTextBtn').onclick = showParseTextModal;
+        document.getElementById('undoBtn').onclick=undo;
+        document.getElementById('redoBtn').onclick=redo;
+
+        document.querySelectorAll('#color-picker input[name="color"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                if (selectedId) {
+                    const node = findNode(root, selectedId);
+                    if (node) {
+                        node.color = e.target.value;
+                        if (node.type === 'folder') {
+                            updateChildrenColor(node, e.target.value);
+                        }
+                        saveHistory();
+                        render();
+                    }
+                }
+            });
+        });
+
+        // Initial Load
+        // モーダルイベントハンドラの初期化を修正
+        const okBtn = document.getElementById('modal-ok');
+        const cancelBtn = document.getElementById('modal-cancel');
+        modalOkOriginalOnClick = okBtn.onclick;
+        modalCancelOriginalOnClick = cancelBtn.onclick;
+
+        saveHistory();
+        render();
+    </script>
+</body>
+</html>
