@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>コード抽出＆ファイル出力ツール</title>
+  <style>
+    :root {
+      --primary-color: #007bff;
+      --secondary-color: #6c757d;
+      --bg-color: #f8f9fa;
+      --text-color: #212529;
+      --border-color: #dee2e6;
+      --card-bg: #ffffff;
+      --success-color: #28a745;
+      --danger-color: #dc3545;
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    body {
+      font-family: var(--font-family);
+      margin: 0;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    .container {
+      width: 90%;
+      max-width: 1200px;
+      margin: 20px auto;
+      flex-grow: 1;
+    }
+    h1 {
+      text-align: center;
+      color: var(--primary-color);
+      margin-bottom: 2rem;
+    }
+    .input-wrapper {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 1rem;
+    }
+    input#url {
+      flex-grow: 1;
+      padding: 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: background-color 0.2s;
+    }
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+    #fetchBtn {
+      background-color: var(--primary-color);
+      color: white;
+    }
+    #fetchBtn:hover:not(:disabled) {
+      background-color: #0056b3;
+    }
+    #downloadBtn {
+      background-color: var(--success-color);
+      color: white;
+    }
+    #downloadBtn:hover:not(:disabled) {
+      background-color: #218838;
+    }
+    .status-area {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 40px;
+      margin-bottom: 1rem;
+    }
+    .loader {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid var(--primary-color);
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+      display: none; /* 初期状態は非表示 */
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    #messageArea {
+      padding: 10px;
+      border-radius: 4px;
+      width: 100%;
+      box-sizing: border-box;
+      display: none; /* 初期状態は非表示 */
+    }
+    #messageArea.error {
+      background-color: #f8d7da;
+      color: var(--danger-color);
+      border: 1px solid #f5c6cb;
+    }
+    #messageArea.info {
+       background-color: #e2e3e5;
+       color: var(--secondary-color);
+       border: 1px solid var(--border-color);
+    }
+    .results-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+    .result-card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      display: flex;
+      flex-direction: column;
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 15px;
+      border-bottom: 1px solid var(--border-color);
+      background-color: #f7f7f7;
+    }
+    .card-header h2 {
+      margin: 0;
+      font-size: 1.2rem;
+    }
+    .copy-btn {
+      background-color: var(--secondary-color);
+      color: white;
+      font-size: 0.8rem;
+      padding: 6px 12px;
+    }
+    .copy-btn:hover:not(:disabled) {
+      background-color: #5a6268;
+    }
+    textarea {
+      width: 100%;
+      height: 300px;
+      font-family: monospace;
+      white-space: pre;
+      border: none;
+      padding: 15px;
+      box-sizing: border-box;
+      resize: vertical;
+      flex-grow: 1;
+      border-radius: 0 0 8px 8px;
+    }
+    footer {
+        text-align: center;
+        padding: 20px;
+        color: var(--secondary-color);
+        font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>HTML/CSS/JS 抽出＆ファイル作成</h1>
+
+    <div class="input-wrapper">
+      <input type="text" id="url" placeholder="抽出対象のURLを入力 (例: https://www.google.com)" />
+      <button id="fetchBtn">抽出開始</button>
+      <button id="downloadBtn" disabled>HTMLにまとめてダウンロード</button>
+    </div>
+
+    <div class="status-area">
+      <div class="loader" id="loader"></div>
+      <div id="messageArea"></div>
+    </div>
+
+    <div class="results-grid">
+      <div class="result-card">
+        <div class="card-header">
+          <h2>HTML</h2>
+          <button class="copy-btn" data-target="htmlArea" disabled>クリップボードにコピー</button>
+        </div>
+        <textarea id="htmlArea" readonly></textarea>
+      </div>
+
+      <div class="result-card">
+        <div class="card-header">
+          <h2>CSS</h2>
+          <button class="copy-btn" data-target="cssArea" disabled>クリップボードにコピー</button>
+        </div>
+        <textarea id="cssArea" readonly></textarea>
+      </div>
+
+      <div class="result-card">
+        <div class="card-header">
+          <h2>JavaScript</h2>
+          <button class="copy-btn" data-target="jsArea" disabled>クリップボードにコピー</button>
+        </div>
+        <textarea id="jsArea" readonly></textarea>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>Code Extractor & Bundler Tool</p>
+  </footer>
+
+  <script>
+    const PROXY_URL = 'https://api.allorigins.win/raw?url=';
+
+    // UI要素の取得
+    const urlInput = document.getElementById('url');
+    const fetchBtn = document.getElementById('fetchBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const htmlArea = document.getElementById('htmlArea');
+    const cssArea = document.getElementById('cssArea');
+    const jsArea = document.getElementById('jsArea');
+    const loader = document.getElementById('loader');
+    const messageArea = document.getElementById('messageArea');
+    const copyBtns = document.querySelectorAll('.copy-btn');
+
+    // --- ユーティリティ関数 ---
+
+    /**
+     * UIの状態を更新します。
+     * @param {boolean} isLoading - ローディング中か否か
+     */
+    function setUiLoading(isLoading) {
+      loader.style.display = isLoading ? 'block' : 'none';
+      fetchBtn.disabled = isLoading;
+      urlInput.disabled = isLoading;
+      if (isLoading) {
+        downloadBtn.disabled = true;
+        copyBtns.forEach(btn => btn.disabled = true);
+        showMessage('Webサイトのコンテンツを抽出しています...', 'info');
+      }
+    }
+
+    /**
+     * メッセージを表示します。
+     * @param {string} message - 表示するメッセージ
+     * @param {'info'|'error'} type - メッセージの種類
+     */
+    function showMessage(message, type) {
+      if (!message) {
+        messageArea.style.display = 'none';
+        return;
+      }
+      messageArea.textContent = message;
+      messageArea.className = type;
+      messageArea.style.display = 'block';
+    }
+    
+    /**
+     * テキストエリアの内容をクリアします。
+     */
+    function clearResultAreas() {
+        htmlArea.value = '';
+        cssArea.value = '';
+        jsArea.value = '';
+    }
+
+    // --- コア機能 ---
+
+    /**
+     * 指定されたURLからプロキシ経由でコンテンツを取得します。
+     * @param {string} targetUrl - 取得対象のURL
+     * @returns {Promise<string>} - 取得したテキストコンテンツ
+     */
+    async function fetchWithProxy(targetUrl) {
+      const response = await fetch(PROXY_URL + encodeURIComponent(targetUrl));
+      if (!response.ok) {
+        throw new Error(`リソースの取得に失敗しました (Status: ${response.status}): ${targetUrl}`);
+      }
+      return await response.text();
+    }
+    
+    /**
+     * メインの抽出処理
+     */
+    async function extractContent() {
+      const url = urlInput.value.trim();
+      if (!url) {
+        showMessage('URLを入力してください。', 'error');
+        return;
+      }
+
+      setUiLoading(true);
+      clearResultAreas();
+
+      try {
+        // 1. HTMLの取得と解析
+        showMessage('1/3: HTMLを取得中...', 'info');
+        const htmlText = await fetchWithProxy(url);
+        htmlArea.value = htmlText;
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlText, 'text/html');
+
+        // 2. CSSの抽出
+        showMessage('2/3: CSSを抽出中...', 'info');
+        let cssResult = '/* Extracted CSS */\n\n';
+        const styleTags = Array.from(doc.querySelectorAll('style'));
+        styleTags.forEach(style => {
+          cssResult += '/* --- Inline <style> --- */\n' + style.textContent + '\n\n';
+        });
+
+        const linkTags = Array.from(doc.querySelectorAll('link[rel="stylesheet"]'));
+        const cssPromises = linkTags.map(link => {
+          const href = new URL(link.getAttribute('href'), url).href;
+          return fetchWithProxy(href)
+            .then(css => `/* --- From: ${href} --- */\n${css}\n\n`)
+            .catch(err => `/* --- Failed to fetch: ${href} --- */\n/* ${err.message} */\n\n`);
+        });
+        
+        const cssResults = await Promise.allSettled(cssPromises);
+        cssResults.forEach(res => {
+            if (res.status === 'fulfilled') cssResult += res.value;
+        });
+        cssArea.value = cssResult;
+
+        // 3. JavaScriptの抽出
+        showMessage('3/3: JavaScriptを抽出中...', 'info');
+        let jsResult = '// Extracted JavaScript\n\n';
+        const inlineScripts = Array.from(doc.querySelectorAll('script:not([src])'));
+        inlineScripts.forEach(script => {
+          jsResult += '/* --- Inline <script> --- */\n' + script.textContent + '\n\n';
+        });
+        
+        const externalScripts = Array.from(doc.querySelectorAll('script[src]'));
+        const jsPromises = externalScripts.map(script => {
+          const src = new URL(script.getAttribute('src'), url).href;
+          return fetchWithProxy(src)
+            .then(js => `/* --- From: ${src} --- */\n${js}\n\n`)
+            .catch(err => `/* --- Failed to fetch: ${src} --- */\n/* ${err.message} */\n\n`);
+        });
+
+        const jsResults = await Promise.allSettled(jsPromises);
+        jsResults.forEach(res => {
+            if (res.status === 'fulfilled') jsResult += res.value;
+        });
+        jsArea.value = jsResult;
+        
+        // 4. 完了処理
+        showMessage('抽出が完了しました。ファイルをダウンロードできます。', 'info');
+        downloadBtn.disabled = false;
+        copyBtns.forEach(btn => btn.disabled = false);
+
+      } catch (err) {
+        showMessage(err.message, 'error');
+      } finally {
+        setUiLoading(false);
+        // ローディング表示は消すが、完了/エラーメッセージは残す
+      }
+    }
+
+    /**
+     * 抽出したコンテンツを単一のHTMLファイルとしてダウンロードします。
+     */
+    function downloadHtmlFile() {
+      const originalHtml = htmlArea.value;
+      if (!originalHtml) {
+        showMessage('ダウンロードするHTMLコンテンツがありません。', 'error');
+        return;
+      }
+      
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(originalHtml, 'text/html');
+
+      // 元のスタイルとスクリプトのリンクを削除
+      doc.querySelectorAll('link[rel="stylesheet"], style, script').forEach(el => el.remove());
+
+      // 抽出したCSSを<style>タグとして<head>に挿入
+      const newStyle = doc.createElement('style');
+      newStyle.textContent = cssArea.value;
+      doc.head.appendChild(newStyle);
+
+      // 抽出したJSを<script>タグとして<body>の末尾に挿入
+      const newScript = doc.createElement('script');
+      newScript.textContent = jsArea.value;
+      doc.body.appendChild(newScript);
+
+      const finalHtml = '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
+
+      const blob = new Blob([finalHtml], { type: 'text/html' });
+      const blobUrl = URL.createObjectURL(blob);
+      const filename = `extracted_${Date.now()}.html`;
+
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a); // Firefoxで必要
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    }
+    
+    /**
+     * クリップボードにコピーする処理
+     * @param {Event} e - クリックイベント
+     */
+    async function copyToClipboard(e) {
+        const targetId = e.target.dataset.target;
+        const textarea = document.getElementById(targetId);
+        
+        if (navigator.clipboard) {
+            try {
+                await navigator.clipboard.writeText(textarea.value);
+                const originalText = e.target.textContent;
+                e.target.textContent = 'コピー完了!';
+                setTimeout(() => { e.target.textContent = originalText; }, 2000);
+            } catch (err) {
+                alert('クリップボードへのコピーに失敗しました。');
+            }
+        } else {
+            textarea.select();
+            document.execCommand('copy');
+            alert('コピーしました (フォールバック)。');
+        }
+    }
+
+    // --- イベントリスナーの設定 ---
+    fetchBtn.addEventListener('click', extractContent);
+    downloadBtn.addEventListener('click', downloadHtmlFile);
+    copyBtns.forEach(btn => btn.addEventListener('click', copyToClipboard));
+    urlInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            extractContent();
+        }
+    });
+
+  </script>
+</body>
+</html>
