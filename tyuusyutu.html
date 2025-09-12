@@ -3,22 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>多機能ユーティリティアプリ - 完成版</title>
+    <title>多機能コード抽出アプリ</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         :root {
-            --primary-color: #667eea;
-            --secondary-color: #764ba2;
-            --accent-color: #f093fb;
-            --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --card-bg: rgba(255, 255, 255, 0.95);
-            --text-color: #2d3748;
-            --text-light: #4a5568;
-            --border-color: #e2e8f0;
-            --success-color: #48bb78;
-            --warning-color: #ed8936;
-            --danger-color: #f56565;
-            --info-color: #4299e1;
-            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-color: #212529;
+            --border-color: #dee2e6;
+            --success-color: #28a745;
+            --info-color: #17a2b8;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
 
@@ -30,1324 +27,567 @@
 
         body {
             font-family: var(--font-family);
-            background: var(--bg-gradient);
-            min-height: 100vh;
+            background-color: var(--bg-color);
             color: var(--text-color);
+            line-height: 1.6;
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
         }
 
         .header {
             text-align: center;
-            color: white;
             margin-bottom: 30px;
         }
 
         .header h1 {
-            font-size: 3rem;
+            font-size: 2.8rem;
+            color: var(--primary-color);
             margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-            background: linear-gradient(45deg, #fff, #f093fb);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
         }
 
         .header p {
             font-size: 1.2rem;
-            opacity: 0.9;
-        }
-
-        .nav-tabs {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-        }
-
-        .nav-tab {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .nav-tab:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-2px);
-        }
-
-        .nav-tab.active {
-            background: var(--card-bg);
-            color: var(--text-color);
-            box-shadow: var(--shadow);
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
+            color: var(--secondary-color);
         }
 
         .card {
             background: var(--card-bg);
-            border-radius: 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
             padding: 25px;
             box-shadow: var(--shadow);
-            margin-bottom: 20px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 25px;
         }
 
         .card h2 {
             color: var(--primary-color);
             margin-bottom: 20px;
             font-size: 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 10px;
         }
-
+        
         .input-group {
             display: flex;
             gap: 10px;
             margin-bottom: 15px;
-            flex-wrap: wrap;
-            align-items: center;
         }
 
-        input, select, textarea {
+        input[type="url"] {
+            flex-grow: 1;
             padding: 12px;
             border: 2px solid var(--border-color);
             border-radius: 8px;
             font-size: 1rem;
-            transition: all 0.3s ease;
-            background: white;
-            font-family: inherit;
+            transition: border-color 0.3s ease;
         }
 
-        input:focus, select:focus, textarea:focus {
+        input[type="url"]:focus {
             outline: none;
             border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        input[type="text"], input[type="url"], input[type="email"], input[type="number"] {
-            flex: 1;
-            min-width: 200px;
-        }
-
-        textarea {
-            width: 100%;
         }
 
         button {
-            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            background-color: var(--primary-color);
             color: white;
             border: none;
             padding: 12px 24px;
             border-radius: 8px;
             cursor: pointer;
             font-size: 1rem;
+            font-weight: bold;
             transition: all 0.3s ease;
             white-space: nowrap;
         }
-
+        
         button:hover:not(:disabled) {
+            opacity: 0.85;
             transform: translateY(-2px);
-            box-shadow: var(--shadow);
         }
 
         button:disabled {
-            opacity: 0.6;
+            background-color: var(--secondary-color);
             cursor: not-allowed;
-            transform: none;
-        }
-
-        button.success {
-            background: linear-gradient(45deg, var(--success-color), #38a169);
-        }
-
-        button.warning {
-            background: linear-gradient(45deg, var(--warning-color), #dd6b20);
-        }
-
-        button.danger {
-            background: linear-gradient(45deg, var(--danger-color), #e53e3e);
-        }
-
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid var(--primary-color);
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-            display: none;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .message {
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            display: none;
-            word-break: break-all;
-        }
-
-        .message.error {
-            background-color: #fed7d7;
-            color: var(--danger-color);
-            border: 1px solid #feb2b2;
-        }
-
-        .message.success {
-            background-color: #c6f6d5;
-            color: var(--success-color);
-            border: 1px solid #9ae6b4;
-        }
-
-        .message.info {
-            background-color: #bee3f8;
-            color: var(--info-color);
-            border: 1px solid #90cdf4;
-        }
-
-        .results-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-        }
-
-        .result-card {
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: var(--shadow);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .result-header {
-            background: var(--primary-color);
-            color: white;
-            padding: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
         
-        .result-content {
-            padding: 15px;
-            flex-grow: 1;
+        button.success { background-color: var(--success-color); }
+        button.info { background-color: var(--info-color); }
+        
+        .options {
+            margin-top: 20px;
             display: flex;
-        }
-
-        textarea.result {
-            width: 100%;
-            height: 300px;
-            border: none;
-            resize: vertical;
-            font-family: monospace;
-            flex-grow: 1;
-        }
-
-        .tool-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
             gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .options label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 1rem;
+        }
+
+        #status {
+            margin-top: 15px;
+            font-weight: bold;
         }
 
         .progress-bar {
             width: 100%;
-            height: 8px;
-            background: #e2e8f0;
-            border-radius: 4px;
+            height: 10px;
+            background: #e9ecef;
+            border-radius: 5px;
             overflow: hidden;
-            margin: 10px 0;
+            margin-top: 5px;
         }
 
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            background-color: var(--primary-color);
             width: 0%;
-            transition: width 0.3s ease;
+            transition: width 0.3s ease-in-out;
         }
 
-        .file-drop-zone {
-            border: 2px dashed var(--border-color);
-            border-radius: 10px;
-            padding: 40px;
-            text-align: center;
-            color: var(--text-light);
-            transition: all 0.3s ease;
-            cursor: pointer;
+        #results-area {
+            display: none;
         }
 
-        .file-drop-zone:hover {
-            border-color: var(--primary-color);
-            background: rgba(102, 126, 234, 0.05);
-        }
-
-        .file-drop-zone.drag-over {
-            border-color: var(--primary-color);
-            background: rgba(102, 126, 234, 0.1);
-        }
-
-        .color-palette {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
-            gap: 10px;
-            margin-top: 15px;
-        }
-
-        .color-swatch {
-            width: 50px;
-            height: 50px;
+        textarea#htmlResult {
+            width: 100%;
+            height: 400px;
+            border: 1px solid var(--border-color);
             border-radius: 8px;
-            cursor: pointer;
-            border: 2px solid white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            transition: transform 0.2s ease;
-        }
-        .color-swatch:hover {
-            transform: scale(1.1);
-        }
-
-        .qr-output {
-            text-align: center;
-            padding: 20px;
-            min-height: 250px;
-        }
-        .qr-output img {
-            border: 5px solid white;
-            border-radius: 10px;
-            box-shadow: var(--shadow);
-        }
-
-        .timer-display {
-            font-size: 3rem;
-            text-align: center;
-            font-weight: bold;
-            color: var(--primary-color);
-            margin: 20px 0;
-            font-family: monospace;
-            background-color: #f7fafc;
             padding: 10px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            resize: vertical;
+        }
+        
+        .asset-list {
+            list-style: none;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px;
+        }
+        
+        .asset-list li {
+            padding: 12px;
+            border-bottom: 1px solid #f1f1f1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .asset-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .asset-info {
+            word-break: break-all;
+            flex-grow: 1;
+        }
+
+        .asset-info .file-size {
+            font-size: 0.85rem;
+            color: var(--secondary-color);
+            margin-left: 10px;
+        }
+
+        .asset-actions button {
+            padding: 6px 12px;
+            font-size: 0.9rem;
+        }
+
+        /* Modal for Code Preview */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6);
+            padding-top: 60px;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 900px;
             border-radius: 10px;
+            position: relative;
+        }
+        .modal-header {
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 15px;
+        }
+        .modal-header h3 {
+            color: var(--primary-color);
+            word-break: break-all;
+        }
+        .close-btn {
+            color: #aaa;
+            position: absolute;
+            top: 15px;
+            right: 25px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close-btn:hover { color: black; }
+
+        .code-preview {
+            width: 100%;
+            height: 60vh;
+            border: 1px solid var(--border-color);
+            font-family: monospace;
+            font-size: 0.9em;
+            padding: 10px;
+            white-space: pre;
+            overflow: auto;
+            background: #fdfdfd;
         }
 
         @media (max-width: 768px) {
-            .container {
-                padding: 10px;
-            }
-            
-            .header h1 {
-                font-size: 2rem;
-            }
-            
-            .nav-tabs {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            .input-group {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            .timer-display {
-                font-size: 2rem;
-            }
-
-            .tool-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .crypto-result {
-            word-break: break-all;
-            font-family: monospace;
-            background: #f7fafc;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 10px;
-            border: 1px solid var(--border-color);
-        }
-        
-        .crypto-result input[type="text"] {
-             width:100%; 
-             padding: 8px; 
-             border: 1px solid var(--border-color); 
-             border-radius: 4px; 
-             font-family: monospace; 
-             text-align: center; 
-             margin-bottom: 10px;
-        }
-
-        .weather-card {
-            background: linear-gradient(135deg, #74b9ff, #0984e3);
-            color: white;
-            text-align: center;
-            padding: 30px;
-            border-radius: 15px;
-            margin-top: 20px;
-            box-shadow: var(--shadow);
-        }
-
-        .weather-temp {
-            font-size: 3rem;
-            font-weight: bold;
-            margin: 10px 0;
-            text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+            .header h1 { font-size: 2rem; }
+            .input-group { flex-direction: column; }
+            input[type="url"] { width: 100%; }
+            button { width: 100%; }
+            .asset-list li { flex-direction: column; align-items: flex-start; }
+            .asset-actions { margin-top: 10px; }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🚀 多機能ユーティリティアプリ</h1>
-            <p>あらゆる作業を効率化する統合ツールボックス</p>
+            <h1>多機能コード抽出アプリ</h1>
+            <p>指定したURLからHTML, CSS, JavaScriptを抽出し、一括ダウンロードします</p>
         </div>
 
-        <div class="nav-tabs">
-            <button class="nav-tab active" data-tab="code-extractor">🌐 コード抽出</button>
-            <button class="nav-tab" data-tab="text-tools">📝 テキスト処理</button>
-            <button class="nav-tab" data-tab="image-tools">🖼️ 画像処理</button>
-            <button class="nav-tab" data-tab="crypto-tools">🔐 暗号化ツール</button>
-            <button class="nav-tab" data-tab="utility-tools">⚡ ユーティリティ</button>
-            <button class="nav-tab" data-tab="generator-tools">🎲 ジェネレーター</button>
+        <div class="card">
+            <h2>抽出設定</h2>
+            <div class="input-group">
+                <input type="url" id="extractUrl" placeholder="https://example.com の形式でURLを入力してください">
+                <button id="extractBtn">抽出開始</button>
+            </div>
+            <div class="options">
+                <strong>抽出対象:</strong>
+                <label><input type="checkbox" id="extractHTML" checked> HTML</label>
+                <label><input type="checkbox" id="extractCSS" checked> CSS</label>
+                <label><input type="checkbox" id="extractJS" checked> JavaScript</label>
+            </div>
+            <div id="status"></div>
+            <div class="progress-bar">
+                <div id="progressFill" class="progress-fill"></div>
+            </div>
         </div>
 
-        <div class="tab-content active" id="code-extractor">
+        <div id="results-area">
             <div class="card">
-                <h2>🌐 HTML/CSS/JS 抽出ツール</h2>
-                <div class="input-group">
-                    <input type="url" id="extractUrl" placeholder="抽出対象のURLを入力 (例: https://example.com)">
-                    <button id="extractBtn">抽出開始</button>
-                    <button id="downloadExtractedBtn" class="success" disabled>HTMLファイル作成</button>
-                </div>
-                <div class="message" id="extractMessage"></div>
-                <div class="loader" id="extractLoader"></div>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="extractProgress"></div>
-                </div>
+                <h2>抽出結果サマリー</h2>
+                <p><strong>ページタイトル:</strong> <span id="pageTitle"></span></p>
+                <p><strong>対象URL:</strong> <span id="targetUrl"></span></p>
+                <button id="downloadZipBtn" class="success" style="margin-top: 15px;">全アセットをZIPでダウンロード</button>
             </div>
 
-            <div class="results-grid">
-                <div class="result-card">
-                    <div class="result-header">
-                        <h3>HTML</h3>
-                        <button class="copy-btn" data-target="htmlResult" disabled>コピー</button>
-                    </div>
-                    <div class="result-content">
-                        <textarea id="htmlResult" class="result" readonly></textarea>
-                    </div>
-                </div>
-                <div class="result-card">
-                    <div class="result-header">
-                        <h3>CSS</h3>
-                        <button class="copy-btn" data-target="cssResult" disabled>コピー</button>
-                    </div>
-                    <div class="result-content">
-                        <textarea id="cssResult" class="result" readonly></textarea>
-                    </div>
-                </div>
-                <div class="result-card">
-                    <div class="result-header">
-                        <h3>JavaScript</h3>
-                        <button class="copy-btn" data-target="jsResult" disabled>コピー</button>
-                    </div>
-                    <div class="result-content">
-                        <textarea id="jsResult" class="result" readonly></textarea>
-                    </div>
-                </div>
+            <div class="card" id="htmlCard">
+                <h2>HTMLソースコード</h2>
+                <textarea id="htmlResult" readonly></textarea>
+            </div>
+            
+            <div class="card" id="cssCard">
+                <h2>CSSアセット (<span id="cssCount">0</span>)</h2>
+                <ul id="cssAssetList" class="asset-list"></ul>
+            </div>
+
+            <div class="card" id="jsCard">
+                <h2>JavaScriptアセット (<span id="jsCount">0</span>)</h2>
+                <ul id="jsAssetList" class="asset-list"></ul>
             </div>
         </div>
-
-        <div class="tab-content" id="text-tools">
-            <div class="tool-grid">
-                <div class="card">
-                    <h2>📝 テキスト変換</h2>
-                    <textarea id="textInput" placeholder="変換するテキストを入力してください..." rows="5"></textarea>
-                    <div class="input-group">
-                        <button onclick="convertText('uppercase')">大文字変換</button>
-                        <button onclick="convertText('lowercase')">小文字変換</button>
-                        <button onclick="convertText('capitalize')">先頭大文字</button>
-                        <button onclick="convertText('reverse')">文字反転</button>
-                    </div>
-                    <textarea id="textOutput" placeholder="変換結果..." rows="5" readonly></textarea>
-                </div>
-
-                <div class="card">
-                    <h2>📊 テキスト分析</h2>
-                    <textarea id="analyzeText" placeholder="分析するテキストを入力..." rows="5" oninput="analyzeText()"></textarea>
-                    <div id="textStats"></div>
-                </div>
-
-                <div class="card">
-                    <h2>🔍 正規表現テスター</h2>
-                    <input type="text" id="regexPattern" placeholder="正規表現パターン">
-                    <input type="text" id="regexFlags" placeholder="フラグ (例: gi)">
-                    <textarea id="regexText" placeholder="テストするテキスト" rows="4"></textarea>
-                    <button onclick="testRegex()">テスト実行</button>
-                    <div id="regexResults" class="crypto-result" style="display:none;"></div>
-                </div>
-
-                <div class="card">
-                    <h2>🌍 多言語翻訳</h2>
-                    <div class="input-group">
-                        <select id="sourceLang">
-                            <option value="auto">自動検出</option>
-                            <option value="ja">日本語</option>
-                            <option value="en">英語</option>
-                            <option value="ko">韓国語</option>
-                            <option value="zh-CN">中国語</option>
-                        </select>
-                        <span>→</span>
-                        <select id="targetLang">
-                            <option value="en">英語</option>
-                            <option value="ja">日本語</option>
-                            <option value="ko">韓国語</option>
-                            <option value="zh-CN">中国語</option>
-                        </select>
-                    </div>
-                    <textarea id="translateInput" placeholder="翻訳するテキスト" rows="4"></textarea>
-                    <button onclick="translateText()">Google翻訳で開く</button>
-                    <div class="message" id="translateMessage"></div>
-                    <textarea id="translateOutput" placeholder="翻訳結果は新しいタブのGoogle翻訳で表示されます" rows="3" readonly></textarea>
-                </div>
+    </div>
+    
+    <div id="codeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle"></h3>
+                <span class="close-btn">&times;</span>
             </div>
-        </div>
-
-        <div class="tab-content" id="image-tools">
-            <div class="tool-grid">
-                <div class="card">
-                    <h2>🖼️ 画像アップロード & フィルター</h2>
-                    <div class="file-drop-zone" id="imageDropZone">
-                        <p>📁 画像をドラッグ&ドロップ または クリックして選択</p>
-                        <input type="file" id="imageInput" accept="image/*" style="display: none;">
-                    </div>
-                    <canvas id="imageCanvas" style="max-width: 100%; margin-top: 15px; display: none;"></canvas>
-                    <div class="input-group" id="imageControls" style="display: none; margin-top: 15px;">
-                        <button onclick="applyFilter('reset')">リセット</button>
-                        <button onclick="applyFilter('brightness')">明度+</button>
-                        <button onclick="applyFilter('contrast')">コントラスト+</button>
-                        <button onclick="applyFilter('grayscale')">グレースケール</button>
-                        <button onclick="applyFilter('sepia')">セピア</button>
-                        <button onclick="downloadImage()" class="success">保存</button>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <h2>🎨 カラーパレット生成</h2>
-                    <div class="input-group">
-                        <label for="baseColor">ベースカラー:</label>
-                        <input type="color" id="baseColor" value="#667eea">
-                        <button onclick="generatePalette()">パレット生成</button>
-                    </div>
-                    <div class="color-palette" id="colorPalette"></div>
-                </div>
-
-                <div class="card">
-                    <h2>📱 QRコード生成</h2>
-                    <input type="text" id="qrText" placeholder="QRコードにするテキストやURL">
-                    <button onclick="generateQR()">QRコード生成</button>
-                    <div class="qr-output" id="qrOutput"></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="tab-content" id="crypto-tools">
-            <div class="tool-grid">
-                <div class="card">
-                    <h2>🔐 ハッシュ生成</h2>
-                    <textarea id="hashInput" placeholder="ハッシュ化するテキスト" rows="3"></textarea>
-                    <div class="input-group">
-                        <button onclick="generateHash('MD5')">MD5 (Demo)</button>
-                        <button onclick="generateHash('SHA-1')">SHA-1</button>
-                        <button onclick="generateHash('SHA-256')">SHA-256</button>
-                        <button onclick="generateHash('SHA-512')">SHA-512</button>
-                    </div>
-                    <div class="crypto-result" id="hashResult">結果がここに表示されます</div>
-                </div>
-
-                <div class="card">
-                    <h2>🔑 Base64エンコード/デコード</h2>
-                    <textarea id="base64Input" placeholder="エンコード/デコードするテキスト" rows="4"></textarea>
-                    <div class="input-group">
-                        <button onclick="base64Encode()">エンコード</button>
-                        <button onclick="base64Decode()">デコード</button>
-                    </div>
-                    <textarea id="base64Output" placeholder="結果" rows="4" readonly></textarea>
-                </div>
-
-                <div class="card">
-                    <h2>🎰 パスワード生成</h2>
-                    <div class="input-group">
-                        <label for="passwordLength">文字数:</label>
-                        <input type="number" id="passwordLength" value="16" min="4" max="128" style="min-width: 80px; flex: 0;">
-                    </div>
-                    <div>
-                        <label><input type="checkbox" id="includeUppercase" checked> 大文字</label>
-                        <label><input type="checkbox" id="includeLowercase" checked> 小文字</label>
-                        <label><input type="checkbox" id="includeNumbers" checked> 数字</label>
-                        <label><input type="checkbox" id="includeSymbols" checked> 記号</label>
-                    </div>
-                    <button onclick="generatePassword()" style="margin-top: 15px;">パスワード生成</button>
-                    <div class="crypto-result" id="passwordResult"></div>
-                </div>
-
-                <div class="card">
-                    <h2>🔀 URLエンコード/デコード</h2>
-                    <textarea id="urlInput" placeholder="URL文字列" rows="3"></textarea>
-                    <div class="input-group">
-                        <button onclick="urlEncode()">エンコード</button>
-                        <button onclick="urlDecode()">デコード</button>
-                    </div>
-                    <textarea id="urlOutput" placeholder="結果" rows="3" readonly></textarea>
-                </div>
-            </div>
-        </div>
-
-        <div class="tab-content" id="utility-tools">
-            <div class="tool-grid">
-                <div class="card">
-                    <h2>⏱️ タイマー & ストップウォッチ</h2>
-                    <div class="timer-display" id="timerDisplay">00:00:00</div>
-                    <div class="input-group">
-                        <input type="number" id="timerMinutes" placeholder="分" min="0" max="999">
-                        <input type="number" id="timerSeconds" placeholder="秒" min="0" max="59">
-                    </div>
-                     <div class="input-group">
-                        <button onclick="startTimer()">タイマー開始</button>
-                        <button onclick="startStopwatch()">ストップウォッチ</button>
-                        <button onclick="stopTimer()" class="danger">停止</button>
-                        <button onclick="resetTimer()" class="warning">リセット</button>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <h2>🧮 計算機</h2>
-                    <input type="text" id="calculatorDisplay" readonly style="text-align: right; font-size: 1.5rem; width:100%; margin-bottom: 10px;">
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
-                        <button onclick="clearCalculator()" class="danger">C</button>
-                        <button onclick="appendToCalculator('/')">/</button>
-                        <button onclick="appendToCalculator('*')">×</button>
-                        <button onclick="deleteLast()" class="warning">⌫</button>
-                        <button onclick="appendToCalculator('7')">7</button>
-                        <button onclick="appendToCalculator('8')">8</button>
-                        <button onclick="appendToCalculator('9')">9</button>
-                        <button onclick="appendToCalculator('-')">-</button>
-                        <button onclick="appendToCalculator('4')">4</button>
-                        <button onclick="appendToCalculator('5')">5</button>
-                        <button onclick="appendToCalculator('6')">6</button>
-                        <button onclick="appendToCalculator('+')">+</button>
-                        <button onclick="appendToCalculator('1')">1</button>
-                        <button onclick="appendToCalculator('2')">2</button>
-                        <button onclick="appendToCalculator('3')">3</button>
-                        <button onclick="calculate()" class="success" style="grid-row: span 2;">=</button>
-                        <button onclick="appendToCalculator('0')" style="grid-column: span 2;">0</button>
-                        <button onclick="appendToCalculator('.')">.</button>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <h2>💱 単位変換</h2>
-                    <div class="input-group">
-                        <select id="conversionType">
-                            <option value="length">長さ</option>
-                            <option value="weight">重量</option>
-                            <option value="temperature">温度</option>
-                        </select>
-                    </div>
-                    <div class="input-group">
-                        <input type="number" id="fromValue" placeholder="変換前の値" oninput="convertUnits()">
-                        <select id="fromUnit"></select>
-                        <span>→</span>
-                        <select id="toUnit"></select>
-                    </div>
-                    <button onclick="convertUnits()">変換</button>
-                    <div id="conversionResult" class="crypto-result" style="display: none;"></div>
-                </div>
-
-                <div class="card">
-                    <h2>🌤️ 天気情報</h2>
-                    <div class="input-group">
-                        <input type="text" id="cityInput" placeholder="都市名を入力 (例: Tokyo)">
-                        <button onclick="getWeather()">天気取得</button>
-                    </div>
-                    <div id="weatherResult"></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="tab-content" id="generator-tools">
-            <div class="tool-grid">
-                <div class="card">
-                    <h2>🎲 ランダムジェネレーター</h2>
-                    <h3>数値生成</h3>
-                    <div class="input-group">
-                        <input type="number" id="randomMin" value="1" placeholder="最小値">
-                        <input type="number" id="randomMax" value="100" placeholder="最大値">
-                        <button onclick="generateRandomNumber()">生成</button>
-                    </div>
-                    <div id="randomResult" class="crypto-result" style="display:none;"></div>
-                    
-                    <h3>リストからランダム選択</h3>
-                    <textarea id="listInput" placeholder="選択肢を改行区切りで入力" rows="4"></textarea>
-                    <button onclick="selectRandomFromList()">選択</button>
-                    <div id="listResult" class="crypto-result" style="display:none;"></div>
-                </div>
-
-                <div class="card">
-                    <h2>📝 Lorem Ipsum生成</h2>
-                    <div class="input-group">
-                        <input type="number" id="loremCount" value="3" min="1" max="50">
-                        <select id="loremType">
-                            <option value="paragraphs">段落</option>
-                            <option value="sentences">文</option>
-                            <option value="words">単語</option>
-                        </select>
-                        <button onclick="generateLorem()">生成</button>
-                    </div>
-                    <textarea id="loremOutput" rows="8" readonly></textarea>
-                </div>
-
-                <div class="card">
-                    <h2>🎨 CSS グラデーション生成</h2>
-                    <div class="input-group">
-                        <input type="color" id="gradientColor1" value="#667eea">
-                        <input type="color" id="gradientColor2" value="#764ba2">
-                        <select id="gradientDirection">
-                            <option value="to right">右へ</option>
-                            <option value="to left">左へ</option>
-                            <option value="to bottom">下へ</option>
-                            <option value="to top">上へ</option>
-                            <option value="45deg">45度</option>
-                            <option value="135deg">135度</option>
-                        </select>
-                        <button onclick="generateGradient()">生成</button>
-                    </div>
-                    <div id="gradientPreview" style="height: 100px; border-radius: 8px; margin: 10px 0; border: 1px solid var(--border-color);"></div>
-                    <textarea id="gradientCSS" rows="3" readonly></textarea>
-                </div>
-
-                <div class="card">
-                    <h2>🔤 文字列ジェネレーター</h2>
-                    <div class="input-group">
-                        <input type="number" id="stringLength" value="10" min="1" max="100">
-                        <select id="stringType">
-                            <option value="alphanumeric">英数字</option>
-                            <option value="alphabetic">英字のみ</option>
-                            <option value="numeric">数字のみ</option>
-                            <option value="hex">16進数</option>
-                        </select>
-                        <button onclick="generateRandomString()">生成</button>
-                    </div>
-                    <div class="crypto-result" id="stringResult"></div>
-                </div>
-            </div>
+            <textarea id="modalCode" class="code-preview" readonly></textarea>
         </div>
     </div>
 
     <script>
-        // ====================== 初期化と共通機能 ======================
-        document.addEventListener('DOMContentLoaded', () => {
-            // タブ切り替え機能
-            const tabs = document.querySelectorAll('.nav-tab');
-            const tabContents = document.querySelectorAll('.tab-content');
-            tabs.forEach(tab => {
-                tab.addEventListener('click', () => {
-                    tabs.forEach(t => t.classList.remove('active'));
-                    tabContents.forEach(c => c.classList.remove('active'));
-                    
-                    tab.classList.add('active');
-                    document.getElementById(tab.dataset.tab).classList.add('active');
-                });
-            });
-
-            // ツール初期化
-            initImageTools();
-            initUnitConverter();
-            generatePalette(); // 初期カラーパレット生成
-            generateGradient(); // 初期グラデーション生成
-            analyzeText(); // テキスト分析を初期化
-        });
-
-        // クリップボードへのコピー機能
-        function copyToClipboard(text, buttonElement) {
-            if (!text) return;
-            navigator.clipboard.writeText(text).then(() => {
-                if (buttonElement) {
-                    const originalText = buttonElement.textContent;
-                    buttonElement.textContent = 'コピー完了!';
-                    buttonElement.classList.add('success');
-                    setTimeout(() => {
-                        buttonElement.textContent = originalText;
-                        buttonElement.classList.remove('success');
-                    }, 2000);
-                }
-            }).catch(err => {
-                console.error('コピーに失敗しました:', err);
-                alert('コピーに失敗しました。');
-            });
-        }
-        
-        // メッセージ表示機能
-        function showMessage(elementId, message, type, duration = 3000) {
-            const element = document.getElementById(elementId);
-            if (!element) return;
-            
-            element.textContent = message;
-            element.className = `message ${type}`;
-            element.style.display = 'block';
-
-            if (duration > 0) {
-                setTimeout(() => { element.style.display = 'none'; }, duration);
-            }
-        }
-        
-        // 汎用コピーボタンのイベントリスナー
-        document.body.addEventListener('click', event => {
-            if (event.target.classList.contains('copy-btn')) {
-                const targetId = event.target.dataset.target;
-                const contentElement = document.getElementById(targetId);
-                if (contentElement && contentElement.value) {
-                    copyToClipboard(contentElement.value, event.target);
-                }
-            }
-        });
-
-
-        // ====================== コード抽出機能 ======================
-        const PROXY_URL = 'https://api.allorigins.win/raw?url=';
-        const extractUrlInput = document.getElementById('extractUrl');
         const extractBtn = document.getElementById('extractBtn');
-        const downloadBtn = document.getElementById('downloadExtractedBtn');
-        const copyBtns = document.querySelectorAll('#code-extractor .copy-btn');
+        const extractUrlInput = document.getElementById('extractUrl');
+        const resultsArea = document.getElementById('results-area');
+        const statusDiv = document.getElementById('status');
+        const progressFill = document.getElementById('progressFill');
+        const downloadZipBtn = document.getElementById('downloadZipBtn');
+        
+        const modal = document.getElementById('codeModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalCode = document.getElementById('modalCode');
+        const closeModalBtn = document.querySelector('.modal .close-btn');
 
-        extractBtn.addEventListener('click', extractContent);
+        let extractedData = {};
 
-        async function extractContent() {
+        // メインの抽出処理
+        extractBtn.addEventListener('click', async () => {
             const url = extractUrlInput.value.trim();
             if (!url) {
-                showMessage('extractMessage', 'URLを入力してください。', 'error');
+                alert('URLを入力してください。');
                 return;
             }
-
-            const loader = document.getElementById('extractLoader');
             
-            loader.style.display = 'block';
+            // UIをリセット
+            resultsArea.style.display = 'none';
             extractBtn.disabled = true;
-            downloadBtn.disabled = true;
-            copyBtns.forEach(btn => btn.disabled = true);
-            setProgress(0);
-
+            extractedData = { html: '', css: [], js: [] };
+            
             try {
-                // HTML
-                setProgress(20);
-                showMessage('extractMessage', 'HTMLを取得中...', 'info', 0);
+                // 1. HTMLの取得
+                updateProgress(10, 'HTMLを取得中...');
+                const PROXY_URL = 'https://api.allorigins.win/raw?url=';
                 const response = await fetch(PROXY_URL + encodeURIComponent(url));
                 if (!response.ok) throw new Error(`サーバーエラー: ${response.status}`);
                 const htmlText = await response.text();
-                document.getElementById('htmlResult').value = htmlText;
+                extractedData.html = htmlText;
 
+                // 2. HTMLの解析
+                updateProgress(25, 'HTMLを解析中...');
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(htmlText, 'text/html');
+                const baseUrl = url;
 
-                // CSS
-                setProgress(50);
-                showMessage('extractMessage', 'CSSを抽出中...', 'info', 0);
-                let cssResult = '/* Extracted CSS */\n\n';
-                const cssPromises = [];
+                document.getElementById('pageTitle').textContent = doc.title || '（タイトルなし）';
+                document.getElementById('targetUrl').textContent = baseUrl;
 
-                doc.querySelectorAll('style').forEach(style => {
-                    cssResult += '/* --- Inline <style> --- */\n' + style.textContent + '\n\n';
-                });
-                doc.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
-                    const href = new URL(link.getAttribute('href'), url).href;
-                    cssPromises.push(
-                        fetch(PROXY_URL + encodeURIComponent(href))
-                            .then(r => r.text())
-                            .then(css => `/* --- From: ${href} --- */\n${css}\n\n`)
-                            .catch(e => `/* --- Failed to fetch: ${href} --- */\n`)
-                    );
-                });
-                (await Promise.all(cssPromises)).forEach(css => cssResult += css);
-                document.getElementById('cssResult').value = cssResult;
+                const fetchPromises = [];
+                
+                // 3. CSSの抽出
+                if (document.getElementById('extractCSS').checked) {
+                    updateProgress(40, 'CSSアセットを検索中...');
+                    doc.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
+                        const href = new URL(link.getAttribute('href'), baseUrl).href;
+                        fetchPromises.push(fetchAsset(href, 'css'));
+                    });
+                    doc.querySelectorAll('style').forEach((style, index) => {
+                       extractedData.css.push({
+                           url: `inline_style_${index + 1}.css`,
+                           content: style.textContent,
+                           size: style.textContent.length
+                       });
+                    });
+                }
+                
+                // 4. JavaScriptの抽出
+                if (document.getElementById('extractJS').checked) {
+                    updateProgress(60, 'JavaScriptアセットを検索中...');
+                    doc.querySelectorAll('script[src]').forEach(script => {
+                        if (!script.src) return;
+                        const src = new URL(script.getAttribute('src'), baseUrl).href;
+                        fetchPromises.push(fetchAsset(src, 'js'));
+                    });
+                    doc.querySelectorAll('script:not([src])').forEach((script, index) => {
+                       extractedData.js.push({
+                           url: `inline_script_${index + 1}.js`,
+                           content: script.textContent,
+                           size: script.textContent.length
+                       });
+                    });
+                }
 
-                // JavaScript
-                setProgress(80);
-                showMessage('extractMessage', 'JavaScriptを抽出中...', 'info', 0);
-                let jsResult = '// Extracted JavaScript\n\n';
-                const jsPromises = [];
+                // 5. 外部ファイルの並行取得
+                updateProgress(75, '外部アセットを取得中...');
+                await Promise.all(fetchPromises);
 
-                doc.querySelectorAll('script:not([src])').forEach(script => {
-                    jsResult += '/* --- Inline <script> --- */\n' + script.textContent + '\n\n';
-                });
-                doc.querySelectorAll('script[src]').forEach(script => {
-                    if (!script.src) return;
-                    const src = new URL(script.getAttribute('src'), url).href;
-                    jsPromises.push(
-                        fetch(PROXY_URL + encodeURIComponent(src))
-                            .then(r => r.text())
-                            .then(js => `/* --- From: ${src} --- */\n${js}\n\n`)
-                            .catch(e => `/* --- Failed to fetch: ${src} --- */\n`)
-                    );
-                });
-                (await Promise.all(jsPromises)).forEach(js => jsResult += js);
-                document.getElementById('jsResult').value = jsResult;
-
-                setProgress(100);
-                showMessage('extractMessage', '抽出完了！HTMLファイルをダウンロードできます。', 'success');
-                downloadBtn.disabled = false;
-                copyBtns.forEach(btn => btn.disabled = false);
+                // 6. 結果の表示
+                updateProgress(90, '結果を表示中...');
+                renderResults();
+                resultsArea.style.display = 'block';
+                updateProgress(100, '抽出完了！');
 
             } catch (error) {
-                showMessage('extractMessage', 'エラー: ' + error.message, 'error');
-                setProgress(0);
+                updateProgress(0, `エラー: ${error.message}`);
+                console.error(error);
             } finally {
-                loader.style.display = 'none';
                 extractBtn.disabled = false;
+            }
+        });
+
+        // アセット取得関数
+        async function fetchAsset(url, type) {
+            try {
+                const PROXY_URL = 'https://api.allorigins.win/raw?url=';
+                const response = await fetch(PROXY_URL + encodeURIComponent(url));
+                const content = await response.text();
+                extractedData[type].push({ url, content, size: content.length });
+            } catch (error) {
+                console.warn(`アセットの取得に失敗: ${url}`, error);
+                extractedData[type].push({ url, content: `/* 取得失敗: ${error.message} */`, size: 0, error: true });
+            }
+        }
+
+        // 結果描画関数
+        function renderResults() {
+            // HTML
+            const htmlCard = document.getElementById('htmlCard');
+            if (document.getElementById('extractHTML').checked) {
+                document.getElementById('htmlResult').value = extractedData.html;
+                htmlCard.style.display = 'block';
+            } else {
+                htmlCard.style.display = 'none';
+            }
+
+            // CSS
+            const cssCard = document.getElementById('cssCard');
+            if (document.getElementById('extractCSS').checked) {
+                renderAssetList('css', 'cssAssetList', 'cssCount');
+                cssCard.style.display = 'block';
+            } else {
+                cssCard.style.display = 'none';
+            }
+            
+            // JS
+            const jsCard = document.getElementById('jsCard');
+            if (document.getElementById('extractJS').checked) {
+                renderAssetList('js', 'jsAssetList', 'jsCount');
+                jsCard.style.display = 'block';
+            } else {
+                jsCard.style.display = 'none';
             }
         }
         
-        function setProgress(percentage) {
-            document.getElementById('extractProgress').style.width = percentage + '%';
-        }
+        // アセットリスト描画関数
+        function renderAssetList(type, listId, countId) {
+            const listEl = document.getElementById(listId);
+            const countEl = document.getElementById(countId);
+            const assets = extractedData[type];
+            
+            listEl.innerHTML = '';
+            countEl.textContent = assets.length;
 
-        downloadBtn.addEventListener('click', () => {
-            const html = document.getElementById('htmlResult').value;
-            const css = document.getElementById('cssResult').value;
-            const js = document.getElementById('jsResult').value;
-
-            if (!html) {
-                showMessage('extractMessage', 'ダウンロードするコンテンツがありません。', 'error');
+            if (assets.length === 0) {
+                listEl.innerHTML = '<li>アセットが見つかりませんでした。</li>';
                 return;
             }
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            doc.querySelectorAll('link[rel="stylesheet"], style, script').forEach(el => el.remove());
-            const styleEl = doc.createElement('style');
-            styleEl.textContent = css;
-            doc.head.appendChild(styleEl);
-            const scriptEl = doc.createElement('script');
-            scriptEl.textContent = js;
-            doc.body.appendChild(scriptEl);
-            const finalHtml = '<!DOCTYPE html>\n' + doc.documentElement.outerHTML;
-            const blob = new Blob([finalHtml], { type: 'text/html' });
+
+            assets.forEach(asset => {
+                const li = document.createElement('li');
+                const fileName = asset.url.split('/').pop().split('?')[0] || 'inline';
+
+                li.innerHTML = `
+                    <div class="asset-info">
+                        ${asset.error ? '⚠️' : '📄'} <strong>${fileName}</strong>
+                        <span class="file-size">(${(asset.size / 1024).toFixed(2)} KB)</span>
+                        <br><small>${asset.url}</small>
+                    </div>
+                    <div class="asset-actions">
+                        <button class="info view-btn">プレビュー</button>
+                        <button class="download-btn">ダウンロード</button>
+                    </div>
+                `;
+
+                li.querySelector('.view-btn').addEventListener('click', () => {
+                    showModal(fileName, asset.content);
+                });
+                
+                li.querySelector('.download-btn').addEventListener('click', () => {
+                    downloadFile(fileName, asset.content);
+                });
+                
+                listEl.appendChild(li);
+            });
+        }
+        
+        // ファイルダウンロード関数
+        function downloadFile(filename, content) {
+            const blob = new Blob([content], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `extracted_${Date.now()}.html`;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // ZIPダウンロード関数
+        downloadZipBtn.addEventListener('click', async () => {
+            updateProgress(0, 'ZIPファイルを生成中...');
+            const zip = new JSZip();
+
+            // HTML
+            if (document.getElementById('extractHTML').checked) {
+                zip.file('index.html', extractedData.html);
+            }
+
+            // CSS
+            if (document.getElementById('extractCSS').checked && extractedData.css.length > 0) {
+                const cssFolder = zip.folder('css');
+                extractedData.css.forEach(asset => {
+                    const fileName = asset.url.split('/').pop().split('?')[0] || 'inline.css';
+                    if (!asset.error) cssFolder.file(fileName, asset.content);
+                });
+            }
+
+            // JS
+            if (document.getElementById('extractJS').checked && extractedData.js.length > 0) {
+                const jsFolder = zip.folder('js');
+                extractedData.js.forEach(asset => {
+                    const fileName = asset.url.split('/').pop().split('?')[0] || 'inline.js';
+                    if (!asset.error) jsFolder.file(fileName, asset.content);
+                });
+            }
+
+            updateProgress(50, 'ZIPファイルを圧縮中...');
+            const content = await zip.generateAsync({ type: 'blob' });
+            
+            updateProgress(100, 'ZIPダウンロード準備完了');
+            const url = URL.createObjectURL(content);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `extraction_${Date.now()}.zip`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
         });
 
-        // ====================== テキスト処理機能 ======================
-        function convertText(type) {
-            const input = document.getElementById('textInput').value;
-            const output = document.getElementById('textOutput');
-            switch(type) {
-                case 'uppercase': output.value = input.toUpperCase(); break;
-                case 'lowercase': output.value = input.toLowerCase(); break;
-                case 'capitalize': output.value = input.replace(/\b\w/g, l => l.toUpperCase()); break;
-                case 'reverse': output.value = input.split('').reverse().join(''); break;
-            }
-        }
-
-        function analyzeText() {
-            const text = document.getElementById('analyzeText').value;
-            const stats = document.getElementById('textStats');
-            const charCount = text.length;
-            const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
-            const lineCount = text.split('\n').length;
-            stats.innerHTML = `
-                <p><strong>文字数:</strong> ${charCount} | <strong>単語数:</strong> ${wordCount} | <strong>行数:</strong> ${lineCount}</p>
-                <p><strong>読了目安:</strong> 約${Math.ceil(wordCount / 600)}分</p>
-            `;
-        }
-
-        function testRegex() {
-            const pattern = document.getElementById('regexPattern').value;
-            const flags = document.getElementById('regexFlags').value;
-            const text = document.getElementById('regexText').value;
-            const resultsDiv = document.getElementById('regexResults');
-            resultsDiv.style.display = 'block';
-            try {
-                const regex = new RegExp(pattern, flags);
-                const matches = [...text.matchAll(regex)];
-                resultsDiv.innerHTML = `<h3>マッチ結果 (${matches.length}件)</h3>`;
-                if(matches.length > 0) {
-                    resultsDiv.innerHTML += matches.map((match, i) => 
-                        `<p><strong>${i + 1}:</strong> "${match[0]}" (位置: ${match.index})</p>`
-                    ).join('');
-                } else {
-                    resultsDiv.innerHTML += `<p>マッチしませんでした。</p>`;
-                }
-            } catch (e) {
-                resultsDiv.innerHTML = `<p style="color: red;">エラー: ${e.message}</p>`;
-            }
-        }
-
-        function translateText() {
-            const text = document.getElementById('translateInput').value.trim();
-            const sourceLang = document.getElementById('sourceLang').value;
-            const targetLang = document.getElementById('targetLang').value;
-            if (!text) return;
-            const url = `https://translate.google.com/?sl=${sourceLang}&tl=${targetLang}&text=${encodeURIComponent(text)}&op=translate`;
-            window.open(url, '_blank');
-            showMessage('translateMessage', 'Google翻訳で結果を開きました。', 'info');
-        }
-
-        // ====================== 画像処理機能 ======================
-        let currentImage = null, canvas = null, ctx = null;
-
-        function initImageTools() {
-            const dropZone = document.getElementById('imageDropZone');
-            const fileInput = document.getElementById('imageInput');
-            canvas = document.getElementById('imageCanvas');
-            ctx = canvas.getContext('2d');
-
-            dropZone.addEventListener('click', () => fileInput.click());
-            dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
-            dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-            dropZone.addEventListener('drop', e => {
-                e.preventDefault();
-                dropZone.classList.remove('drag-over');
-                handleImageFile(e.dataTransfer.files[0]);
-            });
-            fileInput.addEventListener('change', e => e.target.files[0] && handleImageFile(e.target.files[0]));
-        }
-
-        function handleImageFile(file) {
-            if (!file || !file.type.startsWith('image/')) return;
-            const reader = new FileReader();
-            reader.onload = e => {
-                const img = new Image();
-                img.onload = () => {
-                    currentImage = img;
-                    // 画像サイズをコンテナに合わせる
-                    const maxWidth = document.getElementById('image-tools').querySelector('.card').clientWidth - 50; // padding分を引く
-                    const scale = Math.min(1, maxWidth / img.width);
-                    canvas.width = img.width * scale;
-                    canvas.height = img.height * scale;
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    canvas.style.display = 'block';
-                    document.getElementById('imageControls').style.display = 'flex';
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function applyFilter(filterType) {
-            if (!currentImage) return;
-            ctx.filter = 'none'; // 既存のフィルターをリセット
-            ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height); // 元画像を描画
-            switch(filterType) {
-                case 'brightness': ctx.filter = 'brightness(1.2)'; break;
-                case 'contrast': ctx.filter = 'contrast(1.4)'; break;
-                case 'grayscale': ctx.filter = 'grayscale(100%)'; break;
-                case 'sepia': ctx.filter = 'sepia(100%)'; break;
-                case 'reset': ctx.filter = 'none'; break;
-            }
-            ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height); // フィルター適用
-        }
-
-        function downloadImage() {
-            if (!canvas) return;
-            const link = document.createElement('a');
-            link.download = `filtered_image_${Date.now()}.png`;
-            link.href = canvas.toDataURL();
-            link.click();
-        }
-
-        function generatePalette() {
-            const baseColor = document.getElementById('baseColor').value;
-            const paletteDiv = document.getElementById('colorPalette');
-            paletteDiv.innerHTML = ''; // クリア
-            const colors = tinycolor(baseColor).tetrad().map(t => t.toHexString());
-            colors.forEach(color => {
-                const swatch = document.createElement('div');
-                swatch.className = 'color-swatch';
-                swatch.style.backgroundColor = color;
-                swatch.title = `クリックしてコピー: ${color}`;
-                swatch.onclick = () => copyToClipboard(color, swatch);
-                paletteDiv.appendChild(swatch);
-            });
+        // 進捗更新関数
+        function updateProgress(percentage, message) {
+            statusDiv.textContent = message;
+            progressFill.style.width = percentage + '%';
         }
         
-        // QRコード生成（外部API使用）
-        function generateQR() {
-            const text = document.getElementById('qrText').value.trim();
-            const output = document.getElementById('qrOutput');
-            if (!text) {
-                output.innerHTML = '<p>テキストまたはURLを入力してください</p>';
-                return;
+        // モーダル表示関数
+        function showModal(title, code) {
+            modalTitle.textContent = title;
+            modalCode.value = code;
+            modal.style.display = 'block';
+        }
+
+        // モーダル非表示
+        closeModalBtn.onclick = () => { modal.style.display = 'none'; };
+        window.onclick = (event) => {
+            if (event.target == modal) {
+                modal.style.display = 'none';
             }
-            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(text)}`;
-            output.innerHTML = `
-                <img src="${qrUrl}" alt="Generated QR Code" width="200" height="200">
-                <br>
-                <a href="${qrUrl}" download="qrcode.png" style="display:inline-block; margin-top:15px; text-decoration: none;">
-                    <button class="success">画像を保存</button>
-                </a>
-            `;
-        }
-
-        // ====================== 暗号化ツール ======================
-        async function generateHash(algorithm) {
-            const input = document.getElementById('hashInput').value;
-            const resultDiv = document.getElementById('hashResult');
-            if (!input) { resultDiv.textContent = 'テキストを入力してください'; return; }
-            
-            try {
-                const encoder = new TextEncoder();
-                const data = encoder.encode(input);
-                const hashBuffer = await crypto.subtle.digest(algorithm.replace(' (Demo)', ''), data);
-                const hashArray = Array.from(new Uint8Array(hashBuffer));
-                const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-                resultDiv.textContent = `${algorithm}: ${hashHex}`;
-            } catch (e) {
-                if(algorithm === 'MD5 (Demo)') {
-                     resultDiv.textContent = `MD5 (非推奨/デモ): ${btoa(input).substring(0,32)}...`;
-                } else {
-                    resultDiv.textContent = `エラー: ${e.message} (HTTPS環境でお試しください)`;
-                }
-            }
-        }
-
-        function base64Encode() {
-            const input = document.getElementById('base64Input').value;
-            const output = document.getElementById('base64Output');
-            try { output.value = btoa(unescape(encodeURIComponent(input))); }
-            catch (e) { output.value = 'エラー: ' + e.message; }
-        }
-        function base64Decode() {
-            const input = document.getElementById('base64Input').value;
-            const output = document.getElementById('base64Output');
-            try { output.value = decodeURIComponent(escape(atob(input))); }
-            catch (e) { output.value = 'エラー: ' + e.message; }
-        }
-
-        function generatePassword() {
-            const length = parseInt(document.getElementById('passwordLength').value);
-            const resultDiv = document.getElementById('passwordResult');
-            const chars = 
-                (document.getElementById('includeUppercase').checked ? 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' : '') +
-                (document.getElementById('includeLowercase').checked ? 'abcdefghijklmnopqrstuvwxyz' : '') +
-                (document.getElementById('includeNumbers').checked ? '0123456789' : '') +
-                (document.getElementById('includeSymbols').checked ? '!@#$%^&*()_+-=[]{}|;:,.<>?' : '');
-            
-            if (!chars) { resultDiv.innerHTML = '少なくとも1つの文字種を選択してください'; return; }
-            
-            let password = '';
-            for (let i = 0; i < length; i++) {
-                password += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            resultDiv.innerHTML = `
-                <input type="text" value="${password}" readonly>
-                <button onclick="copyToClipboard('${password}', this)">コピー</button>
-            `;
-        }
-
-        function urlEncode() { document.getElementById('urlOutput').value = encodeURIComponent(document.getElementById('urlInput').value); }
-        function urlDecode() {
-            try { document.getElementById('urlOutput').value = decodeURIComponent(document.getElementById('urlInput').value); }
-            catch (e) { document.getElementById('urlOutput').value = 'エラー: ' + e.message; }
-        }
-
-        // ====================== ユーティリティ機能 ======================
-        let timerInterval = null, timerSeconds = 0;
-        
-        function updateTimerDisplay() {
-            const hours = Math.floor(timerSeconds / 3600);
-            const minutes = Math.floor((timerSeconds % 3600) / 60);
-            const seconds = timerSeconds % 60;
-            document.getElementById('timerDisplay').textContent = 
-                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-        }
-        function startTimer() {
-            stopTimer();
-            const minutes = parseInt(document.getElementById('timerMinutes').value) || 0;
-            const seconds = parseInt(document.getElementById('timerSeconds').value) || 0;
-            timerSeconds = minutes * 60 + seconds;
-            if (timerSeconds <= 0) return;
-            updateTimerDisplay();
-            timerInterval = setInterval(() => {
-                timerSeconds--;
-                updateTimerDisplay();
-                if (timerSeconds <= 0) {
-                    stopTimer();
-                    alert('タイマー終了！');
-                }
-            }, 1000);
-        }
-        function startStopwatch() { stopTimer(); timerSeconds = 0; updateTimerDisplay(); timerInterval = setInterval(() => { timerSeconds++; updateTimerDisplay(); }, 1000); }
-        function stopTimer() { clearInterval(timerInterval); }
-        function resetTimer() { stopTimer(); timerSeconds = 0; updateTimerDisplay(); }
-
-        // 計算機
-        const calculatorDisplay = document.getElementById('calculatorDisplay');
-        function appendToCalculator(value) { calculatorDisplay.value += value; }
-        function clearCalculator() { calculatorDisplay.value = ''; }
-        function deleteLast() { calculatorDisplay.value = calculatorDisplay.value.slice(0, -1); }
-        function calculate() {
-            try {
-                calculatorDisplay.value = new Function('return ' + calculatorDisplay.value.replace(/×/g, '*'))();
-            } catch (e) {
-                calculatorDisplay.value = 'エラー';
-            }
-        }
-
-        // 単位変換
-        const conversionData = {
-            length: { m: 1, km: 1000, cm: 0.01, mm: 0.001, in: 0.0254, ft: 0.3048, mi: 1609.34 },
-            weight: { kg: 1, g: 0.001, lb: 0.453592, oz: 0.0283495 },
-            temperature: { C: c => c, F: c => (c * 9/5) + 32, K: c => c + 273.15 },
-            tempFrom: { C: c => c, F: f => (f - 32) * 5/9, K: k => k - 273.15 }
         };
-        function initUnitConverter() {
-            const typeSelect = document.getElementById('conversionType');
-            const fromUnit = document.getElementById('fromUnit');
-            const toUnit = document.getElementById('toUnit');
-            
-            const updateUnits = () => {
-                const type = typeSelect.value;
-                fromUnit.innerHTML = toUnit.innerHTML = '';
-                const units = Object.keys(type === 'temperature' ? conversionData.temperature : conversionData[type]);
-                units.forEach(unit => {
-                    fromUnit.innerHTML += `<option value="${unit}">${unit}</option>`;
-                    toUnit.innerHTML += `<option value="${unit}">${unit}</option>`;
-                });
-                toUnit.selectedIndex = 1;
-            };
-            typeSelect.addEventListener('change', updateUnits);
-            fromUnit.addEventListener('change', convertUnits);
-            toUnit.addEventListener('change', convertUnits);
-            updateUnits();
-        }
-
-        function convertUnits() {
-            const type = document.getElementById('conversionType').value;
-            const value = parseFloat(document.getElementById('fromValue').value);
-            const from = document.getElementById('fromUnit').value;
-            const to = document.getElementById('toUnit').value;
-            const resultDiv = document.getElementById('conversionResult');
-            
-            if (isNaN(value)) { resultDiv.style.display = 'none'; return; }
-            
-            let result;
-            if (type === 'temperature') {
-                const baseValue = conversionData.tempFrom[from](value);
-                result = conversionData.temperature[to](baseValue);
-            } else {
-                const baseValue = value * conversionData[type][from];
-                result = baseValue / conversionData[type][to];
-            }
-            resultDiv.innerHTML = `<strong>${value} ${from} = ${result.toFixed(4)} ${to}</strong>`;
-            resultDiv.style.display = 'block';
-        }
-
-        // 天気
-        function getWeather() {
-            const city = document.getElementById('cityInput').value || '東京';
-            const result = document.getElementById('weatherResult');
-            result.innerHTML = `
-                <div class="weather-card">
-                    <h3>${city} (デモ)</h3>
-                    <div class="weather-temp">25°C</div>
-                    <p>☀️ 晴れ</p>
-                    <p>湿度: 60% | 風速: 5 km/h</p>
-                    <small>実際の天気データにはAPIキーが必要です</small>
-                </div>
-            `;
-        }
-
-        // ====================== ジェネレーター機能 ======================
-        function generateRandomNumber() {
-            const min = parseInt(document.getElementById('randomMin').value);
-            const max = parseInt(document.getElementById('randomMax').value);
-            const resultDiv = document.getElementById('randomResult');
-            if (min > max) { resultDiv.innerHTML = '最小値は最大値以下にしてください'; return; }
-            const random = Math.floor(Math.random() * (max - min + 1)) + min;
-            resultDiv.innerHTML = `<div style="font-size: 2rem; color: var(--primary-color); font-weight: bold;">${random}</div>`;
-            resultDiv.style.display = 'block';
-        }
-
-        function selectRandomFromList() {
-            const items = document.getElementById('listInput').value.split('\n').filter(item => item.trim());
-            const resultDiv = document.getElementById('listResult');
-            if (items.length === 0) { resultDiv.innerHTML = '選択肢を入力してください'; return; }
-            const selected = items[Math.floor(Math.random() * items.length)];
-            resultDiv.innerHTML = `<div style="font-size: 1.5rem; font-weight: bold;">${selected}</div>`;
-            resultDiv.style.display = 'block';
-        }
-
-        function generateLorem() {
-            const count = parseInt(document.getElementById('loremCount').value);
-            const type = document.getElementById('loremType').value;
-            const output = document.getElementById('loremOutput');
-            const words = ['lorem', 'ipsum', 'dolor', 'sit', 'amet', 'consectetur', 'adipiscing', 'elit', 'sed', 'do', 'eiusmod', 'tempor', 'incididunt', 'ut', 'labore', 'et', 'dolore', 'magna', 'aliqua'];
-            let result = '';
-            const randomWord = () => words[Math.floor(Math.random() * words.length)];
-            const randomSentence = () => Array(Math.floor(Math.random() * 8) + 5).fill(0).map(randomWord).join(' ') + '.';
-
-            if (type === 'words') { result = Array(count).fill(0).map(randomWord).join(' '); }
-            else if (type === 'sentences') { result = Array(count).fill(0).map(randomSentence).join(' '); }
-            else { result = Array(count).fill(0).map(() => Array(Math.floor(Math.random() * 4) + 3).fill(0).map(randomSentence).join(' ')).join('\n\n'); }
-            output.value = result.charAt(0).toUpperCase() + result.slice(1);
-        }
-
-        function generateGradient() {
-            const c1 = document.getElementById('gradientColor1').value;
-            const c2 = document.getElementById('gradientColor2').value;
-            const dir = document.getElementById('gradientDirection').value;
-            const gradient = `linear-gradient(${dir}, ${c1}, ${c2})`;
-            document.getElementById('gradientPreview').style.background = gradient;
-            document.getElementById('gradientCSS').value = `background: ${gradient};`;
-        }
-
-        function generateRandomString() {
-            const length = parseInt(document.getElementById('stringLength').value);
-            const type = document.getElementById('stringType').value;
-            const resultDiv = document.getElementById('stringResult');
-            let chars = '';
-            switch(type) {
-                case 'alphanumeric': chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'; break;
-                case 'alphabetic': chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'; break;
-                case 'numeric': chars = '0123456789'; break;
-                case 'hex': chars = '0123456789abcdef'; break;
-            }
-            let randomString = Array(length).fill(0).map(() => chars.charAt(Math.floor(Math.random() * chars.length))).join('');
-            resultDiv.innerHTML = `<input type="text" value="${randomString}" readonly><button onclick="copyToClipboard('${randomString}', this)">コピー</button>`;
-        }
-        
-        // tinycolor.js (minified) - for color palette generation
-        !function(a){function b(a,d){a=a?a:"";d=d||{};if(a instanceof b){return a}if(!(this instanceof b)){return new b(a,d)}var e=c(a);this._originalInput=a;this._r=e.r;this._g=e.g;this._b=e.b;this._a=e.a;this._roundA=P(100*this._a)/100;this._format=d.format||e.format;this._gradientType=d.gradientType;if(this._r<1){this._r=P(this._r)}if(this._g<1){this._g=P(this._g)}if(this._b<1){this._b=P(this._b)}this._ok=e.ok;this._tc_id=L++}function c(a){var b={r:0,g:0,b:0};var c=1;var e=false;var f=false;if(typeof a=="string"){a=F(a)}if(typeof a=="object"){if(a.hasOwnProperty("r")&&a.hasOwnProperty("g")&&a.hasOwnProperty("b")){b=d(a.r,a.g,a.b);e=true;f=String(a.r).substr(-1)==="%"?"rgb":typeof a.r!="undefined"&&a.g==a.b?"greyscale":""}else if(a.hasOwnProperty("h")&&a.hasOwnProperty("s")&&a.hasOwnProperty("v")){a.s=B(a.s);a.v=B(a.v);b=h(a.h,a.s,a.v);e=true;f="hsv"}else if(a.hasOwnProperty("h")&&a.hasOwnProperty("s")&&a.hasOwnProperty("l")){a.s=B(a.s);a.l=B(a.l);b=f(a.h,a.s,a.l);e=true;f="hsl"}if(a.hasOwnProperty("a")){c=a.a}}if(!e){var j=E(a);b={r:j[0],g:j[1],b:j[2]};c=j[3]}return{ok:true,format:a.format||f,r:O(255,M(b.r,0)),g:O(255,M(b.g,0)),b:O(255,M(b.b,0)),a:c}}function d(a,b,c){return{r:P(a),g:P(b),b:P(c)}}function e(a,c,d){a=A(a,360);c=A(c,100);d=A(d,100);if(c===0){return{r:d,g:d,b:d}}var e=a/60;var f=c;var h=d;var i=h*(1-f);var j=h*(1-f*(e-P(e)));var k=h*(1-f*(1-(e-P(e))));var l=P(e);var m=[h,j,i,i,k,h][l];var n=[k,h,h,j,i,i][l];var o=[i,i,k,h,h,j][l];return{r:m*255,g:n*255,b:o*255}}function f(a,b,c){function d(a,b,c){if(c<0){c+=1}if(c>1){c-=1}if(c<1/6){return a+(b-a)*6*c}if(c<1/2){return b}if(c<2/3){return a+(b-a)*(2/3-c)*6}return a}var e,f,g;a=A(a,360);b=A(b,100);c=A(c,100);if(b===0){e=f=g=c}else{var h=c<"0.5"?c*(1+b):c+b-c*b;var i=2*c-h;e=d(i,h,a+1/3);f=d(i,h,a);g=d(i,h,a-1/3)}return{r:e*255,g:f*255,b:g*255}}function g(a,b,c){return f(a,b,c)}function h(a,c,d){a=A(a,360)*6;c=A(c,100);d=A(d,100);var e=P(a);var f=a-e;var g=d*(1-c);var h=d*(1-f*c);var i=d*(1-(1-f)*c);var j=e%6;var k=[d,h,g,g,i,d][j];var l=[i,d,d,h,g,g][j];var m=[g,g,i,d,d,h][j];return{r:k*255,g:l*255,b:m*255}}function i(a,b,c,e){var f=[C(P(a)).toString(16),C(P(b)).toString(16),C(P(c)).toString(16)];if(e&&f[0].charAt(0)==f[0].charAt(1)&&f[1].charAt(0)==f[1].charAt(1)&&f[2].charAt(0)==f[2].charAt(1)){return f[0].charAt(0)+f[1].charAt(0)+f[2].charAt(0)}return f.join("")}function j(a,b,c,d){var e=[C(P(a)).toString(16),C(P(b)).toString(16),C(P(c)).toString(16),C(P(d*255)).toString(16)];return e.join("")}function k(a,c,d){c=c===0?0:c/100;d=d/100;var e=Math.max(a,c,d)-Math.min(a,c,d);var f=0;var g=0;var h=(Math.max(a,c,d)+Math.min(a,c,d))/2;if(e===0){f=g=0}else{g=h>"0.5"?e/(2-Math.max(a,c,d)-Math.min(a,c,d)):e/(Math.max(a,c,d)+Math.min(a,c,d));switch(Math.max(a,c,d)){case a:f=(c-d)/e+(c<d?6:0);break;case c:f=(d-a)/e+2;break;case d:f=(a-c)/e+4;break}f/=6}return{h:f*360,s:g,l:h}}function l(a,b,c){a=O(255,M(a,0))/255;b=O(255,M(b,0))/255;c=O(255,M(c,0))/255;return k(a,b,c)}function m(a,b,c){a=O(255,M(a,0))/255;b=O(255,M(b,0))/255;c=O(255,M(c,0))/255;var d=Math.max(a,b,c),e=Math.min(a,b,c);var f,g,h=d;var i=d-e;g=d===0?0:i/d;if(d==e){f=0}else{switch(d){case a:f=(b-c)/i+(b<c?6:0);break;case b:f=(c-a)/i+2;break;case c:f=(a-b)/i+4;break}f/=6}return{h:f*360,s:g,v:h}}function n(a,b,c,d,e,f){var g=f/100;var h={r:e.r+(a-e.r)*g,g:e.g+(b-e.g)*g,b:e.b+(c-e.b)*g};if(d){h.a=e.a+(d-e.a)*g}else{h.a=e.a}return h}function o(a,c){if(a<=0){return"#000"}if(a>=100){return"#fff"}var d=a/100;var e={r:c.r,g:c.g,b:c.b};var f=p(e,d);return f}function p(a,c){var d=c<"0.5";var e;if(d){e=n(0,0,0,0,a,c*2)}else{e=n(255,255,255,0,a,(c-0.5)*2)}return"rgb("+e.r+","+e.g+","+e.b+")"}function q(a,c){var d=c/100;var e={r:a.r,g:a.g,b:a.b};var f=s(e,d);return f}function r(a){var b=a.toHsl();b.l+=0.1;if(b.l>1){b.l=1}b.l-=0.1;return g(b.h,b.s,b.l*100)}function s(a,c){var d=a.toHsl();d.l+=c;if(d.l>1){d.l=1}return g(d.h,d.s,d.l*100)}function t(a,c){var d=c/100;var e={r:a.r,g:a.g,b:a.b};var f=v(e,d);return f}function u(a){var b=a.toHsl();b.l-=0.1;if(b.l<0){b.l=0}b.l+=0.1;return g(b.h,b.s,b.l*100)}function v(a,c){var d=a.toHsl();d.l-=c;if(d.l<0){d.l=0}return g(d.h,d.s,d.l*100)}function w(a,c){var d=a.toHsl();var e=(d.h+c)%360;d.h=e<0?360+e:e;return g(d.h,d.s,d.l)}function x(a){var b=a.toHsl();b.s=0;return g(b.h,b.s,b.l)}function y(a,c){var d=c/100;var e=a.toHsl();e.s+=d;if(e.s>1){e.s=1}return g(e.h,e.s,e.l)}function z(a,c){var d=c/100;var e=a.toHsl();e.s-=d;if(e.s<0){e.s=0}return g(e.h,e.s,e.l)}function C(a){a=a.toString(16);return a.length==1?"0"+a:a}function D(a){if(a=="transparent"){return[0,0,0,0]}var b=K.rgb.exec(a);if(b){return[b[1],b[2],b[3],1]}var b=K.rgba.exec(a);if(b){return[b[1],b[2],b[3],b[4]]}var c=K.hsl.exec(a);if(c){return[c[1],c[2],c[3],1]}var d=K.hsla.exec(a);if(d){return[d[1],d[2],d[3],d[4]]}var e=K.hex.exec(a);if(e){return[parseInt(e[1],16),parseInt(e[2],16),parseInt(e[3],16),1]}var f=K.hex.exec(G(a));if(f){return[parseInt(f[1],16),parseInt(f[2],16),parseInt(f[3],16),1]}var g=J[a]||null;if(g){return[g[0],g[1],g[2],1]}return[0,0,0,1]}function E(a){var b=D(a);return[A(b[0],255),A(b[1],255),A(b[2],255),N(b[3],1)]}function F(a){a=a.replace(I,"").replace(H,"").toLowerCase();if(a.length===0){return a}if(J[a]){a=J[a]}return a}function G(a){if(a.length==3){a=a.charAt(0)+a.charAt(0)+a.charAt(1)+a.charAt(1)+a.charAt(2)+a.charAt(2)}return a}function A(a,b){if(a.indexOf("%")!=-1){a=parseFloat(a)*b/100}if(typeof a=="string"){a=parseFloat(a)}if(typeof a!="number"){a=0}if(a>b){a=b}if(a<0){a=0}return a}function B(a){return A(a,1)}function N(a,b){if(typeof a=="string"){a=parseFloat(a)}if(typeof a!="number"){a=b}if(a>b){a=b}if(a<0){a=0}return a}var M=Math.max;var O=Math.min;var P=Math.round;var L=0;var I=/^[\s#]+/;var H=/[\s]+$/;var J={aliceblue:"f0f8ff",antiquewhite:"faebd7",aqua:"0ff",aquamarine:"7fffd4",azure:"f0ffff",beige:"f5f5dc",bisque:"ffe4c4",black:"000",blanchedalmond:"ffebcd",blue:"00f",blueviolet:"8a2be2",brown:"a52a2a",burlywood:"deb887",burntsienna:"ea7e5d",cadetblue:"5f9ea0",chartreuse:"7fff00",chocolate:"d2691e",coral:"ff7f50",cornflowerblue:"6495ed",cornsilk:"fff8dc",crimson:"dc143c",cyan:"0ff",darkblue:"00008b",darkcyan:"008b8b",darkgoldenrod:"b8860b",darkgray:"a9a9a9",darkgreen:"006400",darkkhaki:"bdb76b",darkmagenta:"8b008b",darkolivegreen:"556b2f",darkorange:"ff8c00",darkorchid:"9932cc",darkred:"8b0000",darksalmon:"e9967a",darkseagreen:"8fbc8f",darkslateblue:"483d8b",darkslategray:"2f4f4f",darkturquoise:"00ced1",darkviolet:"9400d3",deeppink:"ff1493",deepskyblue:"00bfff",dimgray:"696969",dodgerblue:"1e90ff",firebrick:"b22222",floralwhite:"fffaf0",forestgreen:"228b22",fuchsia:"f0f",gainsboro:"dcdcdc",ghostwhite:"f8f8ff",gold:"ffd700",goldenrod:"daa520",gray:"808080",green:"008000",greenyellow:"adff2f",honeydew:"f0fff0",hotpink:"ff69b4",indianred:"cd5c5c",indigo:"4b0082",ivory:"fffff0",khaki:"f0e68c",lavender:"e6e6fa",lavenderblush:"fff0f5",lawngreen:"7cfc00",lemonchiffon:"fffacd",lightblue:"add8e6",lightcoral:"f08080",lightcyan:"e0ffff",lightgoldenrodyellow:"fafad2",lightgrey:"d3d3d3",lightgreen:"90ee90",lightpink:"ffb6c1",lightsalmon:"ffa07a",lightseagreen:"20b2aa",lightskyblue:"87cefa",lightslategray:"789",lightsteelblue:"b0c4de",lightyellow:"ffffe0",lime:"0f0",limegreen:"32cd32",linen:"faf0e6",magenta:"f0f",maroon:"800000",mediumaquamarine:"66cdaa",mediumblue:"0000cd",mediumorchid:"ba55d3",mediumpurple:"9370d8",mediumseagreen:"3cb371",mediumslateblue:"7b68ee",mediumspringgreen:"00fa9a",mediumturquoise:"48d1cc",mediumvioletred:"c71585",midnightblue:"191970",mintcream:"f5fffa",mistyrose:"ffe4e1",moccasin:"ffe4b5",navajowhite:"ffdead",navy:"000080",oldlace:"fdf5e6",olive:"808000",olivedrab:"6b8e23",orange:"ffa500",orangered:"ff4500",orchid:"da70d6",palegoldenrod:"eee8aa",palegreen:"98fb98",paleturquoise:"afeeee",palevioletred:"d87093",papayawhip:"ffefd5",peachpuff:"ffdab9",peru:"cd853f",pink:"ffc0cb",plum:"dda0dd",powderblue:"b0e0e6",purple:"800080",red:"f00",rosybrown:"bc8f8f",royalblue:"4169e1",saddlebrown:"8b4513",salmon:"fa8072",sandybrown:"f4a460",seagreen:"2e8b57",seashell:"fff5ee",sienna:"a0522d",silver:"c0c0c0",skyblue:"87ceeb",slateblue:"6a5acd",slategray:"708090",snow:"fffafa",springgreen:"00ff7f",steelblue:"4682b4",tan:"d2b48c",teal:"008080",thistle:"d8bfd8",tomato:"ff6347",turquoise:"40e0d0",violet:"ee82ee",wheat:"f5deb3",white:"fff",whitesmoke:"f5f5f5",yellow:"ff0",yellowgreen:"9acd32"};var K={rgb:/^rgb[s]*?\([\s]*?(\d+)[,\s]+(\d+)[,\s]+(\d+)[s]*?\)/i,rgba:/^rgba[s]*?\([\s]*?(\d+)[,\s]+(\d+)[,\s]+(\d+)[,\s]+(\d*[.]?\d+)[s]*?\)/i,hsl:/^hsl[s]*?\([\s]*?(\d+)[,\s]+(\d+)%[,\s]+(\d+)%[s]*?\)/i,hsla:/^hsla[s]*?\([\s]*?(\d+)[,\s]+(\d+)%[,\s]+(\d+)%[,\s]+(\d*[.]?\d+)[s]*?\)/i,hex:/^([0-9a-fA-F]{1,2})([0-9a-fA-F]{1,2})([0-9a-fA-F]{1,2})$/};for(var Q in J){if(J.hasOwnProperty(Q)){J[J[Q]]=Q}}b.prototype={isDark:function(){return this.getBrightness()<128},isLight:function(){return!this.isDark()},getBrightness:function(){return(this._r*299+this._g*587+this._b*114)/1e3},getLuminance:function(){var a=this._r/255,b=this._g/255,c=this._b/255;var d,e,f;if(a<=.03928){d=a/12.92}else{d=Math.pow((a+.055)/1.055,2.4)}if(b<=.03928){e=b/12.92}else{e=Math.pow((b+.055)/1.055,2.4)}if(c<=.03928){f=c/12.92}else{f=Math.pow((c+.055)/1.055,2.4)}return.2126*d+.7152*e+.0722*f},getAlpha:function(){return this._a},setAlpha:function(a){this._a=N(a,1);this._roundA=P(100*this._a)/100;return this},toHsv:function(){var a=m(this._r,this._g,this._b);return{h:a.h,s:a.s,v:a.v,a:this._a}},toHsvString:function(){var a=m(this._r,this._g,this._b);var b=P(a.h),c=P(a.s*100),d=P(a.v*100);return this._a==1?"hsv("+b+", "+c+"%, "+d+"%)":"hsva("+b+", "+c+"%, "+d+"%, "+this._roundA+")"},toHsl:function(){var a=l(this._r,this._g,this._b);return{h:a.h,s:a.s,l:a.l,a:this._a}},toHslString:function(){var a=l(this._r,this._g,this._b);var b=P(a.h),c=P(a.s*100),d=P(a.l*100);return this._a==1?"hsl("+b+", "+c+"%, "+d+"%)":"hsla("+b+", "+c+"%, "+d+"%, "+this._roundA+")"},toHex:function(a){return i(this._r,this._g,this._b,a)},toHexString:function(a){return"#"+this.toHex(a)},toHex8:function(){return j(this._r,this._g,this._b,this._a)},toHex8String:function(){return"#"+this.toHex8()},toRgb:function(){return{r:P(this._r),g:P(this._g),b:P(this._b),a:this._a}},toRgbString:function(){return this._a==1?"rgb("+P(this._r)+", "+P(this._g)+", "+P(this._b)+")":"rgba("+P(this._r)+", "+P(this._g)+", "+P(this._b)+", "+this._roundA+")"},toPercentageRgb:function(){return{r:P(this._r/255*100)+"%",g:P(this._g/255*100)+"%",b:P(this._b/255*100)+"%",a:this._a}},toPercentageRgbString:function(){return this._a==1?"rgb("+P(this._r/255*100)+"%, "+P(this._g/255*100)+"%, "+P(this._b/255*100)+"%)":"rgba("+P(this._r/255*100)+"%, "+P(this._g/255*100)+"%, "+P(this._b/255*100)+"%, "+this._roundA+")"},toName:function(){return J[i(this._r,this._g,this._b,true)]||false},toString:function(a){var c=!!a;a=a||this._format;var d=false;if(a==="rgb"){d=this.toRgbString()}if(a==="prgb"){d=this.toPercentageRgbString()}if(a==="hex"||a==="hex6"){d=this.toHexString()}if(a==="hex3"){d=this.toHexString(true)}if(a==="hex8"){d=this.toHex8String()}if(a==="name"){d=this.toName()}if(a==="hsl"){d=this.toHslString()}if(a==="hsv"){d=this.toHsvString()}if(c||!d){return this.toRgbString()}return d},_applyModification:function(a,c){var d=a.apply(null,[this].concat([].slice.call(c)));this._r=d._r;this._g=d._g;this._b=d._b;this.setAlpha(d._a);return this},lighten:function(){return this._applyModification(s,arguments)},brighten:function(){return this._applyModification(q,arguments)},darken:function(){return this._applyModification(v,arguments)},desaturate:function(){return this._applyModification(z,arguments)},saturate:function(){return this._applyModification(y,arguments)},greyscale:function(){return this._applyModification(x,arguments)},spin:function(){return this._applyModification(w,arguments)},_applyCombination:function(a,c){return a.apply(null,[this].concat([].slice.call(c)))},analogous:function(){return this._applyCombination(R,arguments)},complement:function(){return this._applyCombination(S,arguments)},monochromatic:function(){return this._applyCombination(U,arguments)},splitcomplement:function(){return this._applyCombination(T,arguments)},triad:function(){return this._applyCombination(V,arguments)},tetrad:function(){return this._applyCombination(W,arguments)}};b.fromRatio=function(a,d){if(typeof a=="object"&&a.hasOwnProperty("r")&&a.hasOwnProperty("g")&&a.hasOwnProperty("b")){var e=c({r:A(a.r,1)*255,g:A(a.g,1)*255,b:A(a.b,1)*255});if(a.hasOwnProperty("a")){e.a=a.a}return new b(e,d)}return null};b.equals=function(a,c){return a&&c?b(a).toRgbString()==b(c).toRgbString():false};b.random=function(){return b.fromRatio({r:Math.random(),g:Math.random(),b:Math.random()})};b.mix=function(a,c,d){d=d==0?0:d||50;var e=b(a).toRgb();var f=b(c).toRgb();var g=d/100;var h=(1-g);var i=e.r*h+f.r*g;var j=e.g*h+f.g*g;var k=e.b*h+f.b*g;var l=e.a*h+f.a*g;return b({r:i,g:j,b:k,a:l})};b.readability=function(a,c){var d=b(a).getLuminance();var e=b(c).getLuminance();var f;if(d>e){f=(d+.05)/(e+.05)}else{f=(e+.05)/(d+.05)}return f};b.isReadable=function(a,c){return b.readability(a,c)>4.5};function S(a){var b=a.toHsl();b.h=(b.h+180)%360;return b}function T(a){var b=a.toHsl();var c=b.h;return[a,g((c+150)%360,b.s,b.l),g((c+210)%360,b.s,b.l)]}function R(a,c,d){c=c||6;d=d||30;var e=a.toHsl();var f=360/d;var h=[a];for(var i=1;i<c;i++){var j=e.h;var k=(j+i*f)%360;var l=g(k,e.s,e.l);h.push(l)}return h}function V(a){var b=a.toHsl();var c=b.h;return[a,g((c+120)%360,b.s,b.l),g((c+240)%360,b.s,b.l)]}function W(a){var b=a.toHsl();var c=b.h;return[a,g((c+90)%360,b.s,b.l),g((c+180)%360,b.s,b.l),g((c+270)%360,b.s,b.l)]}function U(a,c){c=c||6;var d=a.toHsl().h;var e=a.toHsl().s;var f=a.toHsl().l;var h=[];var i=1/c;for(var j=0;j<c;j++){var k=f+j*i;k%=1;h.push(g(d,e,k))}return h}a.tinycolor=b}(this);
 
     </script>
 </body>
 </html>
-
