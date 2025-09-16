@@ -5,34 +5,35 @@
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>マッチ棒パズル</title>
   <style>
-    body { font-family:"Arial",sans-serif;background:#f0f0f0;height:100vh;display:flex;justify-content:center;align-items:center;margin:0; }
-    .game-container { background:#fff;border-radius:10px;box-shadow:0 4px 15px rgba(0,0,0,0.1);padding:30px;text-align:center;min-width:400px;}
-    h1 {color:#333;}
-    .game-info {display:flex;justify-content:space-between;margin-bottom:20px;font-weight:bold;color:#555;}
-    .game-board {display:flex;justify-content:center;align-items:center;margin:20px 0;gap:10px;}
-    .digit, .operator {position:relative;width:60px;height:100px;}
-    .stick, .slot {position:absolute;border-radius:3px;transition:background 0.2s,transform 0.2s;}
-    .stick {background:#c08040;box-shadow:1px 1px 3px rgba(0,0,0,0.3);cursor:pointer;}
-    .stick.selected {background:#ff6347;transform:scale(1.1);z-index:10;}
-    .slot {background:#e0e0e0;opacity:0.5;cursor:pointer;}
-    .horizontal {width:40px;height:6px;}
-    .vertical {width:6px;height:40px;}
-    .message {font-weight:bold;font-size:16px;margin:10px 0 0 0; min-height: 19px;}
-    .message.success{color:#28a745;}
-    .message.error{color:#dc3545;}
-    .controls {margin:20px 0 0 0;}
-    .controls button{padding:10px 20px;font-size:16px;margin:0 5px;border:none;border-radius:5px;cursor:pointer;background-color:#007bff;color:#fff;transition:background 0.3s;}
+    body { font-family:"Arial",sans-serif;background:#f0f4f8;height:100vh;display:flex;justify-content:center;align-items:center;margin:0; }
+    .game-container { background:#fff;border-radius:15px;box-shadow:0 8px 30px rgba(0,0,0,0.15);padding:40px;text-align:center;min-width:450px;border:1px solid #e0e0e0; }
+    h1 {color:#2c3e50;margin-bottom:10px;font-size:2em;}
+    p {color:#7f8c8d;margin-top:0;}
+    .game-info {display:flex;justify-content:space-around;margin-bottom:25px;font-weight:bold;color:#555;font-size:1.1em;border-bottom:2px solid #ecf0f1;padding-bottom:15px;}
+    .game-board {display:flex;justify-content:center;align-items:center;margin:30px 0;gap:15px; }
+    .digit, .operator {position:relative;width:65px;height:110px;}
+    .stick, .slot {position:absolute;border-radius:3px;transition:transform 0.2s, background 0.3s;}
+    .stick {background:#d46a48;box-shadow:2px 2px 5px rgba(0,0,0,0.3);cursor:pointer;border:1px solid #a34c32; }
+    .stick.selected { background:#ff8c66; transform:scale(1.15);z-index:10;box-shadow:0 0 15px rgba(255,140,102,0.8); }
+    .slot {background:#bdc3c7;opacity:0.6;cursor:pointer;box-shadow:inset 0 0 5px rgba(0,0,0,0.2);}
+    .horizontal {width:45px;height:8px;}
+    .vertical {width:8px;height:45px;}
+    .message {font-weight:bold;font-size:1.2em;margin:15px 0 0 0; min-height: 25px;transition:color 0.4s, background-color 0.4s;}
+    .message.success{color:#27ae60; background-color:#e8f8f5; padding:5px; border-radius:5px;}
+    .message.error{color:#c0392b; background-color:#fef5f5; padding:5px; border-radius:5px;}
+    .controls {margin:25px 0 0 0;display:flex; justify-content:center;gap:10px;}
+    .controls button{padding:12px 25px;font-size:16px;border:none;border-radius:8px;cursor:pointer;background-color:#3498db;color:#fff;transition:background 0.3s, transform 0.1s;}
     .controls button:disabled{background:#ccc;cursor:not-allowed;}
-    .controls button:hover:not(:disabled){background:#0056b3;}
-    .box {background:#f9f9f9;border:1px solid #ddd;border-radius:5px;padding:15px;margin-top:20px;font-size:14px;color:#333;text-align:left;}
+    .controls button:hover:not(:disabled){background:#2980b9; transform:translateY(-2px);}
+    .box {background:#f9f9f9;border:1px solid #ddd;border-radius:8px;padding:20px;margin-top:25px;font-size:14px;color:#333;text-align:left;line-height:1.6;}
   </style>
 </head>
 <body>
 <div class="game-container">
-  <h1>マッチ棒パズル</h1>
+  <h1>マッチ棒パズル 💡</h1>
   <p>棒を動かして正しい式にしよう！</p>
   <div class="game-info">
-    <div>レベル: <span id="level">1</span></div>
+    <div>レベル: <span id="level">ランダム</span></div>
     <div>残り手数: <span id="moves-left">0</span></div>
     <div>スコア: <span id="score">0</span></div>
   </div>
@@ -40,9 +41,9 @@
   <div class="message" id="message"></div>
   <div class="controls">
     <button id="btn-reset">リセット</button>
-    <button id="btn-next" disabled>次のレベル</button>
-    <button id="btn-hint">ヒント</button>
-    <button id="btn-answer">答えを見る</button>
+    <button id="btn-next">次のレベルへ</button>
+    <button id="btn-hint" disabled>ヒント</button>
+    <button id="btn-answer" disabled>答えを見る</button>
   </div>
   <div id="hint" class="box" style="display:none"></div>
   <div id="answer" class="box" style="display:none"></div>
@@ -51,76 +52,40 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
 
-  /**
-   * ==================================
-   * DATA MODELS & DEFINITIONS
-   * ==================================
-   */
-
+  // --- DATA MODELS & DEFINITIONS ---
   const SEGMENT_POSITIONS = [
-    { type: 'horizontal', x: 10, y: 0  }, // 0 (top)
-    { type: 'vertical',   x: 50, y: 10 }, // 1 (top-right)
-    { type: 'vertical',   x: 50, y: 50 }, // 2 (bottom-right)
-    { type: 'horizontal', x: 10, y: 90 }, // 3 (bottom)
-    { type: 'vertical',   x: 0,  y: 50 }, // 4 (bottom-left)
-    { type: 'vertical',   x: 0,  y: 10 }, // 5 (top-left)
-    { type: 'horizontal', x: 10, y: 45 }, // 6 (middle)
+    { type: 'horizontal', x: 10, y: 0  }, { type: 'vertical',   x: 55, y: 10 }, 
+    { type: 'vertical',   x: 55, y: 55 }, { type: 'horizontal', x: 10, y: 102}, 
+    { type: 'vertical',   x: 0,  y: 55 }, { type: 'vertical',   x: 0,  y: 10 }, 
+    { type: 'horizontal', x: 10, y: 50 },
   ];
 
   const OPERATOR_POSITIONS = {
-    // Note: To allow moving sticks between operators, we define a shared set of possible positions.
-    // Here we define 2 slots for all operators for consistency.
-    shared: [
-        { type: 'horizontal', x: 10, y: 40 }, // For top bar of '='
-        { type: 'horizontal', x: 10, y: 55 }, // For bottom bar of '='
-        { type: 'horizontal', x: 10, y: 45 }, // For '-' and '+'
-        { type: 'vertical',   x: 27, y: 30 }, // For '+'
-    ]
+    '=': [{ type: 'horizontal', x: 10, y: 40 }, { type: 'horizontal', x: 10, y: 55 }],
+    '+': [{ type: 'horizontal', x: 10, y: 45 }, { type: 'vertical',   x: 28, y: 30 }],
+    '-': [{ type: 'horizontal', x: 10, y: 45 }],
   };
 
   const CHAR_PATTERNS = {
-    '0': [1, 1, 1, 1, 1, 1, 0],
-    '1': [0, 1, 1, 0, 0, 0, 0],
-    '2': [1, 1, 0, 1, 1, 0, 1],
-    '3': [1, 1, 1, 1, 0, 0, 1],
-    '4': [0, 1, 1, 0, 0, 1, 1],
-    '5': [1, 0, 1, 1, 0, 1, 1],
-    '6': [1, 0, 1, 1, 1, 1, 1],
-    '7': [1, 1, 1, 0, 0, 0, 0],
-    '8': [1, 1, 1, 1, 1, 1, 1],
-    '9': [1, 1, 1, 1, 0, 1, 1],
-    // For operators, we map them to the 4 shared positions [top=, bottom=, middle-, middle|]
-    '+': [0, 0, 1, 1],
-    '-': [0, 0, 1, 0],
-    '=': [1, 1, 0, 0],
+    '0': [1, 1, 1, 1, 1, 1, 0], '1': [0, 1, 1, 0, 0, 0, 0],
+    '2': [1, 1, 0, 1, 1, 0, 1], '3': [1, 1, 1, 1, 0, 0, 1],
+    '4': [0, 1, 1, 0, 0, 1, 1], '5': [1, 0, 1, 1, 0, 1, 1],
+    '6': [1, 0, 1, 1, 1, 1, 1], '7': [1, 1, 1, 0, 0, 0, 0],
+    '8': [1, 1, 1, 1, 1, 1, 1], '9': [1, 1, 1, 1, 0, 1, 1],
+    '=': [1, 1], '+': [1, 1], '-': [1],
   };
 
-  const LEVELS = [
-    { equation: '6+4=4', moves: 1, hint: "6を0に変えるか、+を-に変えて6を8に変えましょう。", answer: '0+4=4 または 8-4=4' },
-    { equation: '8-3=3', moves: 1, hint: "数字と演算子、両方を変更する可能性があります。", answer: '6+3=9' },
-    { equation: '5+7=2', moves: 2, hint: "答えが2になるように、左辺を考えましょう。", answer: '9-7=2' },
-    { equation: '9-3=5', moves: 1, hint: "1本動かすだけで、数字2つを同時に変えられます。", answer: '8-3=5' },
-  ];
-
-  /**
-   * ==================================
-   * GAME STATE
-   * ==================================
-   */
+  // --- GAME STATE ---
   let state = {
-    level: 0,
     score: 0,
     movesLeft: 0,
     board: [],
     selectedStick: null,
     isLevelComplete: false,
+    correctEquation: '',
   };
 
-  /**
-   * ==================================
-   * DOM ELEMENTS
-   * ==================================
-   */
+  // --- DOM ELEMENTS ---
   const levelEl = document.getElementById('level');
   const movesLeftEl = document.getElementById('moves-left');
   const scoreEl = document.getElementById('score');
@@ -133,66 +98,169 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnHint = document.getElementById('btn-hint');
   const btnAnswer = document.getElementById('btn-answer');
 
-  /**
-   * ==================================
-   * GAME LOGIC
-   * ==================================
-   */
-
+  // --- HELPER FUNCTIONS ---
   function equationToBoard(equationStr) {
     return [...equationStr].map(char => {
       const isDigit = !isNaN(parseInt(char));
+      const pattern = CHAR_PATTERNS[char] || [];
       return {
         char: char,
         type: isDigit ? 'digit' : 'operator',
-        sticks: [...(CHAR_PATTERNS[char] || [])]
+        sticks: [...pattern]
       };
     });
+  }
+  
+  function getCharFromSticks(type, sticks) {
+    let bestMatch = '?';
+    let minDiff = Infinity;
+
+    for (const char in CHAR_PATTERNS) {
+      const isDigit = !isNaN(parseInt(char));
+      const pattern = CHAR_PATTERNS[char];
+      
+      if ((isDigit && type === 'digit') || (!isDigit && type === 'operator')) {
+        let diff = 0;
+        let isMatch = true;
+        
+        // 桁数の違いを考慮する
+        const len = Math.max(sticks.length, pattern.length);
+        for(let i = 0; i < len; i++) {
+            const s = sticks[i] || 0;
+            const p = pattern[i] || 0;
+            if (s !== p) diff++;
+        }
+        
+        if (diff < minDiff) {
+            minDiff = diff;
+            bestMatch = char;
+        }
+      }
+    }
+    return bestMatch;
   }
 
   function boardToEquation() {
     return state.board.map(cell => {
-      for (const char in CHAR_PATTERNS) {
-        const pattern = CHAR_PATTERNS[char];
-        const cellIsDigit = cell.type === 'digit';
-        const charIsDigit = !isNaN(parseInt(char));
-        if (cellIsDigit === charIsDigit && pattern.length === cell.sticks.length && pattern.every((v, i) => v === cell.sticks[i])) {
-          return char;
-        }
+      const char = getCharFromSticks(cell.type, cell.sticks);
+      // Operator check for moved sticks
+      if (cell.type === 'operator') {
+          const liveSticks = cell.sticks.filter(s => s === 1).length;
+          if(liveSticks === 2) {
+              if (cell.sticks[0] === 1 && cell.sticks[1] === 1) return '=';
+              if (cell.sticks[0] === 1 && cell.sticks[3] === 1) return '+';
+          }
+          if(liveSticks === 1) return '-';
       }
-      return '?';
+      return char;
     }).join('');
   }
 
+  function solveEquation(equation) {
+    const parts = equation.split(/([+\-=])/);
+    if (parts.length !== 5) return false;
+    const num1 = parseInt(parts[0]);
+    const op = parts[1];
+    const num2 = parseInt(parts[2]);
+    const eq = parts[3];
+    const result = parseInt(parts[4]);
+
+    if (isNaN(num1) || isNaN(num2) || isNaN(result) || eq !== '=') return false;
+
+    let calculated;
+    switch (op) {
+        case '+': calculated = num1 + num2; break;
+        case '-': calculated = num1 - num2; break;
+        default: return false;
+    }
+    return calculated === result;
+  }
+  
   function checkSolution() {
     const eq = boardToEquation();
     if (eq.includes('?')) return false;
-
-    try {
-      const [left, right] = eq.split('=');
-      if (left === undefined || right === undefined) return false;
-      return new Function(`return ${left}`)() === new Function(`return ${right}`)();
-    } catch (e) {
-      return false;
-    }
+    return solveEquation(eq);
   }
 
-  function startLevel(levelIndex) {
-    if (levelIndex >= LEVELS.length) {
-      updateMessage("全レベルクリア！おめでとうございます！ 🏆", 'success');
-      btnNext.disabled = true;
-      return;
+  function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function generateSolvableEquation() {
+    const ops = ['+', '-'];
+    let correctEquation = '';
+    let board = [];
+    let validMoves = [];
+
+    // Correct Equation Generation
+    while(validMoves.length === 0) {
+        const op = ops[getRandomInt(0, 1)];
+        let num1, num2, result;
+        
+        if (op === '+') {
+          num1 = getRandomInt(1, 9);
+          num2 = getRandomInt(1, 9);
+          result = num1 + num2;
+        } else {
+          num1 = getRandomInt(1, 9);
+          num2 = getRandomInt(1, num1);
+          result = num1 - num2;
+        }
+        correctEquation = `${num1}${op}${num2}=${result}`;
+        board = equationToBoard(correctEquation);
+
+        // Find all possible single moves
+        const allSticks = [];
+        board.forEach((cell, charIndex) => {
+          cell.sticks.forEach((isStick, stickIndex) => {
+            if (isStick) allSticks.push({ charIndex, stickIndex });
+          });
+        });
+        
+        const allSlots = [];
+        board.forEach((cell, charIndex) => {
+          const positions = cell.type === 'digit' ? SEGMENT_POSITIONS : OPERATOR_POSITIONS[cell.char] || [];
+          positions.forEach((pos, stickIndex) => {
+              if (cell.sticks[stickIndex] === 0) {
+                  allSlots.push({ charIndex, stickIndex });
+              }
+          });
+        });
+
+        // Create a list of all valid moves (src, dest)
+        for (const src of allSticks) {
+            for (const dest of allSlots) {
+                const tempBoard = JSON.parse(JSON.stringify(board));
+                tempBoard[src.charIndex].sticks[src.stickIndex] = 0;
+                tempBoard[dest.charIndex].sticks[dest.stickIndex] = 1;
+
+                const scrambledEq = tempBoard.map(cell => getCharFromSticks(cell.type, cell.sticks)).join('');
+                if (scrambledEq !== correctEquation) {
+                    validMoves.push({ src, dest });
+                }
+            }
+        }
     }
 
-    const levelData = LEVELS[levelIndex];
-    state.level = levelIndex;
-    state.movesLeft = levelData.moves;
-    state.board = equationToBoard(levelData.equation);
+    const move = validMoves[getRandomInt(0, validMoves.length - 1)];
+    const scrambledBoard = JSON.parse(JSON.stringify(board));
+    scrambledBoard[move.src.charIndex].sticks[move.src.stickIndex] = 0;
+    scrambledBoard[move.dest.charIndex].sticks[move.dest.stickIndex] = 1;
+    
+    return { board: scrambledBoard, correctEquation: correctEquation };
+  }
+
+  function startLevel() {
+    const puzzle = generateSolvableEquation();
+    state.board = puzzle.board;
+    state.correctEquation = puzzle.correctEquation;
+    state.movesLeft = 1;
     state.selectedStick = null;
     state.isLevelComplete = false;
     state.score = 1000;
 
-    btnNext.disabled = true;
+    btnHint.disabled = false;
+    btnAnswer.disabled = false;
     hintEl.style.display = 'none';
     answerEl.style.display = 'none';
     updateMessage("");
@@ -205,13 +273,8 @@ document.addEventListener('DOMContentLoaded', () => {
     messageEl.className = `message ${className}`;
   }
 
-  /**
-   * ==================================
-   * RENDERING
-   * ==================================
-   */
+  // --- RENDERING ---
   function render() {
-    levelEl.textContent = state.level + 1;
     movesLeftEl.textContent = state.movesLeft;
     scoreEl.textContent = state.score;
     gameBoardEl.innerHTML = '';
@@ -220,20 +283,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const container = document.createElement('div');
       container.className = cell.type;
 
-      const positions = cell.type === 'digit' ? SEGMENT_POSITIONS : OPERATOR_POSITIONS.shared;
-      const totalSlots = positions.length;
-
-      for (let stickIndex = 0; stickIndex < totalSlots; stickIndex++) {
-          const pos = positions[stickIndex];
-          // Skip rendering non-existent slots for operators
-          if(cell.type === 'operator' && !cell.sticks.hasOwnProperty(stickIndex)) continue;
-
+      // Render all possible slots for the cell's type
+      const allSlots = cell.type === 'digit' ? SEGMENT_POSITIONS :
+                       cell.char === '=' ? OPERATOR_POSITIONS['='] :
+                       cell.char === '+' ? OPERATOR_POSITIONS['+'] :
+                       OPERATOR_POSITIONS['-'];
+      
+      allSlots.forEach((pos, stickIndex) => {
           const hasStick = cell.sticks[stickIndex] === 1;
-
-          if (!hasStick && cell.type === 'operator' && !CHAR_PATTERNS['+'].includes(1, stickIndex) && !CHAR_PATTERNS['='].includes(1, stickIndex) && !CHAR_PATTERNS['-'].includes(1, stickIndex)) {
-               if( (stickIndex==0 && cell.char!='=') || (stickIndex==1 && cell.char!='=') || (stickIndex==2 && cell.char!='+' && cell.char!='-')||(stickIndex==3 && cell.char!='+')) continue;
-          }
-
+          
           const el = document.createElement('div');
           el.className = `${hasStick ? 'stick' : 'slot'} ${pos.type}`;
           el.style.left = `${pos.x}px`;
@@ -250,16 +308,12 @@ document.addEventListener('DOMContentLoaded', () => {
               el.onclick = handleSlotClick;
           }
           container.appendChild(el);
-      }
+      });
       gameBoardEl.appendChild(container);
     });
   }
 
-  /**
-   * ==================================
-   * EVENT HANDLERS
-   * ==================================
-   */
+  // --- EVENT HANDLERS ---
   function handleStickClick(e) {
     if (state.isLevelComplete || state.movesLeft <= 0) return;
 
@@ -283,15 +337,11 @@ document.addEventListener('DOMContentLoaded', () => {
       stickIndex: +e.target.dataset.stickIndex,
     };
     
-    // ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
-    // The restriction preventing movement between digits and symbols has been removed.
-    // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
-
     state.board[src.charIndex].sticks[src.stickIndex] = 0;
     state.board[dest.charIndex].sticks[dest.stickIndex] = 1;
 
     state.movesLeft--;
-    state.score = Math.max(0, state.score - 100);
+    state.score = Math.max(0, state.score - 50);
     state.selectedStick = null;
 
     updateMessage("");
@@ -302,35 +352,28 @@ document.addEventListener('DOMContentLoaded', () => {
         if (checkSolution()) {
           updateMessage("正解です！おめでとうございます！ 🎉", 'success');
           state.score += 500;
-          scoreEl.textContent = state.score;
           state.isLevelComplete = true;
-          btnNext.disabled = false;
         } else {
-          updateMessage("残念、間違いです。もう一度挑戦！", 'error');
-          state.score = Math.max(0, state.score - 200);
-          scoreEl.textContent = state.score;
+          updateMessage("残念、間違いです。次のレベルに挑戦！", 'error');
         }
+        scoreEl.textContent = state.score;
       }, 300);
     }
   }
 
-  btnReset.onclick = () => startLevel(state.level);
-  btnNext.onclick = () => startLevel(state.level + 1);
+  btnReset.onclick = () => startLevel();
+  btnNext.onclick = () => startLevel();
   btnHint.onclick = () => {
-    hintEl.textContent = `ヒント: ${LEVELS[state.level].hint}`;
+    hintEl.textContent = `💡 ヒント: 元の式は "${state.correctEquation}" です。`;
     hintEl.style.display = 'block';
   };
   btnAnswer.onclick = () => {
-    answerEl.textContent = `答え: ${LEVELS[state.level].answer}`;
+    answerEl.textContent = `✅ 答え: "${state.correctEquation}" になるように動かします。`;
     answerEl.style.display = 'block';
   };
 
-  /**
-   * ==================================
-   * INITIALIZE GAME
-   * ==================================
-   */
-  startLevel(0);
+  // --- INITIALIZE GAME ---
+  startLevel();
 });
 </script>
 </body>
