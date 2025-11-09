@@ -1,7 +1,19 @@
-User
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+
+
+<!-- head内に追加 -->
+<link rel="manifest" href="manifest.json" />
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js');
+  }
+</script>
+
+
+
+
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>フラッシュ暗算アプリ</title>
@@ -19,41 +31,42 @@ User
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center; /* 中央揃えに変更 */
+      justify-content: center; /* 中央揃えを維持 */
       min-height: 100vh;
-      padding: 10px; /* パディングを減らす */
+      padding: 5px; /* パディングをさらに削減 */
       -webkit-tap-highlight-color: transparent;
     }
     h1 {
-      margin: 10px 0; /* マージンを調整 */
-      font-size: 2em;
+      margin: 5px 0; /* マージンとフォントサイズを削減 */
+      font-size: 1.8em;
     }
     .card {
       background: white;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      padding: 20px;
+      border-radius: 10px; /* 角丸を少し削減 */
+      box-shadow: 0 3px 8px rgba(0,0,0,0.1); /* 影を削減 */
+      padding: 12px; /* パディングを削減 */
       width: 100%;
-      max-width: 420px;
-      margin-bottom: 15px; /* マージンを調整 */
+      max-width: 400px; /* 最大幅を調整 */
+      margin-bottom: 8px; /* マージンを削減 */
     }
     /* 設定セクション */
     #settings {
       display: flex;
       flex-direction: column;
-      gap: 15px;
+      gap: 10px; /* ギャップを削減 */
     }
     #settings label {
       font-weight: bold;
       display: block;
-      margin-bottom: 5px;
+      margin-bottom: 3px; /* マージンを削減 */
+      font-size: 0.9em; /* フォントサイズを削減 */
     }
     .grid-select {
       width: 100%;
       padding: 0;
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 8px; /* ギャップを調整 */
+      gap: 6px; /* ギャップを削減 */
     }
     .grid-select.full-width {
       grid-template-columns: repeat(5, 1fr);
@@ -65,18 +78,18 @@ User
       grid-template-columns: repeat(2, 1fr);
     }
     .grid-select button {
-      padding: 10px; /* パディングを調整 */
+      padding: 7px; /* パディングを削減 */
       background: #eee;
       border: none;
-      border-radius: 8px;
+      border-radius: 6px; /* 角丸を削減 */
       cursor: pointer;
       transition: background 0.2s, transform 0.1s;
-      font-size: 0.9em;
+      font-size: 0.8em; /* フォントサイズを削減 */
     }
     .grid-select button.selected {
       background: #86A8E7;
       color: white;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
     }
     .grid-select button:active {
       transform: scale(0.95);
@@ -87,14 +100,14 @@ User
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      min-height: 150px; /* 高さを確保 */
+      min-height: 120px; /* 高さを削減 */
     }
     #flashDisplay {
-      font-size: 5rem; /* サイズを大きく */
+      font-size: 4rem; /* サイズを縮小 */
       font-weight: bold;
-      margin: 20px 0;
+      margin: 10px 0; /* マージンを削減 */
       opacity: 0;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
     }
     /* 答え入力セクション */
     #inputSection {
@@ -106,12 +119,12 @@ User
     #answerDisplay {
       width: 100%;
       max-width: 380px;
-      font-size: 2.2em;
+      font-size: 2em; /* サイズを削減 */
       border: 2px solid #ccc;
       border-radius: 8px;
       text-align: right;
-      padding: 10px;
-      margin-bottom: 15px;
+      padding: 8px; /* パディングを削減 */
+      margin-bottom: 10px; /* マージンを削減 */
       background: #f9f9f9;
       box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
     }
@@ -119,17 +132,17 @@ User
     .keypad {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
+      gap: 8px; /* ギャップを削減 */
       width: 100%;
-      max-width: 400px;
-      margin-bottom: 10px;
+      max-width: 380px;
+      margin-bottom: 8px; /* マージンを削減 */
     }
     .keypad button {
-      padding: 20px 15px; /* パディングを調整 */
-      font-size: 1.8em;
+      padding: 15px 10px; /* パディングを削減 */
+      font-size: 1.5em; /* フォントサイズを削減 */
       background: #e0e0e0;
       border: none;
-      border-radius: 10px;
+      border-radius: 8px; /* 角丸を削減 */
       cursor: pointer;
       transition: background 0.2s, transform 0.1s;
     }
@@ -143,16 +156,16 @@ User
       text-align: center;
     }
     button.action-btn {
-      padding: 12px 25px;
-      font-size: 1.1em;
+      padding: 10px 20px; /* パディングを削減 */
+      font-size: 1em; /* フォントサイズを削減 */
       background: #86A8E7;
       color: white;
       border: none;
-      border-radius: 8px;
+      border-radius: 6px; /* 角丸を削減 */
       cursor: pointer;
       transition: background 0.2s, transform 0.1s;
       font-weight: bold;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      box-shadow: 0 3px 5px rgba(0,0,0,0.1);
     }
     button.action-btn:hover {
       background: #6b89c9;
@@ -208,7 +221,7 @@ User
         <button data-value="5">5秒</button>
       </div>
     </div>
-    <button id="startBtn" class="action-btn" style="margin-top:15px;">スタート</button>
+    <button id="startBtn" class="action-btn" style="margin-top:10px;">スタート</button>
   </div>
   <div id="flashSection" class="card">
     <div id="flashDisplay"></div>
@@ -232,7 +245,7 @@ User
     <button id="checkAnswerBtn" class="action-btn">答え合わせ</button>
   </div>
   <div id="resultSection" class="card">
-    <div id="resultText" style="font-size: 24px; margin-bottom: 10px;"></div>
+    <div id="resultText" style="font-size: 20px; margin-bottom: 8px;"></div>
     <button id="retryBtn" class="action-btn">もう一度チャレンジ</button>
   </div>
   <script>
@@ -261,7 +274,7 @@ User
 
     // ----- グローバル変数 -----
     let selectedMode = 'flash';
-    let selectedDigitCount = 3;      // 初期値：3桁
+    let selectedDigitCount = 1;      // 初期値：3桁
     let selectedQuestionCount = 5;   // 初期値：5問
     let selectedDisplayTime = 2;     // 秒単位 初期値：2秒
     let numbersArray = [];
