@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -10,49 +11,58 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
+      -webkit-tap-highlight-color: transparent; /* モバイルでのタップ時のハイライトを無効化 */
     }
     body {
       background: linear-gradient(135deg, #7F7FD5, #86A8E7, #91EAE4);
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
       color: #333;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center; /* 中央揃えに変更 */
+      justify-content: center;
       min-height: 100vh;
-      padding: 10px; /* パディングを減らす */
-      -webkit-tap-highlight-color: transparent;
+      padding: 20px 15px; /* パディングを調整 */
+      overflow-x: hidden; /* 横スクロール防止 */
     }
     h1 {
-      margin: 10px 0; /* マージンを調整 */
-      font-size: 2em;
+      margin: 0 0 25px; /* 上下のマージンを調整 */
+      font-size: 2.5em; /* フォントサイズを大きく */
+      color: #fff; /* 白に変更 */
+      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
     .card {
       background: white;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      padding: 20px;
+      border-radius: 16px; /* 角をさらに丸く */
+      box-shadow: 0 6px 20px rgba(0,0,0,0.18); /* 影を強調 */
+      padding: 25px;
       width: 100%;
-      max-width: 420px;
-      margin-bottom: 15px; /* マージンを調整 */
+      max-width: 450px; /* 最大幅を少し広げる */
+      margin-bottom: 20px;
+      transition: all 0.3s ease-in-out; /* トランジション追加 */
     }
     /* 設定セクション */
     #settings {
       display: flex;
       flex-direction: column;
-      gap: 15px;
+      gap: 20px; /* ギャップを広げる */
+    }
+    #settings div {
+      margin-bottom: 0; /* 不要なマージンを削除 */
     }
     #settings label {
-      font-weight: bold;
+      font-weight: 600; /* 太字を強調 */
       display: block;
-      margin-bottom: 5px;
+      margin-bottom: 8px; /* マージンを調整 */
+      font-size: 1.1em;
+      color: #555;
     }
     .grid-select {
       width: 100%;
       padding: 0;
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 8px; /* ギャップを調整 */
+      gap: 10px; /* ギャップを調整 */
     }
     .grid-select.full-width {
       grid-template-columns: repeat(5, 1fr);
@@ -64,37 +74,50 @@
       grid-template-columns: repeat(2, 1fr);
     }
     .grid-select button {
-      padding: 10px; /* パディングを調整 */
-      background: #eee;
-      border: none;
-      border-radius: 8px;
+      padding: 12px; /* パディングを調整 */
+      background: #f0f0f0;
+      border: 1px solid #ddd;
+      border-radius: 10px; /* 角を丸く */
       cursor: pointer;
-      transition: background 0.2s, transform 0.1s;
-      font-size: 0.9em;
+      transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+      font-size: 1em;
+      font-weight: 500;
+      color: #444;
     }
     .grid-select button.selected {
       background: #86A8E7;
       color: white;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      border-color: #86A8E7;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.25); /* 影を強調 */
+      font-weight: 700;
+    }
+    .grid-select button:hover:not(.selected) {
+      background: #e5e5e5;
     }
     .grid-select button:active {
-      transform: scale(0.95);
+      transform: scale(0.97);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
+
     /* フラッシュ表示エリア */
     #flashSection {
       display: none;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      min-height: 150px; /* 高さを確保 */
+      min-height: 200px; /* 高さを確保 */
     }
     #flashDisplay {
-      font-size: 5rem; /* サイズを大きく */
-      font-weight: bold;
+      font-size: 6rem; /* サイズを大きく */
+      font-weight: 900; /* 極太に */
+      color: #222;
       margin: 20px 0;
-      opacity: 0;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+      opacity: 0; /* 初期は非表示 */
+      text-shadow: 3px 3px 6px rgba(0,0,0,0.15);
+      min-width: 100%; /* 中央寄せのために */
+      text-align: center;
     }
+    
     /* 答え入力セクション */
     #inputSection {
       display: none;
@@ -105,63 +128,97 @@
     #answerDisplay {
       width: 100%;
       max-width: 380px;
-      font-size: 2.2em;
+      height: 60px; /* 高さ調整 */
+      font-size: 2.5em; /* フォントサイズを大きく */
       border: 2px solid #ccc;
-      border-radius: 8px;
+      border-radius: 10px;
       text-align: right;
-      padding: 10px;
-      margin-bottom: 15px;
-      background: #f9f9f9;
-      box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+      padding: 0 15px; /* 左右パディング */
+      margin-bottom: 20px;
+      background: #fdfdfd;
+      box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+      color: #333;
+      font-weight: 600;
+      transition: border-color 0.2s;
     }
+    #answerDisplay:focus {
+      outline: none;
+      border-color: #86A8E7;
+    }
+
     /* キーパッド */
     .keypad {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
+      gap: 12px; /* ギャップを広げる */
       width: 100%;
       max-width: 400px;
-      margin-bottom: 10px;
+      margin-bottom: 20px;
     }
     .keypad button {
-      padding: 20px 15px; /* パディングを調整 */
-      font-size: 1.8em;
-      background: #e0e0e0;
+      padding: 22px 15px; /* パディングを調整 */
+      font-size: 2em; /* フォントサイズを大きく */
+      background: #f0f0f0;
       border: none;
-      border-radius: 10px;
+      border-radius: 12px; /* 角を丸く */
       cursor: pointer;
-      transition: background 0.2s, transform 0.1s;
+      transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+      color: #444;
+      font-weight: 600;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
     .keypad button:active {
-      background: #ccc;
-      transform: scale(0.97);
+      background: #ddd;
+      transform: scale(0.96);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
     }
+    #clearBtn, #backBtn {
+      background: #e0e0e0; /* Cと←ボタンの色を少し変える */
+      font-weight: 700;
+    }
+    #clearBtn:active, #backBtn:active {
+      background: #ccc;
+    }
+
     /* 結果表示セクション */
     #resultSection {
       display: none;
       text-align: center;
+      padding: 30px 20px;
     }
+    #resultText {
+      font-size: 1.8em; /* フォントサイズを大きく */
+      margin-bottom: 25px;
+      font-weight: 700;
+      line-height: 1.5;
+      color: #333;
+    }
+
     button.action-btn {
-      padding: 12px 25px;
-      font-size: 1.1em;
-      background: #86A8E7;
+      padding: 15px 30px; /* パディングを調整 */
+      font-size: 1.2em; /* フォントサイズを大きく */
+      background: #6090f0; /* より鮮やかな青に変更 */
       color: white;
       border: none;
-      border-radius: 8px;
+      border-radius: 10px;
       cursor: pointer;
-      transition: background 0.2s, transform 0.1s;
+      transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
       font-weight: bold;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+      letter-spacing: 0.5px;
     }
     button.action-btn:hover {
-      background: #6b89c9;
+      background: #4a7fd6;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.25);
     }
     button.action-btn:active {
       transform: scale(0.98);
+      background: #3a6dc2;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.15);
     }
   </style>
 </head>
-<body ondblclick="return false;">
+<body>
   <h1>フラッシュ暗算</h1>
   <div id="settings" class="card">
     <div>
@@ -174,9 +231,9 @@
     <div>
       <label>桁数の選択</label>
       <div class="grid-select full-width" id="digitGrid">
-        <button data-value="1">1桁</button>
+        <button data-value="1" class="selected">1桁</button> <!-- 初期値を1桁に設定 -->
         <button data-value="2">2桁</button>
-        <button data-value="3" class="selected">3桁</button>
+        <button data-value="3">3桁</button>
         <button data-value="4">4桁</button>
         <button data-value="5">5桁</button>
       </div>
@@ -207,7 +264,7 @@
         <button data-value="5">5秒</button>
       </div>
     </div>
-    <button id="startBtn" class="action-btn" style="margin-top:15px;">スタート</button>
+    <button id="startBtn" class="action-btn" style="margin-top:20px;">スタート</button>
   </div>
 
   <div id="flashSection" class="card">
@@ -234,7 +291,7 @@
   </div>
 
   <div id="resultSection" class="card">
-    <div id="resultText" style="font-size: 24px; margin-bottom: 10px;"></div>
+    <div id="resultText"></div>
     <button id="retryBtn" class="action-btn">もう一度チャレンジ</button>
   </div>
 
@@ -246,6 +303,7 @@
     
     // 桁数に合わせたランダム数字を生成（先頭が0にならない）
     function generateRandomNumber(digits) {
+      if (digits <= 0) return 0; // 0桁以下の場合は0を返す
       const min = Math.pow(10, digits - 1);
       const max = Math.pow(10, digits) - 1;
       return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -256,75 +314,69 @@
       if ('speechSynthesis' in window) {
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'ja-JP';
+        utterance.rate = 1.0; // 読み上げ速度 (0.1 ~ 10)
+        utterance.pitch = 1.0; // 読み上げのピッチ (0 ~ 2)
+        window.speechSynthesis.cancel(); // 現在読み上げ中のものをキャンセル
         window.speechSynthesis.speak(utterance);
       } else {
-        console.warn("Speech Synthesis not supported.");
+        console.warn("Speech Synthesis not supported in this browser.");
       }
     }
 
     // ----- グローバル変数 -----
     let selectedMode = 'flash';
-    let selectedDigitCount = 3;      // 初期値：3桁
+    let selectedDigitCount = 1;      // 初期値：1桁
     let selectedQuestionCount = 5;   // 初期値：5問
     let selectedDisplayTime = 2;     // 秒単位 初期値：2秒
     let numbersArray = [];
     let answerSum = 0;
 
-    // ----- 設定セクションの操作 -----
-    // モードボタンの設定
-    const modeGrid = document.getElementById("modeGrid");
-    modeGrid.querySelectorAll("button").forEach(btn => {
-      btn.addEventListener("click", () => {
-        modeGrid.querySelectorAll("button").forEach(el => el.classList.remove("selected"));
-        btn.classList.add("selected");
-        selectedMode = btn.getAttribute("data-value");
-        const timeLabel = document.getElementById("timeLabel");
-        if (selectedMode === 'flash') {
-          timeLabel.textContent = "表示時間の選択 (秒)";
-        } else {
-          timeLabel.textContent = "読み上げ時間の選択 (秒)";
-        }
-      });
-    });
+    // ----- UI要素の取得 -----
+    const settingsSection = document.getElementById("settings");
+    const flashSection = document.getElementById("flashSection");
+    const inputSection = document.getElementById("inputSection");
+    const resultSection = document.getElementById("resultSection");
+    const flashDisplay = document.getElementById("flashDisplay");
+    const answerDisplay = document.getElementById("answerDisplay");
+    const timeLabel = document.getElementById("timeLabel");
 
-    // 桁数ボタンの設定
-    const digitGrid = document.getElementById("digitGrid");
-    digitGrid.querySelectorAll("button").forEach(btn => {
-      btn.addEventListener("click", () => {
-        digitGrid.querySelectorAll("button").forEach(el => el.classList.remove("selected"));
-        btn.classList.add("selected");
-        selectedDigitCount = parseInt(btn.getAttribute("data-value"));
+    // ----- ボタン選択の共通ロジック -----
+    function setupGridButtons(gridId, variableName, callback = null) {
+      const grid = document.getElementById(gridId);
+      grid.querySelectorAll("button").forEach(btn => {
+        btn.addEventListener("click", () => {
+          grid.querySelectorAll("button").forEach(el => el.classList.remove("selected"));
+          btn.classList.add("selected");
+          // グローバル変数に値をセット
+          if (variableName === 'selectedDigitCount' || variableName === 'selectedQuestionCount') {
+            window[variableName] = parseInt(btn.getAttribute("data-value"));
+          } else if (variableName === 'selectedDisplayTime') {
+            window[variableName] = parseFloat(btn.getAttribute("data-value"));
+          } else {
+            window[variableName] = btn.getAttribute("data-value");
+          }
+          if (callback) callback(btn.getAttribute("data-value"));
+        });
       });
-    });
+    }
 
-    // 出題数ボタンの設定
-    const questionGrid = document.getElementById("questionGrid");
-    questionGrid.querySelectorAll("button").forEach(btn => {
-      btn.addEventListener("click", () => {
-        questionGrid.querySelectorAll("button").forEach(el => el.classList.remove("selected"));
-        btn.classList.add("selected");
-        selectedQuestionCount = parseInt(btn.getAttribute("data-value"));
-      });
+    // ----- 設定セクションの初期化 -----
+    setupGridButtons("modeGrid", "selectedMode", (mode) => {
+      timeLabel.textContent = (mode === 'flash') ? "表示時間の選択 (秒)" : "読み上げ時間の選択 (秒)";
     });
+    setupGridButtons("digitGrid", "selectedDigitCount");
+    setupGridButtons("questionGrid", "selectedQuestionCount");
+    setupGridButtons("timeGrid", "selectedDisplayTime");
 
-    // 表示時間ボタンの設定
-    const timeGrid = document.getElementById("timeGrid");
-    timeGrid.querySelectorAll("button").forEach(btn => {
-      btn.addEventListener("click", () => {
-        timeGrid.querySelectorAll("button").forEach(el => el.classList.remove("selected"));
-        btn.classList.add("selected");
-        selectedDisplayTime = parseFloat(btn.getAttribute("data-value"));
-      });
-    });
-
+    // スタートボタン
     document.getElementById("startBtn").addEventListener("click", startGame);
 
     // ----- ゲーム開始 -----
     async function startGame() {
-      // 設定セクションを非表示にし、該当セクションをリセット
-      document.getElementById("settings").style.display = "none";
-      document.getElementById("resultSection").style.display = "none";
-      document.getElementById("inputSection").style.display = "none";
+      // 全てのセクションを非表示にし、ゲームに必要なセクションを表示
+      settingsSection.style.display = "none";
+      resultSection.style.display = "none";
+      inputSection.style.display = "none";
       
       // 問題の生成
       numbersArray = [];
@@ -336,64 +388,65 @@
       }
       
       // モードに応じて処理を分岐
+      flashSection.style.display = "flex"; // フラッシュセクションを事前に表示
       if (selectedMode === 'flash') {
-        document.getElementById("flashSection").style.display = "flex";
         await flashNumbers();
       } else { // 'audio' mode
-        document.getElementById("flashSection").style.display = "flex";
         await readNumbers();
       }
       
       // 終了後、答え入力セクションを表示
-      document.getElementById("flashSection").style.display = "none";
-      document.getElementById("inputSection").style.display = "flex";
-      // 答え表示フィールドをクリア
-      document.getElementById("answerDisplay").value = "";
+      flashSection.style.display = "none";
+      inputSection.style.display = "flex";
+      answerDisplay.value = ""; // 答え表示フィールドをクリア
     }
 
     // ----- 数字のフラッシュ表示 -----
     async function flashNumbers() {
-      const display = document.getElementById("flashDisplay");
       const totalTimeMs = selectedDisplayTime * 1000;
-      let fadeDuration = 300;
-      if (totalTimeMs < 600) {
-        fadeDuration = totalTimeMs / 2;
+      let fadeDuration = 200; // フェードイン・アウトにかける時間
+      let visibleTime = totalTimeMs - 2 * fadeDuration;
+      if (visibleTime < 0) { // 極端に短い表示時間の場合
+          fadeDuration = totalTimeMs / 3;
+          visibleTime = totalTimeMs / 3;
       }
-      const visibleTime = totalTimeMs - 2 * fadeDuration;
-      
+
       for (let num of numbersArray) {
-        display.textContent = num;
+        flashDisplay.textContent = num;
+        
         // フェードイン
-        display.style.transition = `opacity ${fadeDuration}ms ease-in`;
-        display.style.opacity = 0;
-        void display.offsetWidth;
-        display.style.opacity = 1;
-        await sleep(fadeDuration + visibleTime);
+        flashDisplay.style.transition = `opacity ${fadeDuration}ms ease-out`;
+        flashDisplay.style.opacity = 0; // 一度透明にしてから
+        void flashDisplay.offsetWidth; // リフローを強制
+        flashDisplay.style.opacity = 1;
+        
+        await sleep(visibleTime);
+        
         // フェードアウト
-        display.style.transition = `opacity ${fadeDuration}ms ease-out`;
-        display.style.opacity = 0;
-        await sleep(fadeDuration);
+        flashDisplay.style.transition = `opacity ${fadeDuration}ms ease-in`;
+        flashDisplay.style.opacity = 0;
+        await sleep(fadeDuration + 50); // フェードアウト完了を待つ
       }
     }
 
     // ----- 数字の読み上げ -----
     async function readNumbers() {
-      const display = document.getElementById("flashDisplay");
-      display.style.opacity = 1;
-      display.textContent = "スタート！";
+      flashDisplay.textContent = "スタート！";
+      flashDisplay.style.opacity = 1; // 常に表示
       await sleep(1500);
-      display.textContent = "";
+      flashDisplay.textContent = "";
       
       const totalTimeMs = selectedDisplayTime * 1000;
       
       for (let num of numbersArray) {
+        flashDisplay.textContent = num; // 数字も表示する
         speakJapanese(num.toString());
         await sleep(totalTimeMs);
+        flashDisplay.textContent = "";
       }
     }
 
     // ----- キーパッド操作 -----
-    const answerDisplay = document.getElementById("answerDisplay");
     document.querySelectorAll(".keypad .key").forEach(btn => {
       btn.addEventListener("click", () => {
         const value = btn.textContent;
@@ -402,7 +455,10 @@
         } else if (value === "←") {
           answerDisplay.value = answerDisplay.value.slice(0, -1);
         } else {
-          answerDisplay.value += value;
+          // 数字入力は最大で10桁程度に制限
+          if (answerDisplay.value.length < 10) { 
+            answerDisplay.value += value;
+          }
         }
       });
     });
@@ -410,24 +466,23 @@
     // ----- 答え合わせ -----
     document.getElementById("checkAnswerBtn").addEventListener("click", () => {
       const userAnswer = parseInt(answerDisplay.value);
-      const resultSection = document.getElementById("resultSection");
-      const resultText = document.getElementById("resultText");
       
-      document.getElementById("inputSection").style.display = "none";
+      inputSection.style.display = "none";
       resultSection.style.display = "block";
       
+      const resultText = document.getElementById("resultText");
       if (userAnswer === answerSum) {
-        resultText.textContent = "正解！お見事！🎉";
+        resultText.innerHTML = "<h2>正解！お見事！🎉</h2><p>合計は " + answerSum + " でした。</p>";
       } else {
-        resultText.textContent = `不正解... 正しい合計は ${answerSum} です。`;
+        resultText.innerHTML = `<h2>不正解...😭</h2><p>あなたの答え: ${userAnswer || '未入力'}<br>正しい合計: ${answerSum}</p>`;
       }
     });
 
     // ----- 再チャレンジ -----
     document.getElementById("retryBtn").addEventListener("click", () => {
       // 設定画面を再表示して初期状態にリセット
-      document.getElementById("settings").style.display = "block";
-      document.getElementById("resultSection").style.display = "none";
+      settingsSection.style.display = "block";
+      resultSection.style.display = "none";
     });
   </script>
 </body>
