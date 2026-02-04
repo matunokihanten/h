@@ -9,7 +9,7 @@
   </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>フラッシュ暗算 Pro + そろばんイメージ</title>
+  <title>フラッシュ暗算 Pro + 視認性改善そろばん</title>
   <style>
     /* 既存スタイル維持 */
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -49,46 +49,64 @@
     .option-row { display: flex; justify-content: space-between; align-items: center; background: #f0f4ff; padding: 8px; border-radius: 6px; }
     .stats-area { font-size: 0.8em; color: #555; border-top: 1px solid #eee; pt: 5px; margin-top: 5px; }
 
-    #flashSection { display: none; flex-direction: column; align-items: center; justify-content: center; min-height: 200px; }
+    #flashSection { display: none; flex-direction: column; align-items: center; justify-content: center; min-height: 220px; }
     #flashDisplay { font-size: 4rem; font-weight: bold; margin: 5px 0; opacity: 0; }
     
-    /* そろばんビジュアルスタイル */
+    /* そろばんビジュアルスタイル（視認性改善版） */
     #abacusContainer {
       display: flex;
-      flex-direction: row-reverse; /* 右から1の位、10の位... */
+      flex-direction: row-reverse;
       justify-content: center;
-      gap: 8px;
+      gap: 12px;
       margin-top: 10px;
-      padding: 12px;
+      padding: 15px;
       background: #fdf5e6;
       border: 4px solid #8b4513;
       border-radius: 10px;
-      min-height: 120px;
+      min-height: 140px;
     }
     .abacus-column {
       display: flex;
       flex-direction: column;
       align-items: center;
-      width: 22px;
+      width: 24px;
+      height: 110px;
       position: relative;
     }
-    .abacus-bead {
-      width: 20px;
-      height: 12px;
-      background: #cd853f;
-      border: 1px solid #8b4513;
-      border-radius: 4px;
-      margin: 1px 0;
-      transition: transform 0.2s ease-in-out, background 0.2s;
+    /* 軸（縦棒）の表現 */
+    .abacus-column::before {
+      content: "";
+      position: absolute;
+      width: 4px;
+      height: 100%;
+      background: #deb887;
+      z-index: 0;
     }
-    .abacus-bead.active { background: #a0522d; box-shadow: 0 0 4px rgba(0,0,0,0.4); }
+    .abacus-bead {
+      width: 22px;
+      height: 14px;
+      background: #d2b48c; /* 少し明るい茶色 */
+      border: 1px solid #8b4513;
+      border-radius: 6px;
+      z-index: 1;
+      transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .abacus-bead.active { 
+      background: #8b4513; 
+      box-shadow: 0 0 4px rgba(0,0,0,0.4); 
+    }
     .abacus-divider {
-      width: 28px;
-      height: 6px;
-      background: #8b4513;
+      width: 32px;
+      height: 8px;
+      background: #5d2e0a;
       margin: 4px 0;
       z-index: 2;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.3);
     }
+    /* 五珠のエリア */
+    .upper-area { height: 25px; display: flex; align-items: flex-start; width: 100%; justify-content: center; }
+    /* 一珠のエリア */
+    .lower-area { height: 75px; display: flex; flex-direction: column; width: 100%; align-items: center; justify-content: flex-end; }
 
     #inputSection { display: none; flex-direction: column; align-items: center; }
     #answerDisplay {
@@ -207,41 +225,47 @@
       }
     }
 
-    // そろばん描画 (numは累計値)
+    // そろばん描画 (視認性改善ロジック)
     function renderAbacus(num) {
       const container = document.getElementById("abacusContainer");
       container.innerHTML = "";
-      
-      // 最大桁数を計算 (出題桁数 + 1〜2桁余裕を持たせる)
       const maxDigits = selectedDigitCount + 2;
       const strNum = num.toString().padStart(maxDigits, '0');
       
-      // 文字列を1文字ずつ（各桁）処理
-      [...strNum].reverse().forEach((digit, index) => {
+      [...strNum].reverse().forEach((digit) => {
         const val = parseInt(digit);
         const column = document.createElement("div");
         column.className = "abacus-column";
         
-        // 五珠
+        // 五珠エリア
+        const upperArea = document.createElement("div");
+        upperArea.className = "upper-area";
         const fiveBead = document.createElement("div");
         fiveBead.className = "abacus-bead" + (val >= 5 ? " active" : "");
-        fiveBead.style.transform = val >= 5 ? "translateY(12px)" : "translateY(0px)";
-        column.appendChild(fiveBead);
+        // val >= 5 のとき梁に接する（下へ移動）
+        fiveBead.style.transform = val >= 5 ? "translateY(11px)" : "translateY(0px)";
+        upperArea.appendChild(fiveBead);
+        column.appendChild(upperArea);
         
         // 梁
         const divider = document.createElement("div");
         divider.className = "abacus-divider";
         column.appendChild(divider);
         
-        // 一珠 (4つ)
+        // 一珠エリア
+        const lowerArea = document.createElement("div");
+        lowerArea.className = "lower-area";
         const lowerVal = val % 5;
         for (let i = 1; i <= 4; i++) {
           const bead = document.createElement("div");
           bead.className = "abacus-bead" + (i <= lowerVal ? " active" : "");
-          // 選択されている珠は上に詰める
-          bead.style.transform = i <= lowerVal ? "translateY(-12px)" : "translateY(0px)";
-          column.appendChild(bead);
+          // lowerVal の数だけ梁の方へ引き上げ、残りは下に置く
+          // 下端からの配置を考慮した移動
+          let offset = (i <= lowerVal) ? -( (4 - lowerVal) * 2 + 15 ) : 0;
+          bead.style.transform = `translateY(${offset}px)`;
+          lowerArea.appendChild(bead);
         }
+        column.appendChild(lowerArea);
         container.appendChild(column);
       });
     }
@@ -356,7 +380,6 @@
       }
     }
 
-    // キーパッド・答え合わせ・再チャレンジ・終了ロジック（変更なし）
     document.querySelectorAll(".keypad .key").forEach(btn => {
       btn.onclick = () => {
         const display = document.getElementById("answerDisplay");
