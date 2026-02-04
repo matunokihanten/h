@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Palace Master | Ultimate Brain Training</title>
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --text-main: #1f2937;
+            --text-sub: #6b7280;
+            --accent: #ef4444;
+            --success: #10b981;
+        }
+        
+        /* Dark Mode Support */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #111827;
+                --card-bg: #1f2937;
+                --text-main: #f3f4f6;
+                --text-sub: #9ca3af;
+            }
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.3s;
+        }
+
+        .app-container {
+            width: 90%;
+            max-width: 600px;
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        h1, h2, h3 { margin: 0 0 1rem 0; text-align: center; }
+        h1 { color: var(--primary); font-size: 1.8rem; }
+
+        /* Phases */
+        .phase { display: none; animation: fadeIn 0.5s ease; }
+        .phase.active { display: block; }
+
+        /* Controls & Inputs */
+        .settings-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        label { display: block; font-size: 0.9rem; margin-bottom: 5px; color: var(--text-sub); }
+        select, input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            background: var(--bg-color);
+            color: var(--text-main);
+            box-sizing: border-box;
+        }
+
+        /* Buttons */
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            background: var(--primary);
+            color: white;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.1s, background 0.2s;
+            margin-top: 10px;
+        }
+        .btn:active { transform: scale(0.98); }
+        .btn:hover { background: var(--primary-hover); }
+        .btn.secondary { background: var(--text-sub); }
+        .btn.danger { background: var(--accent); }
+
+        /* Memory Card */
+        .memory-card {
+            text-align: center;
+            padding: 3rem 1rem;
+            border: 2px dashed var(--primary);
+            border-radius: 15px;
+            background: rgba(99, 102, 241, 0.05);
+            margin: 1.5rem 0;
+        }
+        .word-main { font-size: 2.5rem; font-weight: 800; display: block; margin-bottom: 0.5rem; }
+        .word-sub { font-size: 1.2rem; color: var(--accent); display: block; }
+        .location-hint { 
+            background: var(--primary); color: white; 
+            padding: 5px 15px; border-radius: 20px; 
+            font-size: 0.8rem; display: inline-block; margin-bottom: 10px;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            width: 100%;
+            height: 6px;
+            background: #e5e7eb;
+            border-radius: 3px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            transition: width 0.3s linear;
+        }
+
+        /* Distraction Task */
+        .math-problem { font-size: 3rem; text-align: center; margin: 2rem 0; font-weight: bold; }
+        .math-input { text-align: center; font-size: 1.5rem; }
+
+        /* Recall List */
+        .recall-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid var(--text-sub);
+        }
+        .recall-blur { filter: blur(8px); transition: filter 0.3s; cursor: pointer; }
+        .recall-blur:hover, .recall-blur.revealed { filter: blur(0); }
+        
+        /* History Chart (Simple CSS Bar Chart) */
+        .history-bars { display: flex; align-items: flex-end; gap: 5px; height: 100px; margin-top: 20px; border-bottom: 1px solid var(--text-sub); padding-bottom: 5px; }
+        .bar { flex: 1; background: var(--primary); opacity: 0.7; border-radius: 3px 3px 0 0; position: relative; }
+        .bar:hover { opacity: 1; }
+        .bar span { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: 0.7rem; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div id="phase-settings" class="phase active">
+        <h1>🧠 Palace Master</h1>
+        <p style="text-align:center; color:var(--text-sub); margin-bottom:20px;">VAP法・場所法・干渉タスク統合型</p>
+        
+        <div class="settings-grid">
+            <div>
+                <label>単語数</label>
+                <select id="opt-count">
+                    <option value="5">5個 (初級)</option>
+                    <option value="10" selected>10個 (中級)</option>
+                    <option value="20">20個 (上級)</option>
+                </select>
+            </div>
+            <div>
+                <label>表示時間(秒/単語)</label>
+                <input type="number" id="opt-time" value="5" min="2" max="60">
+            </div>
+            <div>
+                <label>想起モード</label>
+                <select id="opt-recall">
+                    <option value="forward">順再生 (1→10)</option>
+                    <option value="backward">逆再生 (10→1)</option>
+                </select>
+            </div>
+            <div>
+                <label>干渉タスク</label>
+                <select id="opt-distract">
+                    <option value="none">なし</option>
+                    <option value="math">計算問題 (15秒)</option>
+                </select>
+            </div>
+        </div>
+
+        <button class="btn" onclick="app.startTraining()">トレーニング開始</button>
+        
+        <div style="margin-top:30px;">
+            <h3>過去のスコア</h3>
+            <div id="history-chart" class="history-bars"></div>
+        </div>
+    </div>
+
+    <div id="phase-memorize" class="phase">
+        <div style="display:flex; justify-content:space-between;">
+            <span class="location-hint" id="location-indicator">場所: 1</span>
+            <span id="timer-display">残り: 5s</span>
+        </div>
+        
+        <div class="memory-card">
+            <span class="word-sub" id="word-adj">燃え盛る</span>
+            <span class="word-main" id="word-noun">ピアノ</span>
+            <p style="font-size:0.9rem; color:var(--text-sub); margin-top:10px;">
+                <span id="word-action">...が爆発している</span> 様子を<br>
+                <strong id="current-place-name">玄関</strong> に置いてください
+            </p>
+        </div>
+
+        <div class="progress-container">
+            <div class="progress-bar" id="mem-progress"></div>
+        </div>
+        
+        <button class="btn secondary" onclick="app.skipWord()">次へ (手動)</button>
+    </div>
+
+    <div id="phase-distraction" class="phase">
+        <h2>⚠️ 脳への干渉発生 ⚠️</h2>
+        <p>短期記憶を消去します。計算してください。</p>
+        <div class="math-problem" id="math-problem">12 + 34 = ?</div>
+        <input type="number" id="math-answer" class="math-input" placeholder="答え">
+        <button class="btn" onclick="app.checkMath()">回答</button>
+        <div class="progress-container">
+            <div class="progress-bar" id="distract-progress" style="background:var(--accent)"></div>
+        </div>
+    </div>
+
+    <div id="phase-recall" class="phase">
+        <h2 id="recall-title">想起タイム</h2>
+        <p id="recall-instruction">タップして正解を確認し、合っていたらチェックを入れてください。</p>
+        
+        <div id="recall-list" style="margin-bottom: 20px; max-height: 300px; overflow-y: auto;">
+            </div>
+
+        <button class="btn success" onclick="app.finishSession()">採点して終了</button>
+    </div>
+
+    <div id="phase-result" class="phase">
+        <h1>結果発表</h1>
+        <div style="font-size: 4rem; text-align: center; font-weight: bold; color: var(--primary);" id="score-display">
+            80%
+        </div>
+        <p style="text-align: center;">脳の定着度</p>
+        
+        <button class="btn" onclick="app.reset()">ホームに戻る</button>
+    </div>
+</div>
+
+<script>
+/**
+ * DATA & CONFIG
+ */
+const DATA = {
+    nouns: ["ライオン", "洗濯機", "モナリザ", "宇宙船", "ラーメン", "サボテン", "ピラミッド", "ドラキュラ", "信号機", "ダイヤモンド", "カブトムシ", "忍者", "バイオリン", "お化け屋敷", "ソフトクリーム", "仏像", "マイク", "手錠", "骸骨", "香水", "戦車", "虹", "隕石", "ゴリラ"],
+    adjectives: ["ドロドロの", "燃えている", "凍った", "巨大な", "極小の", "透明な", "虹色に光る", "臭い", "叫んでいる", "踊っている", "ベトベトな", "爆発する", "金色の"],
+    actions: ["が襲ってくる", "が溶けている", "が回転している", "が歌っている", "が破裂した", "が空を飛ぶ", "が分裂している", "が激突する"]
+};
+
+/**
+ * APP LOGIC
+ */
+const app = {
+    state: {
+        words: [],
+        currentIndex: 0,
+        settings: {},
+        score: 0,
+        timer: null
+    },
+
+    // 初期化
+    init: () => {
+        app.renderHistory();
+    },
+
+    // トレーニング開始
+    startTraining: () => {
+        // 設定取得
+        app.state.settings = {
+            count: parseInt(document.getElementById('opt-count').value),
+            time: parseInt(document.getElementById('opt-time').value),
+            recall: document.getElementById('opt-recall').value,
+            distract: document.getElementById('opt-distract').value
+        };
+
+        // 単語生成 (VAPルール適応)
+        app.state.words = [];
+        for(let i=0; i<app.state.settings.count; i++) {
+            app.state.words.push({
+                noun: DATA.nouns[Math.floor(Math.random() * DATA.nouns.length)],
+                adj: DATA.adjectives[Math.floor(Math.random() * DATA.adjectives.length)],
+                action: DATA.actions[Math.floor(Math.random() * DATA.actions.length)],
+                placeId: i + 1 // 仮想的な場所番号
+            });
+        }
+
+        app.state.currentIndex = 0;
+        app.switchPhase('phase-memorize');
+        app.runMemorySequence();
+    },
+
+    // 記憶フェーズの進行
+    runMemorySequence: () => {
+        if (app.state.currentIndex >= app.state.words.length) {
+            // 記憶終了 -> 次のフェーズへ
+            if (app.state.settings.distract === 'math') {
+                app.startDistraction();
+            } else {
+                app.startRecall();
+            }
+            return;
+        }
+
+        const current = app.state.words[app.state.currentIndex];
+        
+        // DOM更新
+        document.getElementById('word-noun').innerText = current.noun;
+        document.getElementById('word-adj').innerText = current.adj;
+        document.getElementById('word-action').innerText = current.action;
+        document.getElementById('location-indicator').innerText = `場所: ${current.placeId}`;
+        
+        // 場所名のヒント（ユーザーの自宅を想定した汎用的なヒント）
+        const genericPlaces = ["玄関", "靴箱", "廊下", "トイレ", "洗面所", "風呂", "キッチン", "冷蔵庫", "リビング", "ソファ", "テレビ", "窓", "ベランダ", "寝室", "ベッド"];
+        const placeHint = genericPlaces[app.state.currentIndex % genericPlaces.length];
+        document.getElementById('current-place-name').innerText = `${current.placeId}番目のスポット（例: ${placeHint}）`;
+
+        // タイマーリセット & 開始
+        clearInterval(app.state.timer);
+        let timeLeft = app.state.settings.time;
+        const progressBar = document.getElementById('mem-progress');
+        document.getElementById('timer-display').innerText = `残り: ${timeLeft}s`;
+        
+        // プログレスバーアニメーションリセット
+        progressBar.style.transition = 'none';
+        progressBar.style.width = '100%';
+        setTimeout(() => {
+            progressBar.style.transition = `width ${timeLeft}s linear`;
+            progressBar.style.width = '0%';
+        }, 50);
+
+        app.state.timer = setInterval(() => {
+            timeLeft--;
+            document.getElementById('timer-display').innerText = `残り: ${timeLeft}s`;
+            if (timeLeft <= 0) {
+                app.skipWord();
+            }
+        }, 1000);
+    },
+
+    skipWord: () => {
+        clearInterval(app.state.timer);
+        app.state.currentIndex++;
+        app.runMemorySequence();
+    },
+
+    // 干渉タスク (Distraction)
+    startDistraction: () => {
+        app.switchPhase('phase-distraction');
+        let duration = 15;
+        const bar = document.getElementById('distract-progress');
+        bar.style.width = '100%';
+        
+        // 計算問題生成
+        const n1 = Math.floor(Math.random() * 50) + 10;
+        const n2 = Math.floor(Math.random() * 40) + 10;
+        document.getElementById('math-problem').innerText = `${n1} + ${n2} = ?`;
+        document.getElementById('math-answer').value = '';
+        document.getElementById('math-answer').focus();
+        
+        // タイマー
+        setTimeout(() => { bar.style.transition = `width ${duration}s linear`; bar.style.width = '0%'; }, 50);
+        
+        let dTimer = setInterval(() => {
+            duration--;
+            if (duration <= 0) {
+                clearInterval(dTimer);
+                app.startRecall();
+            }
+        }, 1000);
+
+        // Enterキー対応
+        document.getElementById('math-answer').onkeydown = (e) => {
+            if(e.key === 'Enter') app.checkMath();
+        };
+        
+        // Math check function attached to scope
+        app.checkMath = () => {
+            // 正誤に関わらず入力させることが目的なので、入力したら次へ（または新しい問題）
+            // ここではシンプルにリコールへ飛ばす、または問題を更新する
+            // 今回は「脳のリセット」が目的なので、1問解いたら即Recallへ行く仕様にします
+            clearInterval(dTimer);
+            app.startRecall();
+        };
+    },
+
+    // 想起フェーズ
+    startRecall: () => {
+        app.switchPhase('phase-recall');
+        const listContainer = document.getElementById('recall-list');
+        listContainer.innerHTML = '';
+        
+        let displayWords = [...app.state.words];
+        let title = "順再生モード: 1番目から思い出せ";
+        
+        if (app.state.settings.recall === 'backward') {
+            displayWords.reverse();
+            title = "逆再生モード: 最後の場所から戻れ";
+        }
+
+        document.getElementById('recall-title').innerText = title;
+
+        displayWords.forEach((word, index) => {
+            const div = document.createElement('div');
+            div.className = 'recall-item';
+            div.innerHTML = `
+                <div>
+                    <strong style="color:var(--primary)">場所 ${word.placeId}</strong>
+                    <div class="recall-blur" onclick="this.classList.add('revealed')">
+                        ${word.adj} ${word.noun} <br>
+                        <small style="color:#666">(${word.action})</small>
+                    </div>
+                </div>
+                <input type="checkbox" style="transform:scale(1.5);" onchange="app.updateTempScore()">
+            `;
+            listContainer.appendChild(div);
+        });
+    },
+
+    finishSession: () => {
+        // チェックボックスを集計
+        const checks = document.querySelectorAll('#recall-list input[type="checkbox"]:checked');
+        const score = Math.round((checks.length / app.state.words.length) * 100);
+        
+        document.getElementById('score-display').innerText = `${score}%`;
+        
+        // 履歴保存
+        app.saveHistory(score);
+        
+        app.switchPhase('phase-result');
+    },
+
+    // ユーティリティ
+    switchPhase: (id) => {
+        document.querySelectorAll('.phase').forEach(el => el.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    },
+    
+    reset: () => {
+        app.renderHistory();
+        app.switchPhase('phase-settings');
+    },
+
+    saveHistory: (score) => {
+        let history = JSON.parse(localStorage.getItem('palaceHistory') || '[]');
+        history.push({ date: new Date().toISOString(), score: score });
+        if(history.length > 10) history.shift(); // 最新10件のみ
+        localStorage.setItem('palaceHistory', JSON.stringify(history));
+    },
+
+    renderHistory: () => {
+        const history = JSON.parse(localStorage.getItem('palaceHistory') || '[]');
+        const container = document.getElementById('history-chart');
+        container.innerHTML = '';
+        
+        if (history.length === 0) {
+            container.innerHTML = '<small>履歴なし</small>';
+            return;
+        }
+
+        history.forEach(h => {
+            const bar = document.createElement('div');
+            bar.className = 'bar';
+            bar.style.height = `${h.score}%`;
+            // 色分け
+            if(h.score >= 80) bar.style.backgroundColor = 'var(--success)';
+            else if(h.score < 50) bar.style.backgroundColor = 'var(--accent)';
+            
+            bar.innerHTML = `<span>${h.score}</span>`;
+            container.appendChild(bar);
+        });
+    }
+};
+
+// Start
+app.init();
+</script>
+
+</body>
+</html>
