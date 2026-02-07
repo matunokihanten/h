@@ -9,7 +9,7 @@
   </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>フラッシュ暗算 Pro + 残像トレ</title>
+  <title>フラッシュ暗算 Pro + 10桁対応・残像トレ</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -31,14 +31,16 @@
       box-shadow: 0 3px 8px rgba(0,0,0,0.1);
       padding: 12px;
       width: 100%;
-      max-width: 400px;
+      max-width: 420px;
       margin-bottom: 8px;
     }
     #settings { display: flex; flex-direction: column; gap: 10px; }
     #settings label { font-weight: bold; display: block; margin-bottom: 3px; font-size: 0.9em; }
     .grid-select { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-    .grid-select.full-width { grid-template-columns: repeat(5, 1fr); }
-    .grid-select.double-grid { grid-template-columns: repeat(2, 1fr); }
+    
+    /* 桁数ボタンを5列にして10個並べる */
+    .digit-grid { grid-template-columns: repeat(5, 1fr) !important; }
+    
     .grid-select button {
       padding: 7px; background: #eee; border: none; border-radius: 6px;
       cursor: pointer; transition: background 0.2s; font-size: 0.8em;
@@ -49,72 +51,74 @@
     .stats-area { font-size: 0.8em; color: #555; border-top: 1px solid #eee; pt: 5px; margin-top: 5px; }
 
     #flashSection { display: none; flex-direction: column; align-items: center; justify-content: center; min-height: 220px; }
-    #flashDisplay { font-size: 4rem; font-weight: bold; margin: 5px 0; opacity: 0; }
+    #flashDisplay { font-size: 3.5rem; font-weight: bold; margin: 5px 0; opacity: 0; }
     
     #abacusContainer {
       display: flex;
       flex-direction: row-reverse;
       justify-content: center;
-      gap: 12px;
+      gap: 4px; /* 10桁入るように隙間を狭く */
       margin-top: 10px;
-      padding: 15px;
+      padding: 10px 5px;
       background: #222;
       border: 4px solid #444;
       border-radius: 10px;
-      min-height: 140px;
+      width: 100%;
+      min-height: 130px;
+      overflow: hidden;
     }
     .abacus-column {
       display: flex;
       flex-direction: column;
       align-items: center;
-      width: 24px;
-      height: 110px;
+      flex: 1; /* 均等に並べる */
+      max-width: 24px;
+      height: 100px;
       position: relative;
     }
     .abacus-column::before {
       content: "";
       position: absolute;
-      width: 4px;
+      width: 3px;
       height: 100%;
       background: #555;
       z-index: 0;
     }
     .abacus-bead {
-      width: 22px;
-      height: 14px;
+      width: 90%;
+      height: 12px;
       border: 1px solid #000;
-      border-radius: 6px;
+      border-radius: 4px;
       z-index: 1;
-      /* 残像アニメーションのためにtransitionを調整 */
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s, opacity 0.3s;
-      opacity: 0.3; /* 基本は半透明 */
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), background 0.25s, opacity 0.25s;
+      opacity: 0.2;
     }
     .five-bead { background: #ff3333; }
     .one-bead { background: #ffcc00; }
     
     .abacus-bead.active { 
-      opacity: 1; /* 活性化している珠だけハッキリ見える */
-      box-shadow: 0 0 8px rgba(255,255,255,0.4);
+      opacity: 1;
+      box-shadow: 0 0 6px rgba(255,255,255,0.4);
     }
     .abacus-divider {
-      width: 32px;
-      height: 8px;
+      width: 110%;
+      height: 6px;
       background: #fff;
-      margin: 4px 0;
+      margin: 3px 0;
       z-index: 2;
     }
-    .upper-area { height: 25px; display: flex; align-items: flex-start; width: 100%; justify-content: center; }
-    .lower-area { height: 75px; display: flex; flex-direction: column; width: 100%; align-items: center; justify-content: flex-end; }
+    .upper-area { height: 20px; display: flex; align-items: flex-start; width: 100%; justify-content: center; }
+    .lower-area { height: 65px; display: flex; flex-direction: column; width: 100%; align-items: center; justify-content: flex-end; }
 
     #inputSection { display: none; flex-direction: column; align-items: center; }
     #answerDisplay {
-      width: 100%; max-width: 380px; font-size: 2em; border: 2px solid #ccc;
+      width: 100%; max-width: 380px; font-size: 1.8em; border: 2px solid #ccc;
       border-radius: 8px; text-align: right; padding: 8px; margin-bottom: 10px; background: #f9f9f9;
     }
     .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; max-width: 380px; margin-bottom: 8px; }
     .keypad button { padding: 15px 10px; font-size: 1.5em; background: #e0e0e0; border: none; border-radius: 8px; cursor: pointer; }
     #resultSection { display: none; text-align: center; }
-    .review-text { font-size: 0.9em; color: #666; margin: 10px 0; word-break: break-all; }
+    .review-text { font-size: 0.8em; color: #666; margin: 10px 0; word-break: break-all; line-height: 1.4; }
     button.action-btn {
       padding: 10px 20px; font-size: 1em; background: #86A8E7; color: white;
       border: none; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 5px;
@@ -128,13 +132,6 @@
   <div id="settings" class="card">
     <div class="stats-area" id="statsDisplay">
       最高スコア: 0 | 直近正答率: 0%
-    </div>
-    <div>
-      <label>モード選択</label>
-      <div class="grid-select double-grid" id="modeGrid">
-        <button data-value="flash" class="selected">フラッシュモード</button>
-        <button data-value="audio">聞き取りモード</button>
-      </div>
     </div>
     
     <div class="option-row">
@@ -152,14 +149,20 @@
 
     <div>
       <label>桁数の選択</label>
-      <div class="grid-select full-width" id="digitGrid">
-        <button data-value="1" class="selected">1桁</button>
-        <button data-value="2">2桁</button>
-        <button data-value="3">3桁</button>
-        <button data-value="4">4桁</button>
-        <button data-value="5">5桁</button>
+      <div class="grid-select digit-grid" id="digitGrid">
+        <button data-value="1" class="selected">1</button>
+        <button data-value="2">2</button>
+        <button data-value="3">3</button>
+        <button data-value="4">4</button>
+        <button data-value="5">5</button>
+        <button data-value="6">6</button>
+        <button data-value="7">7</button>
+        <button data-value="8">8</button>
+        <button data-value="9">9</button>
+        <button data-value="10">10</button>
       </div>
     </div>
+
     <div>
       <label>出題数の選択</label>
       <div class="grid-select" id="questionGrid" style="grid-template-columns: repeat(4, 1fr);">
@@ -173,8 +176,9 @@
         <button data-value="20">20問</button>
       </div>
     </div>
+
     <div>
-      <label id="timeLabel">表示時間の選択 (秒)</label>
+      <label id="timeLabel">表示秒数の選択</label>
       <div class="grid-select" id="timeGrid" style="grid-template-columns: repeat(4, 1fr);">
         <button data-value="0.3">0.3s</button><button data-value="0.5">0.5s</button>
         <button data-value="1">1s</button><button data-value="2" class="selected">2s</button>
@@ -182,6 +186,15 @@
         <button data-value="5">5s</button><button data-value="6">6s</button>
       </div>
     </div>
+
+    <div style="margin-top:5px;">
+      <label>音声モード</label>
+      <div class="grid-select double-grid" id="modeGrid">
+        <button data-value="flash" class="selected">OFF</button>
+        <button data-value="audio">読み上げON</button>
+      </div>
+    </div>
+
     <button id="startBtn" class="action-btn">スタート</button>
   </div>
 
@@ -204,8 +217,8 @@
   <div id="resultSection" class="card">
     <div id="resultText" style="font-size: 20px; font-weight: bold;"></div>
     <div id="reviewDisplay" class="review-text"></div>
-    <button id="retryBtn" class="action-btn">もう一度チャレンジ</button>
-    <button id="quitBtn" class="action-btn quit-btn" style="display:none;">終了して設定へ</button>
+    <button id="retryBtn" class="action-btn">もう一度</button>
+    <button id="quitBtn" class="action-btn quit-btn" style="display:none;">設定に戻る</button>
   </div>
 
   <script>
@@ -220,17 +233,17 @@
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'ja-JP';
-        utterance.rate = 1.2;
+        utterance.rate = 1.3;
         window.speechSynthesis.speak(utterance);
       }
     }
 
-    // 残像そろばん描画
     function renderAbacus(num) {
       const container = document.getElementById("abacusContainer");
       container.innerHTML = "";
-      const maxDigits = selectedDigitCount + 2;
-      const strNum = num.toString().padStart(maxDigits, '0');
+      // 10桁までは常に表示枠を確保
+      const displayDigits = Math.max(selectedDigitCount, 10);
+      const strNum = num.toString().padStart(displayDigits, '0');
       
       [...strNum].reverse().forEach((digit) => {
         const val = parseInt(digit);
@@ -241,7 +254,7 @@
         upperArea.className = "upper-area";
         const fiveBead = document.createElement("div");
         fiveBead.className = "abacus-bead five-bead" + (val >= 5 ? " active" : "");
-        fiveBead.style.transform = val >= 5 ? "translateY(11px)" : "translateY(0px)";
+        fiveBead.style.transform = val >= 5 ? "translateY(9px)" : "translateY(0px)";
         upperArea.appendChild(fiveBead);
         column.appendChild(upperArea);
         
@@ -255,7 +268,7 @@
         for (let i = 1; i <= 4; i++) {
           const bead = document.createElement("div");
           bead.className = "abacus-bead one-bead" + (i <= lowerVal ? " active" : "");
-          let offset = (i <= lowerVal) ? -( (4 - lowerVal) * 2 + 15 ) : 0;
+          let offset = (i <= lowerVal) ? -( (4 - lowerVal) * 2 + 12 ) : 0;
           bead.style.transform = `translateY(${offset}px)`;
           lowerArea.appendChild(bead);
         }
@@ -283,23 +296,20 @@
     const setupGrid = (gridId, callback) => {
       const grid = document.getElementById(gridId);
       grid.querySelectorAll("button").forEach(btn => {
-        btn.addEventListener("click", () => {
+        btn.onclick = () => {
           grid.querySelectorAll("button").forEach(el => el.classList.remove("selected"));
           btn.classList.add("selected");
           callback(btn.getAttribute("data-value"));
-        });
+        };
       });
     };
 
-    setupGrid("modeGrid", val => {
-      selectedMode = val;
-      document.getElementById("timeLabel").textContent = val === 'flash' ? "表示時間の選択 (秒)" : "読み上げ時間の選択 (秒)";
-    });
+    setupGrid("modeGrid", val => selectedMode = val);
     setupGrid("digitGrid", val => selectedDigitCount = parseInt(val));
     setupGrid("questionGrid", val => selectedQuestionCount = parseInt(val));
     setupGrid("timeGrid", val => selectedDisplayTime = parseFloat(val));
 
-    document.getElementById("startBtn").addEventListener("click", startGame);
+    document.getElementById("startBtn").onclick = startGame;
 
     async function startGame() {
       const isAbacusMode = document.getElementById("abacusMode").checked;
@@ -309,11 +319,11 @@
       document.getElementById("quitBtn").style.display = document.getElementById("continuousMode").checked ? "block" : "none";
       
       numbersArray = [];
-      answerSum = 0;
+      answerSum = BigInt(0); // 10桁の累積に対応するためBigInt
       for (let i = 0; i < selectedQuestionCount; i++) {
         const num = generateRandomNumber(selectedDigitCount);
         numbersArray.push(num);
-        answerSum += num;
+        answerSum += BigInt(num);
       }
       
       const flashSection = document.getElementById("flashSection");
@@ -332,46 +342,24 @@
       display.textContent = "Go!";
       await sleep(400);
 
-      if (selectedMode === 'flash') {
-        await flashNumbers(isAbacusMode);
-      } else {
-        await readNumbers(isAbacusMode);
+      let currentTotal = BigInt(0);
+      for (let num of numbersArray) {
+        currentTotal += BigInt(num);
+        display.textContent = num;
+        if(isAbacusMode) renderAbacus(currentTotal.toString());
+        if(selectedMode === 'audio') speakJapanese(num.toString());
+        
+        display.style.transition = `opacity 0.2s ease-in`;
+        display.style.opacity = 1;
+        await sleep(selectedDisplayTime * 1000 * 0.7);
+        display.style.transition = `opacity 0.2s ease-out`;
+        display.style.opacity = 0;
+        await sleep(selectedDisplayTime * 1000 * 0.3);
       }
       
       flashSection.style.display = "none";
       document.getElementById("inputSection").style.display = "flex";
       document.getElementById("answerDisplay").value = "";
-    }
-
-    async function flashNumbers(isAbacusMode) {
-      const display = document.getElementById("flashDisplay");
-      const totalTimeMs = selectedDisplayTime * 1000;
-      let fadeDuration = Math.min(200, totalTimeMs / 3);
-      const visibleTime = totalTimeMs - (fadeDuration * 2);
-      
-      let currentTotal = 0;
-      for (let num of numbersArray) {
-        currentTotal += num;
-        display.textContent = num;
-        if(isAbacusMode) renderAbacus(currentTotal);
-        
-        display.style.transition = `opacity ${fadeDuration}ms ease-in`;
-        display.style.opacity = 1;
-        await sleep(fadeDuration + visibleTime);
-        display.style.transition = `opacity ${fadeDuration}ms ease-out`;
-        display.style.opacity = 0;
-        await sleep(fadeDuration + 100);
-      }
-    }
-
-    async function readNumbers(isAbacusMode) {
-      let currentTotal = 0;
-      for (let num of numbersArray) {
-        currentTotal += num;
-        if(isAbacusMode) renderAbacus(currentTotal);
-        speakJapanese(num.toString());
-        await sleep(selectedDisplayTime * 1000);
-      }
     }
 
     document.querySelectorAll(".keypad .key").forEach(btn => {
@@ -384,8 +372,8 @@
     });
 
     document.getElementById("checkAnswerBtn").onclick = async () => {
-      const userAnswer = parseInt(document.getElementById("answerDisplay").value);
-      const isCorrect = (userAnswer === answerSum);
+      const userAnswer = document.getElementById("answerDisplay").value;
+      const isCorrect = (userAnswer === answerSum.toString());
       history.push(isCorrect);
       if(history.length > 50) history.shift();
       localStorage.setItem('flash_math_history', JSON.stringify(history));
@@ -409,7 +397,7 @@
       resultSection.style.display = "block";
       document.getElementById("resultText").textContent = isCorrect ? "正解！🎉" : "不正解...😢";
       document.getElementById("resultText").style.color = isCorrect ? "#2ecc71" : "#e74c3c";
-      document.getElementById("reviewDisplay").textContent = isCorrect ? "" : `式: ${numbersArray.join(' + ')} = ${answerSum}`;
+      document.getElementById("reviewDisplay").textContent = isCorrect ? "" : `正解: ${answerSum.toString()}\n式: ${numbersArray.join(' + ')}`;
 
       if(document.getElementById("continuousMode").checked) {
         await sleep(2000);
