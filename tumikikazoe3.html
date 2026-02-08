@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>積み木マスター - Compact Remastered</title>
+  <title>積み木マスター - Ultimate Edition</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <style>
     :root {
@@ -11,188 +11,146 @@
       --medium-color: #FF9800;
       --hard-color: #F44336;
       --extreme-color: #9C27B0;
+      --god-color: #00FFFF;
     }
     
     html, body {
-      margin: 0; padding: 0;
-      width: 100%; height: 100%;
-      overflow: hidden;
-      background: linear-gradient(135deg, #1d2b64 0%, #0d0d20 100%);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      color: white;
-      touch-action: none; /* 全体のスクロール・ズームを禁止 */
+      margin: 0; padding: 0; width: 100%; height: 100%;
+      overflow: hidden; background: #050510;
+      font-family: sans-serif; color: white; touch-action: none;
     }
     
-    #particles-bg, #gameContainer {
-      position: fixed; top: 0; left: 0;
-      width: 100%; height: 100%;
-      z-index: 0;
+    #gameContainer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+
+    /* 上部メニューバー */
+    #header-ui {
+      position: absolute; top: 10px; left: 0; width: 100%;
+      z-index: 10; display: flex; justify-content: space-between;
+      padding: 0 10px; box-sizing: border-box; pointer-events: none;
+    }
+    .ui-btn {
+      pointer-events: auto; background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3); color: white;
+      padding: 8px 12px; border-radius: 8px; font-weight: bold;
+      backdrop-filter: blur(5px); font-size: 0.8em;
+    }
+    .ui-btn.active { background: var(--easy-color); border-color: white; }
+
+    /* ステータス表示 */
+    #status-bar {
+      position: absolute; top: 60px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 20px; z-index: 5; pointer-events: none;
+      text-shadow: 0 0 10px rgba(0,0,0,1); font-weight: bold;
     }
 
-    /* UIレイアウト - 縦に並べる */
-    #ui-wrapper {
-      position: relative;
-      z-index: 10;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      height: 100%;
-      padding: 10px;
-      box-sizing: border-box;
-      pointer-events: none;
+    /* 回答ボタン（これだけ常に表示） */
+    #open-answer-btn {
+      position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+      z-index: 10; padding: 15px 40px; font-size: 1.2em;
+      border-radius: 30px; background: linear-gradient(45deg, #2196F3, #00BCD4);
+      color: white; border: none; box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+      font-weight: bold; transition: 0.3s;
     }
 
-    #ui-top, #ui-bottom {
-      pointer-events: auto;
-      width: 100%;
-      max-width: 400px;
-      margin: 0 auto;
+    /* 回答用テンキー（初期状態は隠す） */
+    #answer-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+      z-index: 100; display: none; align-items: center; justify-content: center;
+      backdrop-filter: blur(10px);
     }
+    .numpad-container {
+      width: 280px; background: rgba(255,255,255,0.1);
+      padding: 20px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2);
+    }
+    #answer-preview {
+      font-size: 3em; text-align: center; color: var(--glow-color);
+      margin-bottom: 20px; min-height: 1.2em; font-weight: bold;
+    }
+    .numpad-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+    }
+    .numpad-grid button {
+      height: 55px; border: none; border-radius: 12px;
+      background: rgba(255,255,255,0.2); color: white;
+      font-size: 1.5em; font-weight: bold;
+    }
+    .numpad-grid button:active { background: rgba(255,255,255,0.4); }
 
-    h1 {
-      margin: 0; font-size: 1.4em; text-align: center;
-      background: linear-gradient(45deg, var(--glow-color), #FFA500);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    /* 共通オーバーレイ */
+    .modal {
+      position: fixed; inset: 0; z-index: 200;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.9); transition: 0.3s;
     }
+    .modal-content {
+      width: 85%; max-width: 350px; text-align: center;
+    }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .btn-main {
+      width: 100%; padding: 15px; margin-top: 15px; border: none;
+      border-radius: 10px; font-weight: bold; font-size: 1.1em; cursor: pointer;
+    }
+    .diff-btn {
+      padding: 10px; border: 1px solid rgba(255,255,255,0.3); border-radius: 8px;
+      background: #333; color: white; margin-top: 5px;
+    }
+    .diff-btn.selected { border-color: white; transform: scale(1.05); }
 
-    .game-panel {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      border-radius: 12px;
-      padding: 8px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-    
-    #game-info {
-      display: flex; justify-content: space-around;
-      font-size: 1em; font-weight: bold;
-    }
-
-    #answerDisplayContainer {
-      background: rgba(0, 0, 0, 0.4);
-      border-radius: 10px;
-      margin-bottom: 8px;
-      text-align: center;
-    }
-    #currentAnswerDisplay {
-      font-size: 2.2em; font-weight: bold;
-      color: var(--glow-color); height: 1.2em;
-    }
-
-    /* テンキーをよりコンパクトに */
-    #numpad {
-      display: grid; grid-template-columns: repeat(3, 1fr);
-      gap: 6px; margin-bottom: 8px;
-    }
-    #numpad button {
-      height: 44px; /* 指で押しやすい最小サイズ */
-      font-size: 1.4em; border: none;
-      background: rgba(255, 255, 255, 0.2);
-      color: white; border-radius: 8px;
-      font-weight: bold; touch-action: manipulation;
-    }
-    #numpad button:active { background: rgba(255, 255, 255, 0.5); }
-    #numpad button.action-btn { background: rgba(255, 255, 255, 0.1); }
-
-    #submitBtn {
-      width: 100%; height: 50px; font-size: 1.3em;
-      background: linear-gradient(45deg, var(--easy-color), #45a049);
-      color: white; border: none; border-radius: 25px;
-      font-weight: bold; opacity: 0.5; pointer-events: none;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    }
-    #submitBtn.active { opacity: 1; pointer-events: auto; }
-
-    #result {
-      height: 1.4em; text-align: center; font-weight: bold; margin-top: 4px;
-    }
-
-    /* オーバーレイの設定 */
-    .overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.85);
-      z-index: 100; display: flex; align-items: center; justify-content: center;
-      opacity: 0; pointer-events: none; transition: 0.3s;
-    }
-    .overlay.visible { opacity: 1; pointer-events: auto; }
-    .overlay-content {
-      width: 85%; max-width: 320px; text-align: center;
-      background: rgba(255,255,255,0.1); padding: 20px; border-radius: 20px;
-    }
-    .overlay-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
-    .btn {
-      padding: 10px; border: none; border-radius: 10px;
-      color: white; font-weight: bold; cursor: pointer;
-    }
-    .btn-full { grid-column: span 2; padding: 15px; font-size: 1.1em; }
-    .difficulty-select { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
-    .difficulty-btn.easy { background: var(--easy-color); }
-    .difficulty-btn.medium { background: var(--medium-color); }
-    .difficulty-btn.hard { background: var(--hard-color); }
-    .difficulty-btn.extreme { background: var(--extreme-color); }
-    .active { outline: 3px solid white; transform: scale(1.02); }
+    #result-text { font-size: 1.5em; margin: 15px 0; font-weight: bold; }
   </style>
 </head>
 <body>
-  <canvas id="particles-bg"></canvas>
+
   <div id="gameContainer"></div>
 
-  <div id="ui-wrapper">
-    <div id="ui-top">
-      <h1>✨ 積み木マスター ✨</h1>
-      <div class="game-panel">
-        <div id="game-info">
-          <div id="timer">⏰ --</div>
-          <div id="score">💯 0</div>
-          <div id="streak">🔥 0</div>
-        </div>
-      </div>
-    </div>
+  <div id="header-ui">
+    <button class="ui-btn" id="menu-btn">🏠 メニュー</button>
+    <button class="ui-btn" id="rotate-toggle">🔄 回転: OFF</button>
+  </div>
 
-    <div id="ui-bottom">
-      <div id="result"></div>
-      <div class="game-panel">
-        <div id="answerDisplayContainer">
-          <div id="currentAnswerDisplay">0</div>
-        </div>
-        <div id="numpad">
-          <button data-value="7">7</button><button data-value="8">8</button><button data-value="9">9</button>
-          <button data-value="4">4</button><button data-value="5">5</button><button data-value="6">6</button>
-          <button data-value="1">1</button><button data-value="2">2</button><button data-value="3">3</button>
-          <button data-value="C" class="action-btn">C</button><button data-value="0">0</button><button data-value="del" class="action-btn">←</button>
-        </div>
-        <button id="submitBtn">🎯 答える</button>
+  <div id="status-bar">
+    <div id="ui-timer">⏰ --</div>
+    <div id="ui-score">💯 0</div>
+  </div>
+
+  <button id="open-answer-btn">🎯 答える</button>
+
+  <div id="answer-overlay">
+    <div class="numpad-container">
+      <div id="answer-preview">0</div>
+      <div class="numpad-grid">
+        <button data-v="7">7</button><button data-v="8">8</button><button data-v="9">9</button>
+        <button data-v="4">4</button><button data-v="5">5</button><button data-v="6">6</button>
+        <button data-v="1">1</button><button data-v="2">2</button><button data-v="3">3</button>
+        <button data-v="C" style="background:rgba(255,0,0,0.3)">C</button>
+        <button data-v="0">0</button>
+        <button data-v="del">←</button>
       </div>
+      <button class="btn-main" id="confirm-btn" style="background:var(--easy-color)">確定</button>
+      <button class="btn-main" id="close-answer-btn" style="background:#555">戻る</button>
     </div>
   </div>
 
-  <div id="start-overlay" class="overlay visible">
-    <div class="overlay-content">
-      <h2>MENU</h2>
-      <p>モード選択</p>
-      <div class="mode-select overlay-buttons">
-        <button class="btn active" style="background:#555" data-mode="time-attack">タイムアタック</button>
-        <button class="btn" style="background:#555" data-mode="zen">禅モード</button>
+  <div id="start-modal" class="modal">
+    <div class="modal-content">
+      <h1 style="color:var(--glow-color)">積み木マスター</h1>
+      <p>難易度を選択</p>
+      <div class="grid-2" id="difficulty-grid">
+        <button class="diff-btn" data-l="easy">初級</button>
+        <button class="diff-btn" data-l="medium">中級</button>
+        <button class="diff-btn" data-l="hard">上級</button>
+        <button class="diff-btn" data-l="extreme">極限</button>
+        <button class="diff-btn" data-l="god" style="grid-column: span 2; color:var(--god-color)">🔥 GOD MODE (大量表示) 🔥</button>
       </div>
-      <p>難易度選択</p>
-      <div class="difficulty-select">
-        <button class="btn difficulty-btn easy active" data-level="easy">初級</button>
-        <button class="btn difficulty-btn medium" data-level="medium">中級</button>
-        <button class="btn difficulty-btn hard" data-level="hard">上級</button>
-        <button class="btn difficulty-btn extreme" data-level="extreme">極限</button>
-      </div>
-      <button class="btn btn-full" style="background:var(--easy-color); margin-top:15px;" id="game-start-btn">🚀 START</button>
+      <button class="btn-main" id="start-game-btn" style="background:var(--easy-color)">ゲーム開始</button>
     </div>
   </div>
 
-  <div id="game-overlay" class="overlay">
-    <div class="overlay-content">
-      <h2 id="ov-title">RESULT</h2>
-      <p id="ov-score"></p>
-      <div class="overlay-buttons">
-        <button class="btn btn-full" style="background:var(--easy-color)" id="btn-restart">もう一度</button>
-        <button class="btn btn-full" style="background:#555" id="btn-menu">メニューへ</button>
-      </div>
+  <div id="result-modal" class="modal" style="display:none">
+    <div class="modal-content">
+      <h2 id="res-title">RESULT</h2>
+      <div id="result-text"></div>
+      <button class="btn-main" id="next-btn" style="background:var(--easy-color)">次へ</button>
     </div>
   </div>
 
@@ -201,278 +159,182 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.9.1/gsap.min.js"></script>
 
   <script>
-    /** グローバル変数 **/
     let scene, camera, renderer, controls;
-    let blocks = [];
-    let correctBlockCount = 0;
-    let gameState = 'start';
-    let gameMode = 'time-attack';
-    let currentDifficulty = 'easy';
-    let score = 0, currentStreak = 0, timeRemaining = 30, gameTimer;
-    let currentAnswerString = "";
-    let audioCtx;
-
-    const difficultySettings = {
-      easy: { min: 5, max: 12, time: 60, colors: ['#64B5F6', '#81C784'], chance: 0.1 },
-      medium: { min: 15, max: 40, time: 45, colors: ['#FFCA28', '#FF9800'], chance: 0.2 },
-      hard: { min: 40, max: 80, time: 30, colors: ['#EF5350', '#F44336'], chance: 0.3 },
-      extreme: { min: 70, max: 150, time: 20, colors: ['#9C27B0', '#673AB7'], chance: 0.4 }
+    let blocks = [], correctCount = 0, score = 0;
+    let difficulty = 'easy', isAutoRotate = false, currentInput = "";
+    
+    const settings = {
+      easy: { min: 5, max: 12, col: ['#4CAF50'] },
+      medium: { min: 15, max: 35, col: ['#FF9800'] },
+      hard: { min: 40, max: 80, col: ['#F44336'] },
+      extreme: { min: 90, max: 150, col: ['#9C27B0'] },
+      god: { min: 250, max: 450, col: ['#00FFFF', '#FF00FF'] }
     };
 
-    /** 初期化 **/
     function init() {
-      initParticles();
+      setupThree();
       setupEvents();
-      // オーディオコンテキストの作成準備（ユーザー操作で開始）
-      window.addEventListener('touchstart', () => { if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }, {once: true});
     }
 
-    function setupEvents() {
-      document.getElementById('game-start-btn').onclick = startGame;
-      document.getElementById('btn-restart').onclick = startGame;
-      document.getElementById('btn-menu').onclick = () => location.reload();
-      document.getElementById('submitBtn').onclick = checkAnswer;
-      
-      // モード/難易度切り替え
-      document.querySelectorAll('.mode-select .btn, .difficulty-select .btn').forEach(btn => {
-        btn.onclick = (e) => {
-          const parent = e.target.parentElement;
-          parent.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
-          e.target.classList.add('active');
-          if(e.target.dataset.mode) gameMode = e.target.dataset.mode;
-          if(e.target.dataset.level) currentDifficulty = e.target.dataset.level;
-        };
-      });
-
-      // テンキー
-      document.getElementById('numpad').onclick = (e) => {
-        if(e.target.tagName !== 'BUTTON' || gameState !== 'playing') return;
-        const val = e.target.dataset.value;
-        playSound('click');
-        if(val === 'C') currentAnswerString = "";
-        else if(val === 'del') currentAnswerString = currentAnswerString.slice(0, -1);
-        else if(currentAnswerString.length < 4) currentAnswerString += val;
-        updateUI();
-      };
-    }
-
-    /** 3Dエンジン関連 **/
-    function startGame() {
-      document.querySelectorAll('.overlay').forEach(o => o.classList.remove('visible'));
-      score = 0; currentStreak = 0;
-      gameState = 'playing';
-      
-      if(!renderer) {
-        initThreeJS();
-      }
-      nextProblem();
-    }
-
-    function initThreeJS() {
-      const container = document.getElementById("gameContainer");
+    function setupThree() {
+      const container = document.getElementById('gameContainer');
       scene = new THREE.Scene();
       camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      renderer.shadowMap.enabled = true;
+      renderer.setPixelRatio(window.devicePixelRatio);
       container.appendChild(renderer.domElement);
 
       const light = new THREE.DirectionalLight(0xffffff, 1);
-      light.position.set(5, 10, 7);
-      light.castShadow = true;
-      scene.add(light, new THREE.AmbientLight(0xffffff, 0.5));
+      light.position.set(10, 20, 10);
+      scene.add(light, new THREE.AmbientLight(0xffffff, 0.6));
 
       controls = new THREE.OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
-      controls.maxDistance = 50;
-      controls.minDistance = 10;
-      controls.maxPolarAngle = Math.PI / 2;
-
       animate();
     }
 
-    function clearBlocks() {
+    function generate() {
       blocks.forEach(b => {
-        b.traverse(node => {
-          if (node.isMesh) {
-            node.geometry.dispose();
-            if (Array.isArray(node.material)) node.material.forEach(m => m.dispose());
-            else node.material.dispose();
-          }
-        });
+        b.traverse(n => { if(n.isMesh){ n.geometry.dispose(); n.material.dispose(); }});
         scene.remove(b);
       });
       blocks = [];
-    }
-
-    function generateBlocks() {
-      clearBlocks();
-      const set = difficultySettings[currentDifficulty];
-      const count = Math.floor(Math.random() * (set.max - set.min + 1)) + set.min;
-      correctBlockCount = 0;
+      
+      const s = settings[difficulty];
+      const count = Math.floor(Math.random()*(s.max - s.min + 1)) + s.min;
+      correctCount = 0;
       
       const occupied = new Set();
       const queue = [[0,0,0]];
       occupied.add('0,0,0');
 
       for(let i=0; i<count; i++) {
-        const pos = queue.shift() || [0,0,0];
-        const block = createMesh(pos[0], pos[1], pos[2], i, set);
-        blocks.push(block);
-        scene.add(block);
-        correctBlockCount++;
+        const p = queue.shift() || [0,0,0];
+        const color = s.col[Math.floor(Math.random()*s.col.length)];
+        const mesh = createBlock(p[0], p[1], p[2], color);
+        scene.add(mesh);
+        blocks.push(mesh);
+        correctCount++;
 
-        // 隣接候補を追加
         [[1,0,0],[-1,0,0],[0,1,0],[0,0,1],[0,0,-1]].forEach(d => {
-          const np = [pos[0]+d[0], pos[1]+d[1], pos[2]+d[2]];
-          const key = np.join(',');
-          if(!occupied.has(key) && np[1] >= 0) {
-            occupied.add(key);
+          const np = [p[0]+d[0], p[1]+d[1], p[2]+d[2]];
+          if(!occupied.has(np.join(',')) && np[1] >= 0) {
+            occupied.add(np.join(','));
             queue.splice(Math.floor(Math.random()*queue.length), 0, np);
           }
         });
       }
-      adjustCamera();
+      fitCamera();
     }
 
-    function createMesh(x, y, z, i, set) {
-      const geo = new THREE.BoxGeometry(1, 1, 1);
-      const isBonus = Math.random() < set.chance;
-      const color = isBonus ? 0xffd700 : set.colors[Math.floor(Math.random()*set.colors.length)];
-      const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.5 });
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.castShadow = mesh.receiveShadow = true;
-
-      // 縁取り
-      const edge = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({color:0x000000}));
-      
+    function createBlock(x,y,z,color) {
+      const g = new THREE.BoxGeometry(1,1,1);
+      const m = new THREE.MeshStandardMaterial({color, roughness:0.4});
+      const mesh = new THREE.Mesh(g,m);
+      const edge = new THREE.LineSegments(new THREE.EdgesGeometry(g), new THREE.LineBasicMaterial({color:0x000000}));
       const group = new THREE.Group();
       group.add(mesh, edge);
-      group.position.set(x, y, z);
-      group.scale.set(0,0,0);
-      gsap.to(group.scale, {x:1, y:1, z:1, duration:0.4, delay: i*0.01, ease:"back.out"});
+      group.position.set(x,y,z);
       return group;
     }
 
-    function adjustCamera() {
+    function fitCamera() {
       const box = new THREE.Box3();
       blocks.forEach(b => box.expandByObject(b));
       const center = box.getCenter(new THREE.Vector3());
       const size = box.getSize(new THREE.Vector3());
+      const maxDim = Math.max(size.x, size.y, size.z);
+      const dist = maxDim * 2.5;
       
-      const dist = Math.max(size.x, size.y, size.z) * 2.5;
-      
-      // UIが下部にあるため、注視点（ターゲット）を少し下にずらして、物体を画面上部に表示させる
-      const targetY = center.y - (size.y * 0.5); 
-      
-      gsap.to(camera.position, { x: center.x + dist, y: center.y + dist*0.8, z: center.z + dist, duration: 1 });
-      gsap.to(controls.target, { x: center.x, y: targetY, z: center.z, duration: 1 });
+      gsap.to(camera.position, { x: center.x + dist, y: center.y + dist, z: center.z + dist, duration: 1.5 });
+      gsap.to(controls.target, { x: center.x, y: center.y - 2, z: center.z, duration: 1.5 });
     }
 
-    /** ゲームロジック **/
-    function checkAnswer() {
-      if(gameState !== 'playing') return;
-      gameState = 'paused';
-      const ans = parseInt(currentAnswerString);
-      const resEl = document.getElementById('result');
+    function setupEvents() {
+      // メニュー系
+      document.getElementById('start-game-btn').onclick = () => {
+        document.getElementById('start-modal').style.display = 'none';
+        generate();
+      };
+      document.getElementById('menu-btn').onclick = () => location.reload();
+      
+      // 自動回転
+      document.getElementById('rotate-toggle').onclick = (e) => {
+        isAutoRotate = !isAutoRotate;
+        controls.autoRotate = isAutoRotate;
+        e.target.classList.toggle('active', isAutoRotate);
+        e.target.textContent = `🔄 回転: ${isAutoRotate ? 'ON' : 'OFF'}`;
+      };
 
-      if(ans === correctBlockCount) {
-        score += (10 + currentStreak * 5);
-        currentStreak++;
-        resEl.innerHTML = "<span style='color:var(--easy-color)'>正解！ O</span>";
-        playSound('correct');
-        setTimeout(nextProblem, 1000);
+      // 難易度選択
+      document.querySelectorAll('.diff-btn').forEach(btn => {
+        btn.onclick = (e) => {
+          document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('selected'));
+          e.target.classList.add('selected');
+          difficulty = e.target.dataset.l;
+        };
+      });
+
+      // 回答パネル操作
+      document.getElementById('open-answer-btn').onclick = () => {
+        document.getElementById('answer-overlay').style.display = 'flex';
+        currentInput = "";
+        updateAnswerUI();
+      };
+      document.getElementById('close-answer-btn').onclick = () => {
+        document.getElementById('answer-overlay').style.display = 'none';
+      };
+
+      // テンキー
+      document.querySelector('.numpad-grid').onclick = (e) => {
+        if(e.target.tagName !== 'BUTTON') return;
+        const v = e.target.dataset.v;
+        if(v === 'C') currentInput = "";
+        else if(v === 'del') currentInput = currentInput.slice(0, -1);
+        else if(currentInput.length < 4) currentInput += v;
+        updateAnswerUI();
+      };
+
+      document.getElementById('confirm-btn').onclick = submit;
+      document.getElementById('next-btn').onclick = () => {
+        document.getElementById('result-modal').style.display = 'none';
+        generate();
+      };
+    }
+
+    function updateAnswerUI() {
+      document.getElementById('answer-preview').textContent = currentInput || "0";
+    }
+
+    function submit() {
+      const val = parseInt(currentInput);
+      const resModal = document.getElementById('result-modal');
+      const resText = document.getElementById('result-text');
+      
+      document.getElementById('answer-overlay').style.display = 'none';
+      resModal.style.display = 'flex';
+      
+      if(val === correctCount) {
+        score += 10;
+        resText.innerHTML = `<span style="color:var(--easy-color)">正解！ 🎉<br>${correctCount}個でした</span>`;
       } else {
-        currentStreak = 0;
-        resEl.innerHTML = `<span style='color:var(--hard-color)'>残念！ 正解は ${correctBlockCount}</span>`;
-        playSound('incorrect');
-        if(gameMode === 'time-attack') timeRemaining -= 5;
-        setTimeout(nextProblem, 2000);
+        resText.innerHTML = `<span style="color:var(--hard-color)">不正解... 😢<br>正解は ${correctCount}個でした</span>`;
       }
-      updateUI();
-    }
-
-    function nextProblem() {
-      if(gameMode === 'time-attack' && timeRemaining <= 0) return endGame();
-      gameState = 'playing';
-      currentAnswerString = "";
-      document.getElementById('result').textContent = "";
-      generateBlocks();
-      updateUI();
-      if(gameMode === 'time-attack') startTimer();
-    }
-
-    function startTimer() {
-      clearInterval(gameTimer);
-      if(gameMode === 'zen') return;
-      gameTimer = setInterval(() => {
-        timeRemaining--;
-        updateUI();
-        if(timeRemaining <= 0) endGame();
-      }, 1000);
-    }
-
-    function endGame() {
-      gameState = 'gameover';
-      clearInterval(gameTimer);
-      document.getElementById('ov-score').textContent = `最終スコア: ${score}`;
-      document.getElementById('game-overlay').classList.add('visible');
-    }
-
-    function updateUI() {
-      document.getElementById('score').textContent = `💯 ${score}`;
-      document.getElementById('timer').textContent = gameMode === 'zen' ? "⏰ ∞" : `⏰ ${timeRemaining}`;
-      document.getElementById('streak').textContent = `🔥 ${currentStreak}`;
-      document.getElementById('currentAnswerDisplay').textContent = currentAnswerString || "0";
-      document.getElementById('submitBtn').classList.toggle('active', currentAnswerString.length > 0);
+      document.getElementById('ui-score').textContent = `💯 ${score}`;
     }
 
     function animate() {
       requestAnimationFrame(animate);
-      if(controls) controls.update();
-      if(renderer) renderer.render(scene, camera);
-    }
-
-    function playSound(type) {
-      if(!audioCtx) return;
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.connect(gain); gain.connect(audioCtx.destination);
-      gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-      if(type==='click') { osc.frequency.value = 800; gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime+0.1); }
-      if(type==='correct') { osc.frequency.setValueAtTime(523, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(1046, audioCtx.currentTime+0.2); }
-      if(type==='incorrect') { osc.frequency.setValueAtTime(200, audioCtx.currentTime); osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime+0.3); }
-      osc.start(); osc.stop(audioCtx.currentTime + 0.3);
-    }
-
-    function initParticles() {
-      const cvs = document.getElementById('particles-bg');
-      const ctx = cvs.getContext('2d');
-      cvs.width = window.innerWidth; cvs.height = window.innerHeight;
-      const parts = Array.from({length: 50}, () => ({
-        x: Math.random()*cvs.width, y: Math.random()*cvs.height,
-        v: Math.random()*0.5 + 0.2
-      }));
-      function draw() {
-        ctx.clearRect(0,0,cvs.width,cvs.height);
-        ctx.fillStyle = "rgba(255,255,255,0.2)";
-        parts.forEach(p => {
-          p.y -= p.v; if(p.y < 0) p.y = cvs.height;
-          ctx.beginPath(); ctx.arc(p.x, p.y, 1, 0, 7); ctx.fill();
-        });
-        requestAnimationFrame(draw);
-      }
-      draw();
+      controls.update();
+      renderer.render(scene, camera);
     }
 
     window.onload = init;
     window.onresize = () => {
-      if(camera) {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-      }
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
     };
   </script>
 </body>
