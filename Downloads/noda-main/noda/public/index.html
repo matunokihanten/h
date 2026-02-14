@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>松乃木飯店 順番待ち受付</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Hiragino Sans', 'Yu Gothic', sans-serif; background: #fdfaf5; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        header { background: linear-gradient(135deg, #8b0000 0%, #b91d1d 100%); color: white; padding: 15px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+        header h1 { margin: 0; font-size: 1.5em; font-weight: bold; }
+        header .subtitle { font-size: 0.9em; opacity: 0.9; margin-top: 5px; }
+        
+        .main-container { display: flex; flex: 1; height: calc(100vh - 80px); }
+
+        .left-panel { width: 420px; padding: 20px; border-right: 2px solid #d4b483; display: flex; flex-direction: column; align-items: center; box-sizing: border-box; overflow-y: auto; background: linear-gradient(180deg, #fdfaf5 0%, #fff8f0 100%); }
+        .form-box { background: white; padding: 20px; border-radius: 20px; width: 100%; border: 2px solid #d4b483; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        
+        .number-control { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #f5f5f5; }
+        .control-label { font-size: 0.95em; font-weight: bold; color: #333; margin-bottom: 8px; display: block; }
+        .control-row { display: flex; align-items: center; justify-content: center; gap: 15px; margin-top: 10px; }
+        .num-display { font-size: 2.2em; font-weight: bold; min-width: 60px; text-align: center; color: #8b0000; }
+        .btn-step { background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%); border: 2px solid #ccc; width: 50px; height: 50px; border-radius: 50%; font-size: 1.8em; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .quick-nums { display: flex; gap: 8px; margin-top: 10px; justify-content: center; }
+        .btn-quick { background: #fff; border: 2px solid #d4b483; padding: 8px 15px; border-radius: 8px; font-size: 0.95em; cursor: pointer; font-weight: 600; }
+        select { padding: 15px; margin: 15px 0; width: 100%; font-size: 1.15em; border: 2px solid #ddd; border-radius: 10px; background: white; cursor: pointer; }
+        
+        .btn-submit { background: linear-gradient(135deg, #8b0000 0%, #b91d1d 100%); color: white; border: none; padding: 20px; width: 100%; font-size: 1.3em; border-radius: 12px; cursor: pointer; font-weight: bold; transition: all 0.3s; box-shadow: 0 4px 10px rgba(139, 0, 0, 0.3); }
+        .btn-submit:disabled { background: #ccc; cursor: not-allowed; box-shadow: none; }
+        
+        .btn-cancel { background: #7f8c8d; color: white; border: none; padding: 12px; width: 100%; font-size: 1em; border-radius: 8px; cursor: pointer; margin-top: 15px; font-weight: bold; }
+
+        .right-panel { flex: 1; padding: 20px; background: white; overflow-y: auto; }
+        .queue-header { text-align: center; margin-bottom: 15px; }
+        .queue-header h2 { color: #8b0000; font-size: 1.6em; margin-bottom: 5px; }
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+        .queue-card { background: linear-gradient(135deg, #fffcf5 0%, #fff8f0 100%); border: 2px solid #d4b483; border-radius: 12px; padding: 15px; text-align: center; }
+        .queue-id { font-weight: bold; color: #8b0000; font-size: 1.4em; display: block; margin-bottom: 5px; }
+        .queue-info { font-size: 0.85em; color: #666; line-height: 1.4; }
+        .card-checked { background: #e3f2fd; border-color: #2196f3; }
+
+        .ticket-area { border: 3px solid #8b0000; animation: fadeIn 0.5s; position: relative; }
+        .complete-id { font-size: 5em; color: #8b0000; font-weight: bold; text-align: center; margin: 10px 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.1); }
+        .wait-status-box { background: #f8f9fa; border: 2px solid #eee; border-radius: 10px; padding: 15px; text-align: center; margin-bottom: 15px; }
+        .wait-status-box .hl { font-size: 1.5em; font-weight: bold; color: #e67e22; }
+        
+        /* アラート用アニメーション */
+        @keyframes flashRed { 0% { background-color: #fff; } 50% { background-color: #ffebee; } 100% { background-color: #fff; } }
+        .screen-calling { animation: flashRed 1s infinite; border-color: #e74c3c; border-width: 5px; }
+        .pending-alert { background: #fff3cd; color: #856404; padding: 15px; border-radius: 10px; font-weight: bold; text-align: center; margin-bottom: 15px; border: 2px solid #ffeeba; }
+
+        @media (max-width: 1000px) { 
+            .main-container { flex-direction: column; }
+            .left-panel { width: 100%; border-right: none; border-bottom: 2px solid #d4b483; }
+            .grid-container { grid-template-columns: repeat(3, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🏮 松乃木飯店</h1>
+        <div class="subtitle">順番待ち受付システム</div>
+    </header>
+    
+    <div class="main-container">
+        <div class="left-panel">
+            <div id="formArea" class="form-box">
+                <h3 style="margin:0 0 20px; color:#8b0000; text-align:center; font-size:1.3em;">新規受付フォーム</h3>
+                <div id="stopMessage" style="display:none; background:#fff3cd; padding:15px; border-radius:10px; text-align:center; color:#856404; font-weight:bold; margin-bottom:15px;">⚠️ 現在受付を停止しています</div>
+                
+                <div class="number-control">
+                    <label class="control-label">👨‍👩‍👧‍👦 大人 (中学生以上)</label>
+                    <div class="control-row">
+                        <button class="btn-step" onclick="changeNum('adults', -1)">−</button>
+                        <span id="display-adults" class="num-display">2</span>
+                        <button class="btn-step" onclick="changeNum('adults', 1)">+</button>
+                    </div>
+                    <div class="quick-nums">
+                        <button class="btn-quick" onclick="setNum('adults', 1)">1名</button>
+                        <button class="btn-quick" onclick="setNum('adults', 2)">2名</button>
+                        <button class="btn-quick" onclick="setNum('adults', 4)">4名</button>
+                    </div>
+                </div>
+
+                <div class="number-control">
+                    <label class="control-label">👧 子供 (小学生)</label>
+                    <div class="control-row">
+                        <button class="btn-step" onclick="changeNum('children', -1)">−</button>
+                        <span id="display-children" class="num-display">0</span>
+                        <button class="btn-step" onclick="changeNum('children', 1)">+</button>
+                    </div>
+                </div>
+
+                <div class="number-control">
+                    <label class="control-label">👶 幼児 (未就学児)</label>
+                    <div class="control-row">
+                        <button class="btn-step" onclick="changeNum('infants', -1)">−</button>
+                        <span id="display-infants" class="num-display">0</span>
+                        <button class="btn-step" onclick="changeNum('infants', 1)">+</button>
+                    </div>
+                </div>
+
+                <label class="control-label">🪑 座席のご希望</label>
+                <select id="pref">
+                    <option>どこでも</option><option>カウンター</option><option>テーブル</option><option>お座敷</option>
+                </select>
+                
+                <button id="regBtn" class="btn-submit" onclick="send()">✓ 受付確定</button>
+            </div>
+
+            <div id="ticketArea" class="form-box ticket-area" style="display:none;">
+                <p style="color:#27ae60; font-size:1.2em; font-weight:bold; text-align:center;">受付完了しました</p>
+                <div id="num" class="complete-id">--</div>
+
+                <div id="normalView">
+                    <div class="wait-status-box">
+                        <div id="waitPosition">前に <span class="hl">--</span> 組 お待ちです</div>
+                        <div style="font-size:0.9em; color:#666; margin-top:5px;">( 案内目安: 約 <span id="waitTimeEst" style="font-weight:bold; color:#333;">--</span> 分 )</div>
+                    </div>
+
+                    <div id="pendingWarning" class="pending-alert" style="display:none;">
+                        ⚠️ 不在のため保留中です<br>あと <span id="timeLeft">--</span> 分で自動キャンセルされます
+                    </div>
+
+                    <div id="checkInBox" style="margin: 15px 0; text-align: center;">
+                        <p style="font-size:0.95em; margin-bottom:10px; font-weight:bold; color:#333;">店舗に到着されましたら押してください</p>
+                        <button class="btn-submit" style="background:#2196f3; padding:15px;" onclick="doCheckIn()">📍 店舗に到着しました</button>
+                    </div>
+                    <div id="checkInDone" style="display:none; color:#2196f3; font-weight:bold; margin:15px 0; text-align:center; font-size:1.2em;">
+                        ✓ ご来店を確認しました<br><span style="font-size:0.8em; color:#666; font-weight:normal;">そのままお待ちください</span>
+                    </div>
+
+                    <button class="btn-cancel" onclick="cancelQueue()">取消する (キャンセル)</button>
+                </div>
+
+                <div id="calledScreen" style="display:none; text-align:center; padding:20px 0;">
+                    <h2 style="color:#e74c3c; font-size:2em; margin-bottom:15px;">📢 順番が来ました！</h2>
+                    <p style="font-size:1.1em; font-weight:bold; line-height:1.5;">お待たせいたしました。<br>店内に戻りスタッフへ画面を<br>ご提示ください。</p>
+                    <button class="btn-submit" onclick="location.reload()" style="background:#333; margin-top:20px;">確認しました (閉じる)</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="right-panel">
+            <div class="queue-header">
+                <h2>📋 現在の待ち状況</h2>
+                <div style="font-size:1.1em; color:#666; margin-bottom:15px;">
+                    <span style="font-weight:bold; color:#8b0000; font-size:1.4em;" id="count">0</span> 組のお客様がお待ちです
+                </div>
+            </div>
+            <div id="callingBanner" style="display:none; background:#8b0000; color:white; padding:15px; text-align:center; border-radius:10px; margin-bottom:15px; font-weight:bold; font-size:1.2em;">
+                📢 現在お呼び出し中：<span id="callingNowId" style="font-size:1.5em; margin-left:10px;"></span>
+            </div>
+            <div id="queueList" class="grid-container"></div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        const type = new URLSearchParams(window.location.search).get('type') || 'web';
+        let nums = { adults: 2, children: 0, infants: 0 };
+        let isAccepting = true;
+        let myId = null;
+        let averageWait = 10;
+        let timerInterval = null; // 不在カウントダウン用
+
+        function updateDisplays() {
+            document.getElementById('display-adults').innerText = nums.adults;
+            document.getElementById('display-children').innerText = nums.children;
+            document.getElementById('display-infants').innerText = nums.infants;
+        }
+
+        function changeNum(key, step) {
+            nums[key] = Math.max(0, nums[key] + step);
+            if(key === 'adults' && nums.adults < 1) nums.adults = 1;
+            updateDisplays();
+        }
+        function setNum(key, val) { nums[key] = val; updateDisplays(); }
+
+        socket.on('init', d => {
+            isAccepting = d.isAccepting; averageWait = d.stats.averageWaitTime || 10;
+            document.getElementById('regBtn').disabled = !isAccepting;
+            document.getElementById('stopMessage').style.display = isAccepting ? 'none' : 'block';
+            updateQueue(d);
+        });
+
+        socket.on('update', d => { averageWait = d.stats.averageWaitTime || 10; updateQueue(d); });
+        socket.on('statusChange', s => { 
+            isAccepting = s.isAccepting !== undefined ? s.isAccepting : s;
+            document.getElementById('regBtn').disabled = !isAccepting;
+            document.getElementById('stopMessage').style.display = isAccepting ? 'none' : 'block';
+        });
+
+        function updateQueue(d) {
+            document.getElementById('count').innerText = d.queue.length;
+            const list = document.getElementById('queueList');
+            
+            if (d.queue.length === 0) {
+                list.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding:40px; color:#999;">現在お待ちのお客様はいません</div>';
+            } else {
+                list.innerHTML = d.queue.map(g => {
+                    const extraClass = g.status === 'checked-in' ? 'card-checked' : '';
+                    const label = g.status === 'checked-in' ? '<br><span style="color:#2196f3; font-size:0.8em;">📍 来店済</span>' : '';
+                    return `
+                    <div class="queue-card ${extraClass}">
+                        <span class="queue-id">${g.displayId}</span>
+                        <div class="queue-info">👥 ${g.adults}/${g.children}/${g.infants}名<br>🪑 ${g.pref}${label}</div>
+                    </div>`;
+                }).join('');
+            }
+
+            // 自分の状態更新（チケット画面を出している場合）
+            if (myId) {
+                const me = d.queue.find(g => g.displayId === myId);
+                if (!me) { 
+                    alert('ご案内が完了したか、キャンセルされました。'); 
+                    location.reload(); return; 
+                }
+
+                // 自分の順番（自分の前に何人いるか。※保留中の人は飛ばして数える）
+                const activeQueue = d.queue.filter(g => g.status !== 'pending');
+                const myIndex = activeQueue.findIndex(g => g.displayId === myId);
+                
+                if (myIndex <= 0) {
+                    document.getElementById('waitPosition').innerHTML = '<span class="hl">まもなくご案内です</span>';
+                    document.getElementById('waitTimeEst').innerText = "0";
+                } else {
+                    document.getElementById('waitPosition').innerHTML = `前に <span class="hl">${myIndex}</span> 組 お待ちです`;
+                    document.getElementById('waitTimeEst').innerText = myIndex * averageWait;
+                }
+
+                // 不在・来店ステータスの反映
+                clearInterval(timerInterval);
+                if (me.status === 'pending') {
+                    document.getElementById('pendingWarning').style.display = 'block';
+                    document.getElementById('checkInBox').style.display = 'block';
+                    document.getElementById('checkInDone').style.display = 'none';
+                    // 1秒ごとにカウントダウン更新
+                    timerInterval = setInterval(() => {
+                        const passedMin = Math.floor((Date.now() - me.pendingStart) / 60000);
+                        const left = Math.max(0, 10 - passedMin);
+                        document.getElementById('timeLeft').innerText = left;
+                    }, 1000);
+                } else if (me.status === 'checked-in') {
+                    document.getElementById('pendingWarning').style.display = 'none';
+                    document.getElementById('checkInBox').style.display = 'none';
+                    document.getElementById('checkInDone').style.display = 'block';
+                } else {
+                    document.getElementById('pendingWarning').style.display = 'none';
+                }
+            }
+        }
+
+        function send() {
+            if (!isAccepting) return alert('現在受付を停止しております。');
+            socket.emit('register', { type, ...nums, pref: document.getElementById('pref').value });
+        }
+
+        socket.on('registered', g => {
+            myId = g.displayId;
+            document.getElementById('formArea').style.display='none';
+            document.getElementById('ticketArea').style.display='block';
+            document.getElementById('num').innerText = g.displayId;
+        });
+
+        // 来店ボタン
+        function doCheckIn() {
+            if (myId) socket.emit('checkIn', myId);
+        }
+
+        // セルフキャンセル
+        function cancelQueue() {
+            if(confirm('本当に順番待ちを取り消しますか？\nこの操作は元に戻せません。')) {
+                socket.emit('updateStatus', { displayId: myId, status: 'delete' });
+            }
+        }
+
+        // 呼び出し受信
+        socket.on('calledNotice', d => {
+            // 右側のサイネージ表示
+            document.getElementById('callingBanner').style.display = 'block';
+            document.getElementById('callingNowId').innerText = d.displayId;
+
+            // 自分の番号だったら画面切り替え＆音・バイブ
+            if (myId === d.displayId) {
+                document.getElementById('normalView').style.display = 'none';
+                document.getElementById('calledScreen').style.display = 'block';
+                document.getElementById('ticketArea').classList.add('screen-calling');
+                
+                // 音とバイブレーション（ブラウザ制限内で実行）
+                try {
+                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    const osc = ctx.createOscillator();
+                    osc.connect(ctx.destination);
+                    osc.start(); osc.stop(ctx.currentTime + 0.5);
+                    if (navigator.vibrate) navigator.vibrate([500, 200, 500]);
+                } catch(e) {}
+            }
+        });
+
+        socket.on('error', err => alert('エラー: ' + err.message));
+    </script>
+</body>
+</html>

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>松乃木飯店 管理画面</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%); min-height: 100vh; }
+        
+        .header { background: white; padding: 20px; border-radius: 15px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-align: center; }
+        .header h1 { color: #8b0000; font-size: 1.8em; margin-bottom: 10px; }
+        .header .clock { font-size: 2em; font-weight: bold; color: #333; }
+        
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 3px 10px rgba(0,0,0,0.15); text-align: center; }
+        .stat-value { font-size: 2.5em; font-weight: bold; color: #8b0000; }
+        .stat-label { font-size: 0.9em; color: #666; margin-top: 5px; }
+        
+        .card { background: white; padding: 20px; border-radius: 15px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .card h2 { color: #8b0000; margin-bottom: 15px; font-size: 1.4em; }
+        
+        button { cursor: pointer; padding: 10px 15px; border-radius: 8px; border: none; font-weight: bold; transition: all 0.2s; font-size: 0.95em; }
+        button:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+        .btn-stop { background: #e74c3c; color: white; }
+        .btn-start { background: #27ae60; color: white; }
+        .btn-reset { background: #95a5a6; color: white; }
+        
+        /* アクションボタン用 */
+        .btn-call { background: #e67e22; color: white; margin-right: 5px; }
+        .btn-pending { background: #f1c40f; color: #333; margin-right: 5px; }
+        .btn-complete { background: #2ecc71; color: white; }
+        .btn-delete { background: #95a5a6; color: white; padding: 5px 10px; font-size: 0.8em; margin-left: 5px; }
+        
+        #statusLabel { font-weight: bold; font-size: 1.2em; margin-bottom: 15px; padding: 10px; border-radius: 8px; text-align: center; }
+        .status-accepting { background: #d4edda; color: #155724; }
+        .status-stopped { background: #f8d7da; color: #721c24; }
+        .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.95em; }
+        thead { background: #8b0000; color: white; }
+        th { padding: 12px; text-align: center; font-weight: bold; }
+        td { border-bottom: 1px solid #eee; padding: 12px; text-align: center; vertical-align: middle; }
+        
+        /* 行のステータス色分け */
+        .row-checked-in td { background-color: #e3f2fd; }
+        .row-pending td { background-color: #fff3cd; }
+        
+        .badge { padding: 4px 8px; border-radius: 5px; font-size: 0.85em; font-weight: bold; display: inline-block; margin-top: 5px; }
+        .badge-present { background: #2196f3; color: white; }
+        .badge-pending { background: #f39c12; color: white; }
+        
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .controls { flex-direction: column; align-items: stretch; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏮 松乃木飯店 管理画面</h1>
+        <div class="clock" id="clock">--:--:--</div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card"><div class="stat-value" id="queueCount">0</div><div class="stat-label">現在待ち組数</div></div>
+        <div class="stat-card"><div class="stat-value" id="totalToday">0</div><div class="stat-label">本日受付総数</div></div>
+        <div class="stat-card"><div class="stat-value" id="completedToday">0</div><div class="stat-label">本日案内完了</div></div>
+        <div class="stat-card"><div class="stat-value" id="avgWait">0</div><div class="stat-label">平均待ち時間(分)</div></div>
+    </div>
+
+    <div class="card">
+        <h2>📋 受付コントロール</h2>
+        <div id="statusLabel" class="status-accepting">状態確認中...</div>
+        <div class="controls">
+            <button class="btn-stop" onclick="setAccept(false, 0)">今すぐ停止</button>
+            <button class="btn-stop" onclick="setAccept(false, 30)">30分停止</button>
+            <button class="btn-stop" onclick="setAccept(false, 60)">60分停止</button>
+            <button class="btn-start" onclick="setAccept(true, 0)">▶ 受付再開</button>
+            <button class="btn-reset" onclick="resetStats()" style="margin-left:auto;">📊 統計リセット</button>
+        </div>
+    </div>
+
+    <div class="card" style="overflow-x: auto;">
+        <h2>👥 待ち状況一覧</h2>
+        <p style="font-size:0.9em; color:#666; margin-bottom:10px;">💡 【水色の行】は店舗に到着済みです。優先的にご案内してください。</p>
+        <table style="min-width: 700px;">
+            <thead>
+                <tr>
+                    <th>番号 / 状態</th>
+                    <th>受付時刻</th>
+                    <th>人数 / 座席</th>
+                    <th>操作パネル</th>
+                </tr>
+            </thead>
+            <tbody id="list">
+                <tr><td colspan="4" style="text-align:center; padding:30px; color:#999;">待ち客はいません</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const socket = io();
+        
+        setInterval(() => {
+            document.getElementById('clock').innerText = new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }, 1000);
+
+        function updateUI(d) {
+            document.getElementById('queueCount').innerText = d.queue.length;
+            document.getElementById('totalToday').innerText = d.stats.totalToday || 0;
+            document.getElementById('completedToday').innerText = d.stats.completedToday || 0;
+            document.getElementById('avgWait').innerText = d.stats.averageWaitTime || 0;
+
+            const list = document.getElementById('list');
+            if (d.queue.length === 0) {
+                list.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:30px; color:#999;">待ち客はいません</td></tr>';
+            } else {
+                list.innerHTML = d.queue.map(g => {
+                    const diff = Math.floor((Date.now() - g.timestamp) / 60000);
+                    let rowClass = '', badge = '';
+                    
+                    if (g.status === 'checked-in') {
+                        rowClass = 'row-checked-in';
+                        badge = '<br><span class="badge badge-present">📍 来店済</span>';
+                    } else if (g.status === 'pending') {
+                        rowClass = 'row-pending';
+                        const passed = Math.floor((Date.now() - g.pendingStart) / 60000);
+                        badge = `<br><span class="badge badge-pending">⚠️ 不在 (残${Math.max(0, 10 - passed)}分)</span>`;
+                    }
+
+                    return `
+                        <tr class="${rowClass}">
+                            <td>
+                                <span style="font-weight:bold; color:#8b0000; font-size:1.2em;">${g.displayId}</span>
+                                <span style="font-size:0.8em; color:#666; margin-left:5px;">(${g.type==='shop'?'店舗':'Web'})</span>
+                                ${badge}
+                            </td>
+                            <td>${g.time}<br><span style="color:#e67e22; font-size:0.9em; font-weight:bold;">${diff}分経過</span></td>
+                            <td>${g.adults}大 / ${g.children}子 / ${g.infants}幼<br><span style="font-size:0.9em;">${g.pref}</span></td>
+                            <td>
+                                <button class="btn-call" onclick="socket.emit('callGuest', '${g.displayId}')">📢 呼出</button>
+                                <button class="btn-pending" onclick="socket.emit('setPending', '${g.displayId}')">不在</button>
+                                <button class="btn-complete" onclick="if(confirm('${g.displayId}を案内完了にしますか？')) socket.emit('updateStatus', {displayId:'${g.displayId}', status:'completed'})">✓ 完了</button>
+                                <button class="btn-delete" onclick="if(confirm('${g.displayId}をリストから削除しますか？')) socket.emit('updateStatus', {displayId:'${g.displayId}', status:'delete'})">削除</button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        socket.on('statusChange', s => {
+            const isAccepting = s.isAccepting !== undefined ? s.isAccepting : s;
+            const label = document.getElementById('statusLabel');
+            label.innerText = isAccepting ? "✅ 現在：受付中" : "⏸️ 現在：受付停止中";
+            label.className = isAccepting ? "status-accepting" : "status-stopped";
+        });
+
+        socket.on('init', d => { updateUI(d); socket.emit('fake-statusChange', { isAccepting: d.isAccepting }); });
+        socket.on('update', d => updateUI(d));
+
+        function setAccept(status, duration) { 
+            const msg = status ? '受付を再開しますか？' : (duration > 0 ? `${duration}分間受付を停止しますか？` : '受付を停止しますか？');
+            if (confirm(msg)) socket.emit('setAcceptance', { status, duration }); 
+        }
+        function resetStats() { if (confirm('本日の統計をリセットしますか？\n（待ち状況は保持されます）')) socket.emit('resetStats'); }
+        
+        // 1分ごとに経過時間と不在タイマーを画面更新
+        setInterval(() => { socket.emit('requestUpdate'); }, 60000); 
+    </script>
+</body>
+</html>
