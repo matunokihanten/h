@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>チェックイン</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 40px 20px; background: #fdfaf5; }
+        .status { font-size: 1.5em; font-weight: bold; margin: 20px 0; }
+        .success { color: #27ae60; }
+        .error { color: #c0392b; }
+    </style>
+</head>
+<body>
+    <h2>ご来店ありがとうございます</h2>
+    <div id="message" class="status">確認中...</div>
+    <p>この画面を閉じてお待ちください。</p>
+    <a href="/" style="display:inline-block; margin-top:20px; padding:10px 20px; background:#ccc; text-decoration:none; color:black; border-radius:5px;">受付画面へ戻る</a>
+
+    <script>
+        const socket = io();
+        const myId = localStorage.getItem('myTicketId');
+
+        setTimeout(() => {
+            if (myId) {
+                // IDを持っていればサーバーに到着を通知
+                socket.emit('updateStatus', { displayId: myId, status: 'arrived' });
+                document.getElementById('message').innerText = `${myId} 番\nチェックインしました！`;
+                document.getElementById('message').className = "status success";
+            } else {
+                // IDがない（予約していない）場合
+                document.getElementById('message').innerText = "予約情報が見つかりません。\n受付を行ってください。";
+                document.getElementById('message').className = "status error";
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

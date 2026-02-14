@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>松乃木飯店 管理</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f0f2f5; }
+        .card { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        button { cursor: pointer; padding: 10px; border-radius: 5px; border: none; margin-right: 5px; }
+        .btn-stop { background: #e67e22; color: white; }
+        .btn-start { background: #27ae60; color: white; }
+        .btn-reset { background: #c0392b; color: white; float: right; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border-bottom: 1px solid #eee; padding: 12px; text-align: center; }
+        .status-arrived { background-color: #d4efdf; color: #145a32; font-weight: bold; }
+        .status-waiting { color: #d35400; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>管理パネル</h2>
+        <div style="margin-bottom: 15px;">
+            <span id="statusLabel" style="font-weight:bold; margin-right:20px;">状態確認中...</span>
+            <button class="btn-stop" onclick="setAccept(false, 0)">今すぐ停止</button>
+            <button class="btn-stop" onclick="setAccept(false, 30)">30分停止</button>
+            <button class="btn-start" onclick="setAccept(true, 0)">受付再開</button>
+            
+            <button class="btn-reset" onclick="forceReset()">強制リセット（全消去）</button>
+        </div>
+    </div>
+    
+    <div class="card">
+        <table>
+            <thead>
+                <tr>
+                    <th>番号</th>
+                    <th>状態</th> <th>種別</th>
+                    <th>人数(大/子/幼)</th>
+                    <th>希望</th>
+                    <th>時間</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="list"></tbody>
+        </table>
+    </div>
+
+    <script>
+        const socket = io();
+        
+        socket.on('init', d => updateUI(d));
+        socket.on('update', d => updateUI(d));
+        socket.on('statusChange', s => {
+            const l = document.getElementById('statusLabel');
+            l.innerText = s ? "● 受付中" : "■ 受付停止中";
+            l.style.color = s ? "green" : "red";
+        });
+
+        function updateUI(d) {
+            document.getElementById('list').innerHTML = d.queue.map(g => {
+                const statusClass = g.status === 'arrived' ? 'status-arrived' : 'status-waiting';
+                const statusText = g.status === 'arrived' ? '到着' : '待機';
+                const typeText = g.displayId.startsWith('S') ? '店舗' : 'ネット';
+                
+                return `<tr class="${statusClass}">
+                    <td>${g.displayId}</td>
+                    <td>${statusText}</td>
+                    <td>${typeText}</td>
+                    <td>${g.adults}/${g.children}/${g.infants}</td>
+                    <td>${g.pref}</td>
+                    <td>${g.time}</td>
+                    <td>
+                        <button onclick="done('${g.displayId}')" style="background:#2980b9; color:white;">案内完了</button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        function done(id) { 
+            if(confirm('案内完了として削除しますか？')) {
+                socket.emit('updateStatus', { displayId: id, status: 'delete' }); 
+            }
+        }
+        function setAccept(status, duration) { socket.emit('setAcceptance', { status, duration }); }
+        function forceReset() { 
+            if(confirm('本日のデータを全てリセットしますか？（元に戻せません）')) {
+                socket.emit('forceReset'); 
+            }
+        }
+    </script>
+</body>
+</html>

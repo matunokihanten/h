@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>松乃木飯店 受付</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #fdfaf5; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        header { background: #8b0000; color: white; padding: 10px; text-align: center; height: 50px; box-sizing: border-box; }
+        .main-container { display: flex; flex: 1; height: calc(100vh - 50px); }
+
+        /* 左側：入力 */
+        .left-panel { width: 400px; padding: 15px; border-right: 2px solid #d4b483; display: flex; flex-direction: column; align-items: center; box-sizing: border-box; overflow-y: auto; }
+        .form-box { background: white; padding: 15px; border-radius: 15px; width: 100%; border: 1px solid #d4b483; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        
+        /* 人数入力コントロール */
+        .number-control { margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .control-row { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 5px; }
+        .num-display { font-size: 1.8em; font-weight: bold; min-width: 50px; text-align: center; color: #8b0000; }
+        .btn-step { background: #eee; border: 1px solid #ccc; width: 45px; height: 45px; border-radius: 50%; font-size: 1.5em; cursor: pointer; }
+        .quick-nums { display: flex; gap: 5px; margin-top: 8px; justify-content: center; }
+        .btn-quick { background: #fff; border: 1px solid #d4b483; padding: 5px 12px; border-radius: 5px; font-size: 0.9em; cursor: pointer; }
+
+        select { padding: 12px; margin: 10px 0; width: 100%; font-size: 1.1em; border: 1px solid #ddd; border-radius: 5px; }
+        .btn-submit { background: #8b0000; color: white; border: none; padding: 18px; width: 100%; font-size: 1.2em; border-radius: 8px; cursor: pointer; font-weight: bold; }
+
+        /* 右側：6列グリッド */
+        .right-panel { flex: 1; padding: 15px; background: #fff; overflow-y: auto; }
+        .grid-container { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+        .queue-card { background: #fffcf5; border: 1px solid #d4b483; border-radius: 8px; padding: 8px; text-align: center; }
+        .queue-id { font-weight: bold; color: #8b0000; font-size: 1.2em; display: block; }
+        .queue-info { font-size: 0.75em; color: #666; line-height: 1.2; }
+
+        .complete-id { font-size: 4.5em; color: #8b0000; font-weight: bold; text-align: center; margin: 10px 0; }
+        @media (max-width: 1000px) { .grid-container { grid-template-columns: repeat(3, 1fr); } .left-panel { width: 320px; } }
+    </style>
+</head>
+<body>
+    <header><h1 style="margin:0; font-size: 1.2em;">松乃木飯店 席待ち受付</h1></header>
+    <div class="main-container">
+        <div class="left-panel">
+            <div id="formArea" class="form-box">
+                <h3 style="margin:0 0 10px; color:#8b0000; text-align:center;">新規受付</h3>
+                
+                <div class="number-control">
+                    <label style="font-size:0.8em; font-weight:bold;">大人 (中学生以上)</label>
+                    <div class="control-row">
+                        <button class="btn-step" onclick="changeNum('adults', -1)">-</button>
+                        <span id="display-adults" class="num-display">2</span>
+                        <button class="btn-step" onclick="changeNum('adults', 1)">+</button>
+                    </div>
+                    <div class="quick-nums">
+                        <button class="btn-quick" onclick="setNum('adults', 1)">1名</button>
+                        <button class="btn-quick" onclick="setNum('adults', 2)">2名</button>
+                        <button class="btn-quick" onclick="setNum('adults', 4)">4名</button>
+                    </div>
+                </div>
+
+                <div class="number-control">
+                    <label style="font-size:0.8em; font-weight:bold;">子供 (小学生)</label>
+                    <div class="control-row">
+                        <button class="btn-step" onclick="changeNum('children', -1)">-</button>
+                        <span id="display-children" class="num-display">0</span>
+                        <button class="btn-step" onclick="changeNum('children', 1)">+</button>
+                    </div>
+                </div>
+
+                <div class="number-control">
+                    <label style="font-size:0.8em; font-weight:bold;">幼児 (未就学児)</label>
+                    <div class="control-row">
+                        <button class="btn-step" onclick="changeNum('infants', -1)">-</button>
+                        <span id="display-infants" class="num-display">0</span>
+                        <button class="btn-step" onclick="changeNum('infants', 1)">+</button>
+                    </div>
+                </div>
+
+                <select id="pref"><option>どこでも</option><option>カウンター</option><option>テーブル</option><option>お座敷</option></select>
+                <button id="regBtn" class="btn-submit" onclick="send()">受付確定</button>
+            </div>
+
+            <div id="ticketArea" class="form-box" style="display:none; border: 2px solid #8b0000;">
+                <h3 style="color:#27ae60; margin:0;">受付完了</h3>
+                <div id="num" class="complete-id">--</div>
+                <div style="background:#fff3f3; padding:10px; border-radius:8px; font-size:0.85em; color:#d35400; text-align:center; font-weight:bold;">
+                    ⚠️ 番号をメモまたは撮影してください
+                </div>
+                <button class="btn-submit" onclick="closeTicket()" style="background:#666; margin-top:15px;">閉じる</button>
+            </div>
+        </div>
+        <div class="right-panel">
+            <h3 style="margin:0 0 10px; color:#8b0000; text-align:center;">お待ち状況（<span id="count">0</span>組待ち）</h3>
+            <div id="queueList" class="grid-container"></div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        const type = new URLSearchParams(window.location.search).get('type') || 'web';
+        
+        let nums = { adults: 2, children: 0, infants: 0 };
+
+        function updateDisplays() {
+            document.getElementById('display-adults').innerText = nums.adults;
+            document.getElementById('display-children').innerText = nums.children;
+            document.getElementById('display-infants').innerText = nums.infants;
+        }
+
+        function changeNum(key, step) {
+            nums[key] = Math.max(0, nums[key] + step);
+            if(key === 'adults' && nums.adults < 1) nums.adults = 1; // 大人は最低1人
+            updateDisplays();
+        }
+
+        function setNum(key, val) {
+            nums[key] = val;
+            updateDisplays();
+        }
+
+        socket.on('update', d => {
+            document.getElementById('count').innerText = d.queue.length;
+            const list = document.getElementById('queueList');
+            list.innerHTML = d.queue.map(g => `<div class="queue-card"><span class="queue-id">${g.displayId}</span><div class="queue-info">${g.adults}/${g.children}/${g.infants}<br>${g.pref}</div></div>`).join('');
+        });
+
+        socket.on('statusChange', s => { 
+            const b = document.getElementById('regBtn'); b.disabled = !s; b.innerText = s ? "受付確定" : "受付停止中";
+        });
+
+        function send() {
+            socket.emit('register', { type, ...nums, pref: document.getElementById('pref').value });
+        }
+
+        function closeTicket() {
+            document.getElementById('ticketArea').style.display='none';
+            document.getElementById('formArea').style.display='block';
+            nums = { adults: 2, children: 0, infants: 0 };
+            updateDisplays();
+        }
+
+        socket.on('registered', g => {
+            document.getElementById('formArea').style.display='none';
+            document.getElementById('ticketArea').style.display='block';
+            document.getElementById('num').innerText = g.displayId;
+        });
+    </script>
+</body>
+</html>

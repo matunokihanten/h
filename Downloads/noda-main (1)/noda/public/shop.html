@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>店舗用端末 (受付)</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body { font-family: sans-serif; display: flex; height: 100vh; margin: 0; background: #f0f0f0; }
+        .left-panel { width: 350px; padding: 20px; background: white; border-right: 2px solid #ccc; display: flex; flex-direction: column; }
+        .right-panel { flex: 1; padding: 20px; overflow-y: auto; }
+        
+        /* フォーム系 */
+        .control-row { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+        .num-display { font-size: 2em; font-weight: bold; width: 50px; text-align: center; }
+        button { cursor: pointer; }
+        .btn-step { width: 50px; height: 50px; font-size: 1.5em; }
+        .btn-submit { background: #8b0000; color: white; padding: 20px; font-size: 1.2em; border: none; border-radius: 8px; width: 100%; margin-top: 20px; }
+
+        /* リスト系 */
+        .queue-item { background: white; padding: 10px; margin-bottom: 10px; border-radius: 5px; border-left: 5px solid #ccc; display: flex; justify-content: space-between; align-items: center; }
+        .queue-item.arrived { border-left-color: #27ae60; background: #e8f8f5; } /* 到着済みは緑 */
+        .queue-item.waiting { border-left-color: #e67e22; } /* 待機中はオレンジ */
+        .badge { padding: 3px 8px; border-radius: 4px; color: white; font-size: 0.8em; }
+        .badge-shop { background: #8b0000; }
+        .badge-web { background: #2980b9; }
+    </style>
+</head>
+<body>
+    <div class="left-panel">
+        <h2 style="text-align:center;">店内 受付入力</h2>
+        
+        <div class="control-row">
+            <span>大人</span>
+            <button class="btn-step" onclick="mod('adults', -1)">-</button>
+            <span id="d-adults" class="num-display">2</span>
+            <button class="btn-step" onclick="mod('adults', 1)">+</button>
+        </div>
+        <div class="control-row">
+            <span>子供</span>
+            <button class="btn-step" onclick="mod('children', -1)">-</button>
+            <span id="d-children" class="num-display">0</span>
+            <button class="btn-step" onclick="mod('children', 1)">+</button>
+        </div>
+        <div class="control-row">
+            <span>幼児</span>
+            <button class="btn-step" onclick="mod('infants', -1)">-</button>
+            <span id="d-infants" class="num-display">0</span>
+            <button class="btn-step" onclick="mod('infants', 1)">+</button>
+        </div>
+
+        <select id="pref" style="font-size:1.2em; padding:10px; width:100%;">
+            <option>どこでも</option><option>カウンター</option><option>テーブル</option><option>お座敷</option>
+        </select>
+
+        <button class="btn-submit" onclick="register()">発券する</button>
+        <div id="msg" style="color:green; text-align:center; margin-top:10px; height:20px;"></div>
+    </div>
+
+    <div class="right-panel">
+        <h3>現在の待ち状況 (<span id="count">0</span>組)</h3>
+        <div id="list"></div>
+    </div>
+
+    <script>
+        const socket = io();
+        let nums = { adults: 2, children: 0, infants: 0 };
+
+        function mod(k, v) {
+            nums[k] = Math.max(0, nums[k] + v);
+            if(k==='adults' && nums.adults<1) nums.adults=1;
+            document.getElementById('d-'+k).innerText = nums[k];
+        }
+
+        function register() {
+            socket.emit('register', { type: 'shop', ...nums, pref: document.getElementById('pref').value });
+        }
+
+        socket.on('registered', (data) => {
+            // 店舗端末は発券完了メッセージを一瞬出すだけ
+            const m = document.getElementById('msg');
+            m.innerText = `発券完了: ${data.displayId}`;
+            setTimeout(() => m.innerText = '', 3000);
+            // 数値をリセット
+            nums = { adults: 2, children: 0, infants: 0 };
+            mod('adults', 0); mod('children', 0); mod('infants', 0);
+        });
+
+        socket.on('update', d => {
+            document.getElementById('count').innerText = d.queue.length;
+            const list = document.getElementById('list');
+            list.innerHTML = d.queue.map(q => {
+                const statusText = q.status === 'arrived' ? '<span style="color:#27ae60; font-weight:bold;">[到着済]</span>' : '待機中';
+                const sourceBadge = q.displayId.startsWith('W') ? '<span class="badge badge-web">ネット</span>' : '<span class="badge badge-shop">店舗</span>';
+                
+                return `<div class="queue-item ${q.status}">
+                    <div>
+                        <span style="font-size:1.5em; font-weight:bold; margin-right:10px;">${q.displayId}</span>
+                        ${sourceBadge}
+                        <span style="margin-left:10px;">${q.adults}/${q.children}/${q.infants}名 (${q.pref})</span>
+                    </div>
+                    <div>${statusText}</div>
+                </div>`;
+            }).join('');
+        });
+    </script>
+</body>
+</html>

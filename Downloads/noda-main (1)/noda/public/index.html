@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>松乃木飯店 受付(ネット)</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #fdfaf5; margin: 0; display: flex; flex-direction: column; height: 100vh; }
+        header { background: #8b0000; color: white; padding: 10px; text-align: center; font-size: 1.2em; }
+        .container { padding: 20px; flex: 1; overflow-y: auto; max-width: 600px; margin: 0 auto; width: 100%; box-sizing: border-box; }
+        
+        .form-box, .ticket-box { background: white; padding: 20px; border-radius: 10px; border: 1px solid #d4b483; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        
+        .number-control { margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .control-row { display: flex; align-items: center; justify-content: center; gap: 15px; }
+        .num-display { font-size: 1.5em; font-weight: bold; width: 40px; text-align: center; }
+        .btn-step { width: 40px; height: 40px; border-radius: 50%; border: 1px solid #ccc; background: #eee; font-size: 1.2em; }
+        
+        .btn-submit { background: #8b0000; color: white; border: none; padding: 15px; width: 100%; font-size: 1.2em; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-arrive { background: #27ae60; color: white; border: none; padding: 15px; width: 100%; font-size: 1.2em; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        
+        .queue-status { text-align: center; margin-bottom: 20px; font-weight: bold; color: #8b0000; }
+        select { width: 100%; padding: 10px; margin: 10px 0; font-size: 1em; }
+    </style>
+</head>
+<body>
+    <header>松乃木飯店 席待ち受付</header>
+    <div class="container">
+        <div class="queue-status">現在 <span id="waitCount">0</span> 組待ち</div>
+
+        <div id="formArea" class="form-box">
+            <div class="number-control">
+                <label>大人</label>
+                <div class="control-row">
+                    <button class="btn-step" onclick="changeNum('adults', -1)">-</button>
+                    <span id="d-adults" class="num-display">2</span>
+                    <button class="btn-step" onclick="changeNum('adults', 1)">+</button>
+                </div>
+            </div>
+            <div class="number-control">
+                <label>子供 (小学生)</label>
+                <div class="control-row">
+                    <button class="btn-step" onclick="changeNum('children', -1)">-</button>
+                    <span id="d-children" class="num-display">0</span>
+                    <button class="btn-step" onclick="changeNum('children', 1)">+</button>
+                </div>
+            </div>
+            <div class="number-control">
+                <label>幼児</label>
+                <div class="control-row">
+                    <button class="btn-step" onclick="changeNum('infants', -1)">-</button>
+                    <span id="d-infants" class="num-display">0</span>
+                    <button class="btn-step" onclick="changeNum('infants', 1)">+</button>
+                </div>
+            </div>
+            <select id="pref">
+                <option>どこでも</option><option>カウンター</option><option>テーブル</option><option>お座敷</option>
+            </select>
+            <button id="regBtn" class="btn-submit" onclick="send()">受付確定</button>
+        </div>
+
+        <div id="ticketArea" class="ticket-box" style="display:none;">
+            <h3 style="color:#27ae60; text-align:center; margin:0;">受付済み</h3>
+            <div id="myId" style="font-size:3em; text-align:center; color:#8b0000; font-weight:bold; margin:10px 0;">--</div>
+            <p style="text-align:center; font-size:0.9em; color:#666;">この画面を閉じた場合は、店舗のQRコードを読み込むと復元できます。</p>
+            
+            <button id="arriveBtn" class="btn-arrive" onclick="notifyArrived()">店舗に到着しました</button>
+            <p id="arriveMsg" style="display:none; text-align:center; color:#27ae60; font-weight:bold; margin-top:10px;">到着を確認しました！<br>スタッフがお呼びします。</p>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let nums = { adults: 2, children: 0, infants: 0 };
+        let currentId = localStorage.getItem('myTicketId'); // IDを保存して復元可能に
+
+        function changeNum(k, v) {
+            nums[k] = Math.max(0, nums[k] + v);
+            if(k==='adults' && nums.adults<1) nums.adults=1;
+            document.getElementById('d-'+k).innerText = nums[k];
+        }
+
+        socket.on('update', d => {
+            document.getElementById('waitCount').innerText = d.queue.length;
+            // 自分のステータスを確認
+            if (currentId) {
+                const me = d.queue.find(q => q.displayId === currentId);
+                if (me) {
+                    showTicket(me.displayId);
+                    if (me.status === 'arrived') {
+                        document.getElementById('arriveBtn').style.display = 'none';
+                        document.getElementById('arriveMsg').style.display = 'block';
+                    }
+                } else {
+                    // リセットされたか呼び出し済みで消された場合
+                    resetForm();
+                }
+            }
+        });
+
+        socket.on('statusChange', s => {
+            document.getElementById('regBtn').disabled = !s;
+            document.getElementById('regBtn').innerText = s ? "受付確定" : "受付停止中";
+        });
+
+        socket.on('registered', g => {
+            currentId = g.displayId;
+            localStorage.setItem('myTicketId', currentId);
+            showTicket(currentId);
+        });
+
+        function send() {
+            socket.emit('register', { type: 'web', ...nums, pref: document.getElementById('pref').value });
+        }
+
+        function notifyArrived() {
+            if(!currentId) return;
+            if(confirm("店舗に到着しましたか？")) {
+                socket.emit('updateStatus', { displayId: currentId, status: 'arrived' });
+            }
+        }
+
+        function showTicket(id) {
+            document.getElementById('formArea').style.display = 'none';
+            document.getElementById('ticketArea').style.display = 'block';
+            document.getElementById('myId').innerText = id;
+        }
+
+        function resetForm() {
+            currentId = null;
+            localStorage.removeItem('myTicketId');
+            document.getElementById('formArea').style.display = 'block';
+            document.getElementById('ticketArea').style.display = 'none';
+            document.getElementById('arriveBtn').style.display = 'block';
+            document.getElementById('arriveMsg').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
