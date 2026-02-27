@@ -1,0 +1,40 @@
+{
+  "name": "matsunoki-attendance",
+  "version": "1.0.0",
+  "description": "松乃木飯店 出勤簿システム - Cloudflare Pages対応版",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:sandbox": "wrangler pages dev dist --d1=matsunoki-attendance-db --local --ip 0.0.0.0 --port 3000",
+    "build": "vite build",
+    "preview": "wrangler pages dev dist",
+    "deploy": "npm run build && wrangler pages deploy dist --project-name matsunoki-attendance",
+    "deploy:prod": "npm run build && wrangler pages deploy dist --project-name matsunoki-attendance --branch main",
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings",
+    "db:create": "wrangler d1 create matsunoki-attendance-db",
+    "db:migrate:local": "wrangler d1 migrations apply matsunoki-attendance-db --local",
+    "db:migrate:prod": "wrangler d1 migrations apply matsunoki-attendance-db",
+    "db:seed": "wrangler d1 execute matsunoki-attendance-db --local --file=./seed.sql",
+    "db:reset": "rm -rf .wrangler/state/v3/d1 && npm run db:migrate:local && npm run db:seed",
+    "db:console:local": "wrangler d1 execute matsunoki-attendance-db --local",
+    "db:console:prod": "wrangler d1 execute matsunoki-attendance-db",
+    "clean-port": "fuser -k 3000/tcp 2>/dev/null || true",
+    "test": "curl http://localhost:3000",
+    "git:commit": "git add . && git commit -m",
+    "git:status": "git status",
+    "git:log": "git log --oneline"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.9",
+    "hono": "^4.0.0",
+    "pg": "^8.19.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250705.0",
+    "@hono/vite-cloudflare-pages": "^0.4.2",
+    "@types/pg": "^8.16.0",
+    "typescript": "^5.0.0",
+    "vite": "^5.0.0",
+    "wrangler": "^3.78.0"
+  }
+}

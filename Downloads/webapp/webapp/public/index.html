@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>松乃木飯店 出勤簿</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root { 
+    --bg:#f8fafc; 
+    --card:#ffffff; 
+    --accent:#2563eb; 
+    --danger:#e11d48; 
+    --text:#1e293b; 
+    --border:#cbd5e1; 
+  }
+  
+  * { box-sizing: border-box; }
+  
+  body { 
+    font-family:"Hiragino Kaku Gothic ProN","YuGothic",sans-serif; 
+    background:var(--bg); 
+    margin:0; 
+    padding:10px; 
+    color:var(--text); 
+  }
+  
+  .staff-grid { 
+    display:grid; 
+    grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); 
+    gap:12px; 
+  }
+  
+  .name-btn { 
+    padding:25px 10px; 
+    border-radius:12px; 
+    color:#fff; 
+    border:none; 
+    cursor:pointer; 
+    text-align:center; 
+    box-shadow:0 4px 6px rgba(0,0,0,0.1); 
+    transition:transform 0.1s; 
+    font-weight:bold;
+    font-size:1.1rem;
+  }
+  
+  .name-btn:active { transform:scale(0.95); }
+  .name-btn.blue { background:linear-gradient(135deg, #3b82f6, #2563eb); }
+  .name-btn.red { background:linear-gradient(135deg, #f43f5e, #e11d48); }
+  
+  .name-btn span { 
+    display:block; 
+    font-size:0.75rem; 
+    margin-top:8px; 
+    background:rgba(0,0,0,0.15); 
+    border-radius:4px; 
+    padding:4px; 
+    font-weight:normal;
+  }
+  
+  table { 
+    width:100%; 
+    border-collapse:collapse; 
+    font-size:0.85rem; 
+  }
+  
+  th, td { 
+    border:1px solid var(--border); 
+    padding:10px; 
+    text-align:center; 
+  }
+  
+  th { 
+    background:#f1f5f9; 
+    font-weight:700; 
+  }
+  
+  .overtime-text { 
+    color: var(--danger); 
+    font-weight: bold; 
+  }
+  
+  #toast { 
+    position:fixed; 
+    top:20px; 
+    left:50%; 
+    transform:translateX(-50%); 
+    background:rgba(0,0,0,0.8); 
+    color:#fff; 
+    padding:12px 24px; 
+    border-radius:20px; 
+    display:none; 
+    z-index:9999; 
+    font-size:1.1rem;
+  }
+  
+  .loading { 
+    opacity: 0.6; 
+    pointer-events: none; 
+  }
+</style>
+</head>
+<body>
+<div id="toast"></div>
+
+<div class="max-w-6xl mx-auto">
+  <header class="bg-white p-4 rounded-xl mb-4 shadow-md border-b-4" style="border-color:var(--accent)">
+    <div class="flex justify-between items-center flex-wrap gap-3">
+      <div>
+        <h1 class="text-2xl font-bold m-0" style="color:var(--accent)">松乃木飯店 出勤簿</h1>
+        <small id="statusText" class="text-green-600">✅ 同期中</small>
+      </div>
+      <div class="text-right">
+        <div id="clockDisplay" class="text-xl font-bold">00:00:00</div>
+        <button onclick="location.href='/admin'" class="mt-2 px-3 py-1 text-xs border rounded" style="border-color:var(--accent);color:var(--accent)">
+          管理者メニュー
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <section class="bg-white p-5 rounded-xl shadow-lg mb-4">
+    <div id="staffGrid" class="staff-grid"></div>
+  </section>
+
+  <section class="bg-white p-5 rounded-xl shadow-lg border-l-8" style="border-color:var(--accent)">
+    <div class="bg-gray-100 p-3 rounded-lg mb-3 border border-gray-300">
+      <label class="font-bold text-sm">表示月:</label>
+      <input type="month" id="displayMonth" onchange="renderSummary()" class="ml-2 px-2 py-1 border rounded">
+      <span id="periodText" class="ml-auto text-sm text-gray-600"></span>
+    </div>
+    <div class="overflow-x-auto">
+      <div id="summaryArea"></div>
+    </div>
+  </section>
+</div>
+
+<script>
+// グローバル変数
+let staff = [], logs = [], settings = {};
+let isSaving = false;
+let syncInterval = null;
+
+const $ = id => document.getElementById(id);
+
+// 初期化
+(async function init() {
+  const now = new Date();
+  $('displayMonth').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  
+  await syncFromServer();
+  renderStaffGrid();
+  renderSummary();
+  
+  // 定期同期（5秒ごと）
+  syncInterval = setInterval(syncFromServer, 5000);
+})();
+
+// 時計表示
+setInterval(() => {
+  $('clockDisplay').innerText = new Date().toLocaleTimeString('ja-JP');
+}, 1000);
+
+// サーバーから同期
+async function syncFromServer() {
+  if (isSaving) return;
+  
+  try {
+    const res = await fetch('/api/sync');
+    if (res.ok) {
+      const result = await res.json();
+      if (result.success) {
+        staff = result.data.staff || [];
+        logs = result.data.logs || [];
+        settings = result.data.settings || {};
+        
+        renderStaffGrid();
+        renderSummary();
+        
+        $('statusText').innerText = '✅ 同期完了';
+        $('statusText').className = 'text-green-600';
+      }
+    }
+  } catch (e) {
+    console.error('Sync error:', e);
+    $('statusText').innerText = '⚠️ 同期エラー';
+    $('statusText').className = 'text-red-600';
+  }
+}
+
+// スタッフボタン描画
+function renderStaffGrid() {
+  const grid = $('staffGrid');
+  
+  if (staff.length === 0) {
+    grid.innerHTML = '<p class="text-center text-gray-500 py-10">スタッフが登録されていません</p>';
+    return;
+  }
+  
+  grid.innerHTML = staff.map(s => {
+    const staffLogs = logs.filter(l => l.staff_name === s.name).sort((a,b) => 
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+    const working = staffLogs.length > 0 && staffLogs[staffLogs.length-1].type === 'IN';
+    
+    return `
+      <button 
+        class="name-btn ${working ? 'red' : 'blue'}" 
+        onclick="handleClock('${s.name}', ${working})"
+        ${isSaving ? 'disabled' : ''}
+      >
+        ${s.name}
+        <span>${working ? '● 勤務中' : '退勤済み'}</span>
+      </button>
+    `;
+  }).join('');
+}
+
+// 打刻処理
+async function handleClock(name, isWorkingNow) {
+  if (isSaving) return;
+  
+  isSaving = true;
+  $('staffGrid').classList.add('loading');
+  
+  try {
+    const type = isWorkingNow ? 'OUT' : 'IN';
+    const res = await fetch('/api/clock', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ staff_name: name, type })
+    });
+    
+    const result = await res.json();
+    
+    if (result.success) {
+      showToast(`${name}さん ${isWorkingNow ? 'お疲れ様でした！' : 'おはようございます！'}`);
+      
+      // ローカルに即反映
+      logs.push(result.log);
+      renderStaffGrid();
+      renderSummary();
+      
+      // サーバーから再同期
+      setTimeout(syncFromServer, 500);
+    } else {
+      showToast('エラー: ' + (result.error || '打刻失敗'));
+    }
+  } catch (e) {
+    console.error('Clock error:', e);
+    showToast('通信エラーが発生しました');
+  } finally {
+    isSaving = false;
+    $('staffGrid').classList.remove('loading');
+  }
+}
+
+// 集計表示
+function renderSummary() {
+  const targetMonth = $('displayMonth').value;
+  const { start, end } = getPeriod(targetMonth);
+  
+  $('periodText').innerText = `期間: ${start.toLocaleDateString('ja-JP')} 〜 ${end.toLocaleDateString('ja-JP')}`;
+  
+  const data = processData(targetMonth);
+  
+  let html = `
+    <table>
+      <thead>
+        <tr>
+          <th>名前</th>
+          <th>出勤日数</th>
+          <th>実働時間</th>
+          <th>残業時間</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+  
+  data.forEach(d => {
+    html += `
+      <tr>
+        <td>${d.name}</td>
+        <td>${d.days}日</td>
+        <td>${d.workH.toFixed(2)}h</td>
+        <td class="overtime-text">${d.otH.toFixed(2)}h</td>
+      </tr>
+    `;
+  });
+  
+  html += '</tbody></table>';
+  
+  $('summaryArea').innerHTML = html;
+}
+
+// 期間取得
+function getPeriod(targetMonth) {
+  const [y, m] = targetMonth.split('-').map(Number);
+  const closingDay = parseInt(settings.closingDay || 20);
+  
+  return {
+    start: new Date(y, m - 2, closingDay + 1, 0, 0, 0),
+    end: new Date(y, m - 1, closingDay, 23, 59, 59)
+  };
+}
+
+// 日付文字列取得
+function getLocalDateString(ts) {
+  return new Date(ts).toLocaleDateString('sv');
+}
+
+// データ処理
+function processData(targetMonth) {
+  const { start, end } = getPeriod(targetMonth);
+  const groups = {};
+  
+  // ログをグループ化
+  logs.forEach(l => {
+    const d = new Date(l.timestamp);
+    if (d < start || d > end) return;
+    
+    const key = `${getLocalDateString(l.timestamp)}_${l.staff_name}`;
+    if (!groups[key]) {
+      groups[key] = { 
+        date: getLocalDateString(l.timestamp), 
+        staff: l.staff_name, 
+        ins: [], 
+        outs: [] 
+      };
+    }
+    
+    if (l.type === 'IN') groups[key].ins.push(l);
+    else groups[key].outs.push(l);
+  });
+  
+  // スタッフごとに集計
+  return staff.map(s => {
+    const dayGroups = Object.values(groups).filter(g => g.staff === s.name);
+    let totalMs = 0;
+    
+    dayGroups.forEach(g => {
+      g.ins.sort((a,b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+      g.outs.sort((a,b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+      
+      const workStart = settings.workStartTime || '09:00';
+      const [wsh, wsm] = workStart.split(':').map(Number);
+      
+      // スタッフ個別の休憩時間、なければデフォルト
+      const breakStart = s.break_start || settings.breakStart || '14:15';
+      const breakEnd = s.break_end || settings.breakEnd || '17:15';
+      
+      for (let i = 0; i < Math.min(g.ins.length, g.outs.length); i++) {
+        let inT = new Date(g.ins[i].timestamp);
+        let outT = new Date(g.outs[i].timestamp);
+        
+        // 始業時間調整（1回目のみ）
+        if (i === 0) {
+          const limit = new Date(inT);
+          limit.setHours(wsh, wsm, 0, 0);
+          if (inT < limit) inT = limit;
+        }
+        
+        let ms = outT - inT;
+        
+        // 休憩時間控除（1回目のみ）
+        if (i === 0 && breakStart && breakEnd) {
+          const [bsh, bsm] = breakStart.split(':').map(Number);
+          const [beh, bem] = breakEnd.split(':').map(Number);
+          
+          const bS = new Date(inT);
+          bS.setHours(bsh, bsm, 0, 0);
+          
+          const bE = new Date(inT);
+          bE.setHours(beh, bem, 0, 0);
+          
+          const overlap = Math.min(outT, bE) - Math.max(inT, bS);
+          if (overlap > 0) ms -= overlap;
+        }
+        
+        totalMs += Math.max(0, ms);
+      }
+    });
+    
+    const workH = totalMs / 3600000;
+    const otH = Math.max(0, workH - (dayGroups.length * 8));
+    
+    return {
+      name: s.name,
+      days: dayGroups.length,
+      workH,
+      otH
+    };
+  });
+}
+
+// トースト表示
+function showToast(msg) {
+  const toast = $('toast');
+  toast.innerText = msg;
+  toast.style.display = 'block';
+  setTimeout(() => { toast.style.display = 'none'; }, 2500);
+}
+</script>
+</body>
+</html>

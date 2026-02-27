@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1\" />
+<title>松乃木飯店 管理画面</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root {
+    --bg:#f8fafc;
+    --card:#ffffff;
+    --accent:#2563eb;
+    --danger:#e11d48;
+    --ok:#10b981;
+    --text:#1e293b;
+    --border:#cbd5e1;
+    --warn:#f59e0b;
+  }
+  
+  * { box-sizing: border-box; }
+  
+  body {
+    font-family:"Hiragino Kaku Gothic ProN","YuGothic",sans-serif;
+    background:var(--bg);
+    margin:0;
+    padding:10px;
+    color:var(--text);
+  }
+  
+  .hidden { display:none !important; }
+  
+  .edit-time { 
+    padding:4px; 
+    border:1px solid #ddd; 
+    border-radius:4px; 
+    font-family:monospace; 
+    text-align:center; 
+    width:85px; 
+  }
+  
+  .overtime-text { color: var(--danger); font-weight: bold; }
+</style>
+</head>
+<body>
+
+<div id="login-screen" class="max-w-md mx-auto mt-20 p-6 bg-white rounded-xl shadow-md">
+  <h1 class="text-xl font-bold mb-6 text-center">管理者認証</h1>
+  <p class="text-sm text-gray-500 mb-4 text-center">そのままログインボタンを押してください</p>
+  <input type="password" id="pass-input" class="w-full p-3 border rounded-lg mb-4 text-center" placeholder="パスワード不要" />
+  <button onclick="login()" class="w-full bg-blue-600 text-white p-3 rounded-lg font-bold hover:bg-blue-700">管理者メニューへ入る</button>
+</div>
+
+<div id="admin-panel" class="hidden max-w-5xl mx-auto">
+  <header class="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm">
+    <h1 class="text-2xl font-bold text-blue-800">松乃木飯店 管理パネル</h1>
+    <div class="space-x-2">
+      <button onclick="exportExcel()" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-green-700">Excel保存</button>
+      <button onclick="location.href='/'" class="bg-gray-500 text-white px-4 py-2 rounded-lg font-bold hover:bg-gray-600">戻る</button>
+    </div>
+  </header>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <section class="md:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-bold border-l-4 border-blue-600 pl-3">打刻履歴の修正</h2>
+        <button onclick="saveLogs()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg hover:bg-blue-700">✅ 修正を保存</button>
+      </div>
+      <div class="overflow-x-auto max-h-[600px]">
+        <table class="w-full text-left text-sm border-collapse">
+          <thead>
+            <tr class="bg-gray-50 text-gray-600 sticky top-0">
+              <th class="p-3 border-b">日付</th>
+              <th class="p-3 border-b">名前</th>
+              <th class="p-3 border-b text-center">種別</th>
+              <th class="p-3 border-b text-center">打刻時刻</th>
+              <th class="p-3 border-b text-center">削除</th>
+            </tr>
+          </thead>
+          <tbody id="log-table-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="space-y-6">
+      <section class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <h2 class="text-lg font-bold border-l-4 border-blue-600 pl-3 mb-4">スタッフ管理</h2>
+        <div id="staff-list" class="space-y-4 mb-4"></div>
+        <button onclick="addStaff()" class="w-full border-2 border-dashed border-gray-300 p-2 rounded-lg text-gray-500 hover:bg-gray-50">+ 追加</button>
+        <button onclick="saveStaff()" class="w-full bg-blue-600 text-white p-3 rounded-lg font-bold mt-4 shadow-md hover:bg-blue-700">スタッフ情報を更新</button>
+      </section>
+
+      <section class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <h2 class="text-lg font-bold border-l-4 border-blue-600 pl-3 mb-4">システム設定</h2>
+        <div class="space-y-4">
+          <div>
+            <label class="text-xs font-bold text-gray-500 block mb-1">締め日（20日なら 20）</label>
+            <input type="text" id="set-cutoff" class="w-full p-2 border rounded-lg bg-gray-50 font-mono" />
+          </div>
+          <div>
+            <label class="text-xs font-bold text-gray-500 block mb-1">デフォルト休憩開始</label>
+            <input type="text" id="set-break-start" class="w-full p-2 border rounded-lg bg-gray-50 font-mono" />
+          </div>
+          <div>
+            <label class="text-xs font-bold text-gray-500 block mb-1">デフォルト休憩終了</label>
+            <input type="text" id="set-break-end" class="w-full p-2 border rounded-lg bg-gray-50 font-mono" />
+          </div>
+          <button onclick="saveSettings()" class="w-full bg-gray-800 text-white p-3 rounded-lg font-bold shadow-md hover:bg-black">設定を保存</button>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+let allData = { staff: [], logs: [], settings: {} };
+
+// ログイン機能：自動ログインの仕掛けを追加
+async function login() {
+  const pass = document.getElementById('pass-input').value;
+  try {
+    const res = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pass })
+    });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('admin-panel').classList.remove('hidden');
+      initAdmin();
+    } else {
+      alert('認証に失敗しました。');
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+// ページ読み込み時に自動でログインを試行する（ボタンを押さずにメニューへ行く修正）
+window.addEventListener('DOMContentLoaded', () => {
+  login();
+});
+
+async function initAdmin() {
+  const res = await fetch('/api/sync');
+  const result = await res.json();
+  if (result.success) {
+    allData = result.data;
+    renderLogs();
+    renderStaff();
+    renderSettings();
+  }
+}
+
+function renderLogs() {
+  const tbody = document.getElementById('log-table-body');
+  tbody.innerHTML = '';
+  
+  // 降順に表示
+  [...allData.logs].sort((a,b) => b.id - a.id).forEach(log => {
+    const date = new Date(log.timestamp);
+    const dateStr = `${date.getFullYear()}/${date.getMonth()+1}/${date.getDate()}`;
+    const timeStr = `${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}`;
+    
+    const tr = document.createElement('tr');
+    tr.className = 'hover:bg-gray-50 border-b last:border-0';
+    tr.innerHTML = `
+      <td class="p-3 text-gray-500 text-xs">${dateStr}</td>
+      <td class="p-3 font-bold">${log.staff_name}</td>
+      <td class="p-3 text-center">
+        <span class="px-2 py-1 rounded text-[10px] font-bold ${log.type==='IN'?'bg-blue-100 text-blue-700':'bg-rose-100 text-rose-700'}">${log.type}</span>
+      </td>
+      <td class="p-3 text-center">
+        <input type="text" value="${timeStr}" class="edit-time" data-id="${log.id}" />
+      </td>
+      <td class="p-3 text-center">
+        <input type="checkbox" class="log-del-check" data-id="${log.id}" />
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderStaff() {
+  const container = document.getElementById('staff-list');
+  container.innerHTML = '';
+  allData.staff.forEach(s => {
+    const div = document.createElement('div');
+    div.className = 'bg-gray-50 p-4 rounded-lg border border-gray-200 relative';
+    div.innerHTML = `
+      <div class="grid grid-cols-2 gap-2">
+        <div class="col-span-2">
+          <label class="text-[10px] font-bold text-gray-400">名前</label>
+          <input type="text" class="staff-name w-full p-1 border rounded" value="${s.name}" />
+        </div>
+        <div>
+          <label class="text-[10px] font-bold text-gray-400">休憩始</label>
+          <input type="text" class="staff-bs w-full p-1 border rounded text-xs" value="${s.break_start || ''}" placeholder="14:15" />
+        </div>
+        <div>
+          <label class="text-[10px] font-bold text-gray-400">休憩終</label>
+          <input type="text" class="staff-be w-full p-1 border rounded text-xs" value="${s.break_end || ''}" placeholder="17:15" />
+        </div>
+      </div>
+      <button onclick="deleteStaff(${s.id})" class="absolute top-1 right-1 text-gray-300 hover:text-rose-500 text-xs">✕</button>
+      <input type="hidden" class="staff-id" value="${s.id}" />
+    `;
+    container.appendChild(div);
+  });
+}
+
+function renderSettings() {
+  const s = allData.settings;
+  document.getElementById('set-cutoff').value = s.cutoff_date || '20';
+  document.getElementById('set-break-start').value = s.break_start || '14:15';
+  document.getElementById('set-break-end').value = s.break_end || '17:15';
+}
+
+async function saveLogs() {
+  const updates = [];
+  document.querySelectorAll('.edit-time').forEach(input => {
+    const id = input.dataset.id;
+    const timeVal = input.value;
+    const isDeleted = document.querySelector(`.log-del-check[data-id="${id}"]`).checked;
+    
+    const originalLog = allData.logs.find(l => l.id == id);
+    if (!originalLog) return;
+    
+    let newTs = originalLog.timestamp;
+    if (!isDeleted) {
+      const dateObj = new Date(originalLog.timestamp);
+      const [h, m] = timeVal.split(':');
+      dateObj.setHours(parseInt(h), parseInt(m));
+      newTs = dateObj.toISOString();
+    }
+    
+    updates.push({ id: parseInt(id), timestamp: newTs, deleted: isDeleted });
+  });
+
+  const res = await fetch('/api/logs/update', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ logs: updates })
+  });
+  if (res.ok) {
+    showToast('履歴を保存しました');
+    initAdmin();
+  }
+}
+
+function addStaff() {
+  allData.staff.push({ name: '新スタッフ', break_start: '', break_end: '', id: 0 });
+  renderStaff();
+}
+
+async function deleteStaff(id) {
+  if (!id) {
+    allData.staff = allData.staff.filter(s => s.id !== 0);
+    renderStaff();
+    return;
+  }
+  if (!confirm('スタッフを削除（非表示）にしますか？')) return;
+  const res = await fetch('/api/staff/delete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id })
+  });
+  if (res.ok) {
+    initAdmin();
+  }
+}
+
+async function saveStaff() {
+  const staff = [];
+  document.querySelectorAll('#staff-list > div').forEach(div => {
+    staff.push({
+      id: parseInt(div.querySelector('.staff-id').value),
+      name: div.querySelector('.staff-name').value,
+      break_start: div.querySelector('.staff-bs').value,
+      break_end: div.querySelector('.staff-be').value
+    });
+  });
+  const res = await fetch('/api/staff/update', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ staff })
+  });
+  if (res.ok) {
+    showToast('スタッフ情報を更新しました');
+    initAdmin();
+  }
+}
+
+async function saveSettings() {
+  const settings = {
+    cutoff_date: document.getElementById('set-cutoff').value,
+    break_start: document.getElementById('set-break-start').value,
+    break_end: document.getElementById('set-break-end').value
+  };
+  const res = await fetch('/api/settings/update', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ settings })
+  });
+  if (res.ok) {
+    showToast('システム設定を保存しました');
+    initAdmin();
+  }
+}
+
+// 既存の集計およびExcel出力ロジックを保持
+function exportExcel() {
+  const cutoff = parseInt(allData.settings.cutoff_date || 20);
+  const now = new Date();
+  let start = new Date(now.getFullYear(), now.getMonth() - 1, cutoff + 1);
+  let end = new Date(now.getFullYear(), now.getMonth(), cutoff, 23, 59, 59);
+  
+  const aggregated = aggregateData(allData.staff, allData.logs, allData.settings, start, end);
+  
+  const wb = XLSX.utils.book_new();
+  const data = [['スタッフ名', '出勤日数', '総労働時間', '残業時間(>8h/日)']];
+  aggregated.forEach(s => {
+    data.push([s.staff, s.days, s.workH.toFixed(2), s.otH.toFixed(2)]);
+  });
+  
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  XLSX.utils.book_append_sheet(wb, ws, "集計結果");
+  XLSX.writeFile(wb, `松乃木飯店_集計_${start.getMonth()+1}月.xlsx`);
+}
+
+function aggregateData(staff, logs, settings, start, end) {
+  const sortedLogs = [...logs].filter(l => {
+    const d = new Date(l.timestamp);
+    return d >= start && d <= end;
+  }).sort((a,b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+  const [wsh, wsm] = (settings.start_time || '09:00').split(':').map(Number);
+
+  return staff.map(s => {
+    const sLogs = sortedLogs.filter(l => l.staff_id === s.id || l.staff_name === s.name);
+    const groups = {};
+    sLogs.forEach(l => {
+      const d = new Date(l.timestamp).toDateString();
+      if (!groups[d]) groups[d] = { ins: [], outs: [] };
+      if (l.type === 'IN') groups[d].ins.push(l);
+      else groups[d].outs.push(l);
+    });
+
+    let totalMs = 0;
+    let dailyOTMs = 0;
+    const breakStart = s.break_start || settings.break_start;
+    const breakEnd = s.break_end || settings.break_end;
+
+    Object.values(groups).forEach(g => {
+      let dayMs = 0;
+      for (let i = 0; i < Math.min(g.ins.length, g.outs.length); i++) {
+        let inT = new Date(g.ins[i].timestamp);
+        let outT = new Date(g.outs[i].timestamp);
+        
+        if (i === 0) {
+          const limit = new Date(inT);
+          limit.setHours(wsh, wsm, 0, 0);
+          if (inT < limit) inT = limit;
+        }
+        
+        let ms = outT - inT;
+        if (i === 0 && breakStart && breakEnd) {
+          const [bsh, bsm] = breakStart.split(':').map(Number);
+          const [beh, bem] = breakEnd.split(':').map(Number);
+          const bS = new Date(inT); bS.setHours(bsh, bsm, 0, 0);
+          const bE = new Date(inT); bE.setHours(beh, bem, 0, 0);
+          const overlap = Math.min(outT, bE) - Math.max(inT, bS);
+          if (overlap > 0) ms -= overlap;
+        }
+        dayMs += Math.max(0, ms);
+      }
+      totalMs += dayMs;
+      dailyOTMs += Math.max(0, dayMs - (8 * 3600000));
+    });
+
+    return {
+      staff: s.name,
+      days: Object.keys(groups).length,
+      workH: totalMs / 3600000,
+      otH: dailyOTMs / 3600000
+    };
+  });
+}
+
+function showToast(msg) {
+  const div = document.createElement('div');
+  div.className = 'fixed bottom-5 right-5 bg-gray-800 text-white px-6 py-3 rounded-xl shadow-2xl z-50 animate-bounce';
+  div.textContent = msg;
+  document.body.appendChild(div);
+  setTimeout(() => div.remove(), 3000);
+}
+</script>
+</body>
+</html>
