@@ -31,7 +31,7 @@
 <body>
 <div class="game-container">
   <h1>マッチ棒パズル 💡</h1>
-  <p>棒を動かして正しい式にしよう！</p>
+  <p>棒を1本動かして正しい式にしよう！</p>
   <div class="game-info">
     <div>レベル: <span id="level">ランダム</span></div>
     <div>残り手数: <span id="moves-left">0</span></div>
@@ -53,26 +53,42 @@
 document.addEventListener('DOMContentLoaded', () => {
 
   // --- DATA MODELS & DEFINITIONS ---
+  
+  // 数字用の7セグメント配置
   const SEGMENT_POSITIONS = [
-    { type: 'horizontal', x: 10, y: 0  }, { type: 'vertical',   x: 55, y: 10 }, 
-    { type: 'vertical',   x: 55, y: 55 }, { type: 'horizontal', x: 10, y: 102}, 
-    { type: 'vertical',   x: 0,  y: 55 }, { type: 'vertical',   x: 0,  y: 10 }, 
-    { type: 'horizontal', x: 10, y: 50 },
+    { type: 'horizontal', x: 10, y: 0  }, // 0: 上
+    { type: 'vertical',   x: 55, y: 10 }, // 1: 右上
+    { type: 'vertical',   x: 55, y: 55 }, // 2: 右下
+    { type: 'horizontal', x: 10, y: 102}, // 3: 下
+    { type: 'vertical',   x: 0,  y: 55 }, // 4: 左下
+    { type: 'vertical',   x: 0,  y: 10 }, // 5: 左上
+    { type: 'horizontal', x: 10, y: 50 }, // 6: 真ん中
   ];
 
-  const OPERATOR_POSITIONS = {
-    '=': [{ type: 'horizontal', x: 10, y: 40 }, { type: 'horizontal', x: 10, y: 55 }],
-    '+': [{ type: 'horizontal', x: 10, y: 45 }, { type: 'vertical',   x: 28, y: 30 }],
-    '-': [{ type: 'horizontal', x: 10, y: 45 }],
-  };
+  // 演算子用の共通配置（+ - = をすべて表現できる3スロット）
+  const UNIVERSAL_OPERATOR_POSITIONS = [
+    { type: 'horizontal', x: 10, y: 40 }, // 0: 上部の横棒 (-, +, = の上)
+    { type: 'vertical',   x: 28, y: 25 }, // 1: 縦棒 (+ のみ使用) ※位置を少し調整
+    { type: 'horizontal', x: 10, y: 60 }, // 2: 下部の横棒 (= のみ使用)
+  ];
 
+  // パターン定義（配列の長さはスロット数と一致させる）
   const CHAR_PATTERNS = {
-    '0': [1, 1, 1, 1, 1, 1, 0], '1': [0, 1, 1, 0, 0, 0, 0],
-    '2': [1, 1, 0, 1, 1, 0, 1], '3': [1, 1, 1, 1, 0, 0, 1],
-    '4': [0, 1, 1, 0, 0, 1, 1], '5': [1, 0, 1, 1, 0, 1, 1],
-    '6': [1, 0, 1, 1, 1, 1, 1], '7': [1, 1, 1, 0, 0, 0, 0],
-    '8': [1, 1, 1, 1, 1, 1, 1], '9': [1, 1, 1, 1, 0, 1, 1],
-    '=': [1, 1], '+': [1, 1], '-': [1],
+    // 数字 (7スロット)
+    '0': [1, 1, 1, 1, 1, 1, 0],
+    '1': [0, 1, 1, 0, 0, 0, 0],
+    '2': [1, 1, 0, 1, 1, 0, 1],
+    '3': [1, 1, 1, 1, 0, 0, 1],
+    '4': [0, 1, 1, 0, 0, 1, 1],
+    '5': [1, 0, 1, 1, 0, 1, 1],
+    '6': [1, 0, 1, 1, 1, 1, 1],
+    '7': [1, 1, 1, 0, 0, 0, 0],
+    '8': [1, 1, 1, 1, 1, 1, 1],
+    '9': [1, 1, 1, 1, 0, 1, 1],
+    // 演算子 (3スロット: [上の横, 真ん中の縦, 下の横])
+    '-': [1, 0, 0],
+    '+': [1, 1, 0],
+    '=': [1, 0, 1],
   };
 
   // --- GAME STATE ---
@@ -106,79 +122,61 @@ document.addEventListener('DOMContentLoaded', () => {
       return {
         char: char,
         type: isDigit ? 'digit' : 'operator',
+        // 配列をコピーして持たせる
         sticks: [...pattern]
       };
     });
   }
   
   function getCharFromSticks(type, sticks) {
-    let bestMatch = '?';
-    let minDiff = Infinity;
-
+    // 棒の配置がどの文字パターンと完全に一致するか判定する
     for (const char in CHAR_PATTERNS) {
       const isDigit = !isNaN(parseInt(char));
       const pattern = CHAR_PATTERNS[char];
       
+      // タイプが一致しているか確認（数字の配置で演算子と判定されないように）
       if ((isDigit && type === 'digit') || (!isDigit && type === 'operator')) {
-        let diff = 0;
         let isMatch = true;
-        
-        // 桁数の違いを考慮する
-        const len = Math.max(sticks.length, pattern.length);
-        for(let i = 0; i < len; i++) {
-            const s = sticks[i] || 0;
-            const p = pattern[i] || 0;
-            if (s !== p) diff++;
+        for(let i = 0; i < pattern.length; i++) {
+            if (sticks[i] !== pattern[i]) {
+                isMatch = false;
+                break;
+            }
         }
-        
-        if (diff < minDiff) {
-            minDiff = diff;
-            bestMatch = char;
-        }
+        if (isMatch) return char;
       }
     }
-    return bestMatch;
+    return '?'; // 一致する文字がない場合（無効な形）
   }
 
   function boardToEquation() {
     return state.board.map(cell => {
-      const char = getCharFromSticks(cell.type, cell.sticks);
-      // Operator check for moved sticks
-      if (cell.type === 'operator') {
-          const liveSticks = cell.sticks.filter(s => s === 1).length;
-          if(liveSticks === 2) {
-              if (cell.sticks[0] === 1 && cell.sticks[1] === 1) return '=';
-              if (cell.sticks[0] === 1 && cell.sticks[3] === 1) return '+';
-          }
-          if(liveSticks === 1) return '-';
-      }
-      return char;
+      return getCharFromSticks(cell.type, cell.sticks);
     }).join('');
   }
 
   function solveEquation(equation) {
-    const parts = equation.split(/([+\-=])/);
-    if (parts.length !== 5) return false;
-    const num1 = parseInt(parts[0]);
-    const op = parts[1];
-    const num2 = parseInt(parts[2]);
-    const eq = parts[3];
-    const result = parseInt(parts[4]);
+    // 1桁の数字、演算子、1桁の数字、イコール、結果(1〜2桁)の構成かチェック
+    const regex = /^(\d)([+\-])(\d)=([\-]?\d+)$/;
+    const match = equation.match(regex);
+    
+    if (!match) return false;
 
-    if (isNaN(num1) || isNaN(num2) || isNaN(result) || eq !== '=') return false;
+    const num1 = parseInt(match[1]);
+    const op = match[2];
+    const num2 = parseInt(match[3]);
+    const result = parseInt(match[4]);
 
-    let calculated;
-    switch (op) {
-        case '+': calculated = num1 + num2; break;
-        case '-': calculated = num1 - num2; break;
-        default: return false;
-    }
-    return calculated === result;
+    if (op === '+') return num1 + num2 === result;
+    if (op === '-') return num1 - num2 === result;
+    
+    return false;
   }
   
   function checkSolution() {
     const eq = boardToEquation();
-    if (eq.includes('?')) return false;
+    console.log("Current Equation:", eq); // デバッグ用
+    if (eq.includes('?')) return false; // 無効な文字（存在しない数字の形など）が含まれていれば不正解
     return solveEquation(eq);
   }
 
@@ -192,14 +190,15 @@ document.addEventListener('DOMContentLoaded', () => {
     let board = [];
     let validMoves = [];
 
-    // Correct Equation Generation
+    // 正解の式を生成し、そこから1手動かして「不正解の式（問題）」を作る
     while(validMoves.length === 0) {
         const op = ops[getRandomInt(0, 1)];
         let num1, num2, result;
         
+        // 簡単のため、結果が1桁（0〜9）になるように調整
         if (op === '+') {
-          num1 = getRandomInt(1, 9);
-          num2 = getRandomInt(1, 9);
+          num1 = getRandomInt(1, 8);
+          num2 = getRandomInt(1, 9 - num1);
           result = num1 + num2;
         } else {
           num1 = getRandomInt(1, 9);
@@ -209,17 +208,18 @@ document.addEventListener('DOMContentLoaded', () => {
         correctEquation = `${num1}${op}${num2}=${result}`;
         board = equationToBoard(correctEquation);
 
-        // Find all possible single moves
+        // 動かせるすべての棒（src）を取得
         const allSticks = [];
         board.forEach((cell, charIndex) => {
           cell.sticks.forEach((isStick, stickIndex) => {
-            if (isStick) allSticks.push({ charIndex, stickIndex });
+            if (isStick === 1) allSticks.push({ charIndex, stickIndex });
           });
         });
         
+        // 置けるすべての空きスロット（dest）を取得
         const allSlots = [];
         board.forEach((cell, charIndex) => {
-          const positions = cell.type === 'digit' ? SEGMENT_POSITIONS : OPERATOR_POSITIONS[cell.char] || [];
+          const positions = cell.type === 'digit' ? SEGMENT_POSITIONS : UNIVERSAL_OPERATOR_POSITIONS;
           positions.forEach((pos, stickIndex) => {
               if (cell.sticks[stickIndex] === 0) {
                   allSlots.push({ charIndex, stickIndex });
@@ -227,26 +227,49 @@ document.addEventListener('DOMContentLoaded', () => {
           });
         });
 
-        // Create a list of all valid moves (src, dest)
+        // 全ての組み合わせを試し、問題として成立する（元の式とは異なり、式の文法として成立している）ものを探す
         for (const src of allSticks) {
             for (const dest of allSlots) {
+                // 同じセルへの移動は許可するが、全く同じ場所への移動はスキップ
+                if (src.charIndex === dest.charIndex && src.stickIndex === dest.stickIndex) continue;
+
                 const tempBoard = JSON.parse(JSON.stringify(board));
                 tempBoard[src.charIndex].sticks[src.stickIndex] = 0;
                 tempBoard[dest.charIndex].sticks[dest.stickIndex] = 1;
 
-                const scrambledEq = tempBoard.map(cell => getCharFromSticks(cell.type, cell.sticks)).join('');
-                if (scrambledEq !== correctEquation) {
-                    validMoves.push({ src, dest });
+                // 移動後の盤面が、何かしらの文字として認識できるかチェック
+                let scrambledEq = '';
+                let isValidChars = true;
+                for (const cell of tempBoard) {
+                    const char = getCharFromSticks(cell.type, cell.sticks);
+                    if (char === '?') {
+                        isValidChars = false;
+                        break;
+                    }
+                    scrambledEq += char;
+                }
+
+                // すべて有効な文字で、かつ元の式とは違うものであれば問題として採用
+                if (isValidChars && scrambledEq !== correctEquation) {
+                    // もし偶然、移動後の式も数式として正しい場合は除外（複数解を避けるため）
+                    if (!solveEquation(scrambledEq)) {
+                        validMoves.push({ src, dest, scrambledEq });
+                    }
                 }
             }
         }
     }
 
+    // 見つかった有効な移動（問題候補）からランダムに1つ選ぶ
     const move = validMoves[getRandomInt(0, validMoves.length - 1)];
     const scrambledBoard = JSON.parse(JSON.stringify(board));
+    // 逆算：正解の盤面から、ランダムに選んだ手（src->dest）を適用して問題を生成する
     scrambledBoard[move.src.charIndex].sticks[move.src.stickIndex] = 0;
     scrambledBoard[move.dest.charIndex].sticks[move.dest.stickIndex] = 1;
     
+    console.log("Generated Puzzle (Scrambled):", move.scrambledEq);
+    console.log("Correct Solution:", correctEquation);
+
     return { board: scrambledBoard, correctEquation: correctEquation };
   }
 
@@ -254,10 +277,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const puzzle = generateSolvableEquation();
     state.board = puzzle.board;
     state.correctEquation = puzzle.correctEquation;
-    state.movesLeft = 1;
+    state.movesLeft = 1; // 1手で解ける問題を生成している
     state.selectedStick = null;
     state.isLevelComplete = false;
-    state.score = 1000;
+    // スコアは累積させる
+    state.score = state.score === 0 ? 1000 : state.score;
 
     btnHint.disabled = false;
     btnAnswer.disabled = false;
@@ -283,11 +307,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const container = document.createElement('div');
       container.className = cell.type;
 
-      // Render all possible slots for the cell's type
-      const allSlots = cell.type === 'digit' ? SEGMENT_POSITIONS :
-                       cell.char === '=' ? OPERATOR_POSITIONS['='] :
-                       cell.char === '+' ? OPERATOR_POSITIONS['+'] :
-                       OPERATOR_POSITIONS['-'];
+      // セルタイプに応じたスロット位置を取得
+      const allSlots = cell.type === 'digit' ? SEGMENT_POSITIONS : UNIVERSAL_OPERATOR_POSITIONS;
       
       allSlots.forEach((pos, stickIndex) => {
           const hasStick = cell.sticks[stickIndex] === 1;
@@ -321,8 +342,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const stickIndex = +e.target.dataset.stickIndex;
 
     if (state.selectedStick && state.selectedStick.charIndex === charIndex && state.selectedStick.stickIndex === stickIndex) {
+      // 選択解除
       state.selectedStick = null;
     } else {
+      // 選択
       state.selectedStick = { charIndex, stickIndex };
     }
     render();
@@ -337,11 +360,13 @@ document.addEventListener('DOMContentLoaded', () => {
       stickIndex: +e.target.dataset.stickIndex,
     };
     
+    // 棒を移動
     state.board[src.charIndex].sticks[src.stickIndex] = 0;
     state.board[dest.charIndex].sticks[dest.stickIndex] = 1;
 
     state.movesLeft--;
-    state.score = Math.max(0, state.score - 50);
+    // 手数を消費した際のスコア減少を少し緩和
+    state.score = Math.max(0, state.score - 10);
     state.selectedStick = null;
 
     updateMessage("");
@@ -351,25 +376,38 @@ document.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => {
         if (checkSolution()) {
           updateMessage("正解です！おめでとうございます！ 🎉", 'success');
-          state.score += 500;
+          state.score += 100; // クリアボーナス
           state.isLevelComplete = true;
+          btnHint.disabled = true;
+          btnAnswer.disabled = true;
         } else {
-          updateMessage("残念、間違いです。次のレベルに挑戦！", 'error');
+          updateMessage("残念、間違いです。（リセットでやり直せます）", 'error');
         }
         scoreEl.textContent = state.score;
       }, 300);
     }
   }
 
-  btnReset.onclick = () => startLevel();
+  btnReset.onclick = () => {
+    if (!state.isLevelComplete) {
+      // リセットペナルティ
+      state.score = Math.max(0, state.score - 50); 
+      // 問題を最初からやり直す処理が必要ですが、簡略化のため新しい問題を生成します
+      startLevel();
+    } else {
+      startLevel();
+    }
+  };
   btnNext.onclick = () => startLevel();
   btnHint.onclick = () => {
     hintEl.textContent = `💡 ヒント: 元の式は "${state.correctEquation}" です。`;
     hintEl.style.display = 'block';
   };
   btnAnswer.onclick = () => {
-    answerEl.textContent = `✅ 答え: "${state.correctEquation}" になるように動かします。`;
+    answerEl.innerHTML = `✅ 答え: <br>元の式「${state.correctEquation}」の形になるように棒を動かしてください。<br>(※別の正解が隠れている場合もあります)`;
     answerEl.style.display = 'block';
+    state.score = Math.max(0, state.score - 200); // 答えを見たペナルティ
+    scoreEl.textContent = state.score;
   };
 
   // --- INITIALIZE GAME ---
