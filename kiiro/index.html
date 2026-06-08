@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MindFlow - ダブルターゲット版</title>
+  <style>
+    :root {
+      --bg-color: #0b0f19;
+      --panel-bg: rgba(20, 26, 42, 0.8);
+      --accent-color: #ffcc00;
+      --text-color: #e2e8f0;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: radial-gradient(circle at center, #1a233a 0%, var(--bg-color) 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+      color: var(--text-color);
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      user-select: none;
+    }
+    
+    .header {
+      margin-top: 20px;
+      text-align: center;
+      z-index: 10;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 300;
+      margin: 0 0 5px 0;
+      letter-spacing: 2px;
+      background: linear-gradient(45deg, #fff, var(--accent-color));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    p {
+      font-size: 0.85rem;
+      margin: 0;
+      color: #64748b;
+    }
+
+    #canvas-container {
+      position: relative;
+      flex-grow: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+    }
+
+    canvas {
+      display: block;
+      cursor: pointer;
+    }
+
+    .control-panel {
+      background: var(--panel-bg);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px 20px 0 0;
+      padding: 15px 25px;
+      width: 90%;
+      max-width: 500px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 10;
+      box-shadow: 0 -10px 25px rgba(0,0,0,0.5);
+    }
+
+    .panel-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .label {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      min-width: 80px;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--text-color);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .btn.active {
+      background: var(--accent-color);
+      color: #000;
+      font-weight: bold;
+      box-shadow: 0 0 10px rgba(255, 204, 0, 0.5);
+    }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 60%;
+      background: rgba(255,255,255,0.1);
+      height: 4px;
+      border-radius: 2px;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 14px;
+      width: 14px;
+      border-radius: 50%;
+      background: var(--accent-color);
+      cursor: pointer;
+    }
+
+    #timer {
+      font-family: monospace;
+      font-size: 1rem;
+      color: var(--accent-color);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>MindFlow</h1>
+    <p id="instruction">2つの光をぼんやりと眺め、ゆっくり呼吸しましょう</p>
+  </div>
+
+  <div id="canvas-container">
+    <canvas id="appCanvas"></canvas>
+  </div>
+
+  <div class="control-panel">
+    <div class="panel-row">
+      <span class="label">モード</span>
+      <div class="btn-group">
+        <button class="btn active" onclick="setMode('normal')">通常</button>
+        <button class="btn" onclick="setMode('breathing')">深呼吸</button>
+        <button class="btn" onclick="setMode('wave')">ゆらぎ</button>
+      </div>
+    </div>
+
+    <div class="panel-row">
+      <span class="label">スピード</span>
+      <input type="range" id="speedControl" min="0.1" max="3.0" step="0.1" value="1.0" oninput="changeSpeed(this.value)">
+    </div>
+
+    <div class="panel-row">
+      <span class="label">障害物の数</span>
+      <input type="range" id="dotCount" min="5" max="60" value="30" oninput="changeDotCount(this.value)">
+    </div>
+
+    <div class="panel-row">
+      <span class="label">タイマー</span>
+      <div class="btn-group">
+        <button class="btn" id="btnTimer" onclick="toggleTimer()">スタート</button>
+      </div>
+      <span id="timer">01:00</span>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('appCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let size, centerX, centerY, arenaRadius;
+    function resize() {
+      size = Math.min(window.innerWidth, window.innerHeight * 0.5);
+      canvas.width = size;
+      canvas.height = size;
+      centerX = size / 2;
+      centerY = size / 2;
+      arenaRadius = size / 2 - 5;
+    }
+    resize();
+    window.addEventListener('resize', () => { resize(); initDots(); });
+
+    let dots = [];
+    let particles = [];
+    let currentMode = 'normal';
+    let globalSpeedMultiplier = 1.0; 
+    
+    let timerInterval = null;
+    let timeLeft = 60; 
+    let isTimerRunning = false;
+
+    const colors = ['#00f2fe', '#4facfe', '#ff0844', '#ffb199', '#f12711', '#f5af19', '#b180ff'];
+
+    class Dot {
+      constructor(type) {
+        this.type = type; // 'yellow', 'white', または 'normal'
+        this.isTarget = (type === 'yellow' || type === 'white');
+        this.radius = this.isTarget ? size * 0.02 : size * 0.012;
+        
+        // 種類に応じて色を設定
+        if (type === 'yellow') {
+          this.color = '#ffcc00';
+          this.glowColor = '#ffcc00';
+        } else if (type === 'white') {
+          this.color = '#ffffff';
+          this.glowColor = '#ffffff';
+        } else {
+          this.color = colors[Math.floor(Math.random() * colors.length)];
+          this.glowColor = this.color;
+        }
+
+        this.pulse = 0; 
+        this.wanderAngle = Math.random() * Math.PI * 2; 
+        
+        const r = Math.random() * (arenaRadius - this.radius - 20);
+        const theta = Math.random() * 2 * Math.PI;
+        this.x = centerX + r * Math.cos(theta);
+        this.y = centerY + r * Math.sin(theta);
+
+        this.setRandomVelocity();
+      }
+
+      setRandomVelocity() {
+        this.baseSpeed = (0.8 + Math.random() * 0.8) * (size / 400); 
+        const angle = Math.random() * 2 * Math.PI;
+        this.vx = Math.cos(angle) * this.baseSpeed;
+        this.vy = Math.sin(angle) * this.baseSpeed;
+      }
+
+      update(time) {
+        let speedMod = globalSpeedMultiplier;
+        
+        if (currentMode === 'wave') {
+          speedMod *= (Math.sin(time * 0.002) + 1.2) * 0.8;
+        }
+
+        if (this.isTarget && currentMode === 'breathing') {
+          this.pulse = Math.sin(time * 0.0015) * (size * 0.01);
+          document.getElementById('instruction').innerText = Math.sin(time * 0.0015) > 0 ? "【吸って】光の広がりに合わせて" : "【吐いて】光の縮小に合わせて";
+        }
+
+        // 黄色と白の玉（ターゲット）にランダムな揺らぎを与える
+        if (this.isTarget) {
+          this.wanderAngle += (Math.random() - 0.5) * 0.6;
+          
+          this.vx += Math.cos(this.wanderAngle) * 0.3;
+          this.vy += Math.sin(this.wanderAngle) * 0.3;
+
+          const currentSpeed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+          this.vx = (this.vx / currentSpeed) * this.baseSpeed;
+          this.vy = (this.vy / currentSpeed) * this.baseSpeed;
+        }
+
+        this.x += this.vx * speedMod;
+        this.y += this.vy * speedMod;
+
+        // 壁との衝突判定
+        const dx = this.x - centerX;
+        const dy = this.y - centerY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const currentRadius = this.radius + (this.isTarget ? this.pulse : 0);
+
+        if (dist + currentRadius > arenaRadius) {
+          const nx = dx / dist;
+          const ny = dy / dist;
+          const dotProduct = this.vx * nx + this.vy * ny;
+
+          this.vx = this.vx - 2 * dotProduct * nx;
+          this.vy = this.vy - 2 * dotProduct * ny;
+
+          this.x = centerX + nx * (arenaRadius - currentRadius);
+          this.y = centerY + ny * (arenaRadius - currentRadius);
+
+          if (this.isTarget) {
+            createSpark(this.x, this.y, this.glowColor);
+            this.wanderAngle = Math.atan2(this.vy, this.vx);
+          }
+        }
+      }
+
+      draw() {
+        ctx.beginPath();
+        const currentRadius = Math.max(2, this.radius + (this.isTarget ? this.pulse : 0));
+        ctx.arc(this.x, this.y, currentRadius, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        
+        // ターゲットは光らせる（それぞれの色で）
+        if (this.isTarget) {
+          ctx.shadowBlur = 20 + this.pulse * 2;
+          ctx.shadowColor = this.glowColor;
+        } else {
+          ctx.shadowBlur = 4;
+          ctx.shadowColor = this.color;
+        }
+        
+        ctx.fill();
+        ctx.closePath();
+        ctx.shadowBlur = 0;
+      }
+    }
+
+    class Particle {
+      constructor(x, y, type, color = '#ffcc00') {
+        this.x = x;
+        this.y = y;
+        this.type = type; 
+        this.color = color;
+        this.alpha = 1;
+        this.radius = type === 'ripple' ? 0 : Math.random() * 3 + 1;
+        this.vx = type === 'spark' ? (Math.random() - 0.5) * 4 : 0;
+        this.vy = type === 'spark' ? (Math.random() - 0.5) * 4 : 0;
+      }
+      update() {
+        if (this.type === 'spark') {
+          this.x += this.vx;
+          this.y += this.vy;
+          this.alpha -= 0.02;
+        } else {
+          this.radius += 2;
+          this.alpha -= 0.015;
+        }
+      }
+      draw() {
+        ctx.save();
+        ctx.globalAlpha = this.alpha;
+        ctx.beginPath();
+        if (this.type === 'ripple') {
+          ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        } else {
+          ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+          ctx.fillStyle = this.color;
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+    }
+
+    function createSpark(x, y, color) {
+      for(let i=0; i<8; i++) {
+        particles.push(new Particle(x, y, 'spark', color));
+      }
+    }
+
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      particles.push(new Particle(x, y, 'ripple'));
+    });
+
+    function initDots() {
+      const count = document.getElementById('dotCount').value;
+      dots = [];
+      // 黄色の玉と白い玉を1つずつ追加
+      dots.push(new Dot('yellow')); 
+      dots.push(new Dot('white'));
+      
+      // 残りの数だけ通常の障害物を追加
+      const normalCount = Math.max(0, count - 2);
+      for (let i = 0; i < normalCount; i++) {
+        dots.push(new Dot('normal'));
+      }
+    }
+
+    function changeDotCount(val) {
+      initDots();
+    }
+
+    function changeSpeed(val) {
+      globalSpeedMultiplier = parseFloat(val);
+    }
+
+    function setMode(mode) {
+      currentMode = mode;
+      document.querySelectorAll('.btn-group .btn').forEach(btn => {
+        if(btn.innerText.includes(mode === 'normal' ? '通常' : mode === 'breathing' ? '深呼吸' : 'ゆらぎ')) {
+          btn.classList.add('active');
+        } else if (!btn.id.includes('Timer')) {
+          btn.classList.remove('active');
+        }
+      });
+      if(mode !== 'breathing') {
+        document.getElementById('instruction').innerText = "2つの光をぼんやりと眺め、ゆっくり呼吸しましょう";
+      }
+    }
+
+    function toggleTimer() {
+      const btn = document.getElementById('btnTimer');
+      if (isTimerRunning) {
+        clearInterval(timerInterval);
+        btn.innerText = "スタート";
+        btn.classList.remove('active');
+      } else {
+        timeLeft = 60;
+        btn.innerText = "一時停止";
+        btn.classList.add('active');
+        timerInterval = setInterval(() => {
+          timeLeft--;
+          const mins = String(Math.floor(timeLeft / 60)).padStart(2, '0');
+          const secs = String(timeLeft % 60).padStart(2, '0');
+          document.getElementById('timer').innerText = `${mins}:${secs}`;
+          
+          if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            isTimerRunning = false;
+            btn.innerText = "スタート";
+            btn.classList.remove('active');
+            document.getElementById('timer').innerText = "01:00";
+            alert("お疲れ様でした。頭が少しスッキリしましたか？深呼吸をして日常に戻りましょう。");
+          }
+        }, 1000);
+      }
+      isTimerRunning = !isTimerRunning;
+    }
+
+    initDots();
+
+    function animate(timestamp) {
+      ctx.fillStyle = '#101524';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, arenaRadius, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      particles = particles.filter(p => p.alpha > 0);
+      particles.forEach(p => {
+        p.update();
+        p.draw();
+      });
+
+      dots.forEach(dot => {
+        dot.update(timestamp);
+        dot.draw();
+      });
+
+      requestAnimationFrame(animate);
+    }
+
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
