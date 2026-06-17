@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>素因数分解トレーナー</title>
   <style>
     * {
@@ -18,67 +18,113 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 1rem;
+      padding: 0.5rem;
     }
     
     .container {
       background: rgba(255, 255, 255, 0.95);
       border-radius: 20px;
-      padding: 2rem;
+      padding: 1.5rem;
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
       backdrop-filter: blur(10px);
-      max-width: 600px;
+      max-width: 800px; /* 2カラム用に少し拡張 */
       width: 100%;
       text-align: center;
     }
     
     h1 {
       color: #333;
-      margin-bottom: 2rem;
-      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      font-size: 1.8rem;
       text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
     }
+
+    /* 全体を左右に分けるラッパー */
+    .layout-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .left-panel, .right-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
     
+    .difficulty-selector h3 {
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .difficulty-buttons {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    
+    .difficulty-btn {
+      padding: 0.4rem 0.8rem;
+      border: 2px solid #ccc;
+      background: white;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .difficulty-btn.active {
+      background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-color: #667eea;
+    }
+
     .question-section {
       background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
       color: white;
-      padding: 2rem;
+      padding: 1rem;
       border-radius: 15px;
-      margin-bottom: 2rem;
       box-shadow: 0 10px 20px rgba(240, 147, 251, 0.3);
     }
     
     .question-text {
-      font-size: 1.3rem;
-      margin-bottom: 1rem;
+      font-size: 1.1rem;
     }
     
     .number-display {
-      font-size: 3rem;
+      font-size: 2.5rem;
       font-weight: bold;
       text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-      margin: 1rem 0;
+      margin: 0.5rem 0;
     }
     
     .factor-input-section {
       background: #f8f9ff;
-      padding: 2rem;
+      padding: 1.5rem;
       border-radius: 15px;
-      margin-bottom: 2rem;
       border: 2px solid #e0e7ff;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .factor-input-section h3 {
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
     }
     
     .input-display {
       background: white;
       border: 2px solid #667eea;
       border-radius: 10px;
-      padding: 1rem;
-      margin-bottom: 1rem;
-      min-height: 60px;
+      padding: 0.5rem;
+      margin-bottom: 0.8rem;
+      min-height: 45px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.5rem;
+      font-size: 1.2rem;
       font-weight: bold;
       color: #333;
     }
@@ -86,54 +132,55 @@
     .factor-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-      margin-bottom: 2rem;
+      gap: 8px;
+      margin-bottom: 1rem;
       max-width: 300px;
       margin-left: auto;
       margin-right: auto;
+      width: 100%;
     }
     
     .factor-button {
-      padding: 1.5rem;
+      padding: 0.8rem;
       background: linear-gradient(45deg, #a8edea 0%, #fed6e3 100%);
       border: 2px solid #ccc;
       border-radius: 10px;
-      font-size: 1.5rem;
+      font-size: 1.2rem;
       font-weight: bold;
       cursor: pointer;
       transition: all 0.3s ease;
       user-select: none;
     }
     
-    .factor-button:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    .factor-button:active {
+      transform: translateY(2px);
     }
     
     .selected-factors {
       background: white;
       border: 2px solid #667eea;
       border-radius: 10px;
-      padding: 1rem;
-      margin-bottom: 1rem;
-      min-height: 60px;
+      padding: 0.5rem;
+      margin-bottom: 0.8rem;
+      min-height: 45px;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-wrap: wrap;
-      gap: 10px;
+      gap: 5px;
     }
     
     .factor-tag {
       background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
       color: white;
-      padding: 0.5rem 1rem;
+      padding: 0.3rem 0.6rem;
       border-radius: 20px;
+      font-size: 0.9rem;
       font-weight: bold;
       display: flex;
       align-items: center;
-      gap: 10px;
-      animation: popIn 0.3s ease;
+      gap: 5px;
+      animation: popIn 0.2s ease;
     }
     
     @keyframes popIn {
@@ -145,82 +192,69 @@
       background: rgba(255, 255, 255, 0.3);
       border: none;
       color: white;
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
       border-radius: 50%;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 12px;
+      font-size: 10px;
     }
     
     .controls {
       display: flex;
-      gap: 1rem;
+      gap: 0.5rem;
       justify-content: center;
-      margin-bottom: 2rem;
-      flex-wrap: wrap;
+      margin-top: auto;
     }
     
     .btn {
-      padding: 1rem 2rem;
+      padding: 0.8rem;
       border: none;
       border-radius: 10px;
-      font-size: 1.1rem;
+      font-size: 0.9rem;
       font-weight: bold;
       cursor: pointer;
       transition: all 0.3s ease;
-      min-width: 120px;
+      flex: 1;
     }
 
     .btn-add {
       background: linear-gradient(45deg, #4ade80 0%, #22c55e 100%);
       color: white;
-      box-shadow: 0 8px 16px rgba(74, 222, 128, 0.3);
     }
     
     .btn-primary {
       background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
       color: white;
-      box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
     }
     
     .btn-secondary {
       background: linear-gradient(45deg, #ffecd2 0%, #fcb69f 100%);
       color: #333;
-      box-shadow: 0 8px 16px rgba(252, 182, 159, 0.3);
     }
     
     .btn-danger {
       background: linear-gradient(45deg, #ff9a9e 0%, #fecfef 100%);
       color: #333;
-      box-shadow: 0 8px 16px rgba(255, 154, 158, 0.3);
-    }
-    
-    .btn:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
     }
     
     .btn:active {
-      transform: translateY(0);
+      transform: translateY(2px);
     }
     
     .result {
-      padding: 1.5rem;
+      padding: 1rem;
       border-radius: 15px;
-      margin-bottom: 2rem;
-      font-size: 1.2rem;
+      font-size: 1rem;
       font-weight: bold;
-      opacity: 0;
-      transform: translateY(20px);
-      transition: all 0.5s ease;
+      display: none;
     }
     
     .result.show {
-      opacity: 1;
-      transform: translateY(0);
+      display: block;
+      animation: popIn 0.3s ease;
     }
     
     .result.correct {
@@ -237,110 +271,62 @@
     
     .stats {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 1rem;
-      margin-bottom: 2rem;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
     }
     
     .stat-item {
       background: white;
-      padding: 1rem;
+      padding: 0.5rem;
       border-radius: 10px;
       border: 2px solid #e0e7ff;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
     }
     
     .stat-value {
-      font-size: 2rem;
+      font-size: 1.2rem;
       font-weight: bold;
       color: #667eea;
     }
     
     .stat-label {
       color: #666;
-      font-size: 0.9rem;
+      font-size: 0.8rem;
     }
-    
-    .difficulty-selector {
-      margin-bottom: 2rem;
-    }
-    
-    .difficulty-buttons {
-      display: flex;
-      gap: 0.5rem;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-    
-    .difficulty-btn {
-      padding: 0.5rem 1rem;
-      border: 2px solid #ccc;
-      background: white;
-      border-radius: 20px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-    
-    .difficulty-btn.active {
-      background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border-color: #667eea;
-    }
-    
+
     .explanation {
       background: #f0f4ff;
       border: 2px solid #c7d2fe;
       border-radius: 10px;
-      padding: 1rem;
-      margin-top: 1rem;
+      padding: 0.8rem;
+      margin-top: 0.8rem;
       text-align: left;
       font-family: 'Courier New', monospace;
-      line-height: 1.6;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+
+    /* PC・タブレット向けの2カラムレイアウト */
+    @media (min-width: 768px) {
+      .layout-wrapper {
+        flex-direction: row;
+      }
+      .left-panel, .right-panel {
+        flex: 1;
+      }
     }
     
-    /* モバイル最適化のための追加CSS */
-    @media (max-width: 768px) {
-      .container {
-        padding: 1rem;
-      }
-      
-      h1 {
-        font-size: 2rem;
-      }
-      
-      .number-display {
-        font-size: 2rem;
-      }
-      
-      .difficulty-buttons {
-        flex-direction: column;
-        align-items: center;
-      }
-
-      .difficulty-btn {
-        width: 100%;
-        max-width: 250px;
-        margin-bottom: 0.5rem;
-      }
-      
-      .factor-grid {
-        grid-template-columns: repeat(3, 1fr);
-        max-width: 250px;
-      }
-      
-      .controls {
-        flex-direction: column;
-        gap: 0.5rem;
-      }
-
-      .btn {
-        width: 100%;
-      }
-
-      .stats {
-        grid-template-columns: 1fr;
-        gap: 0.5rem;
-      }
+    /* スマホ用の極小レイアウト調整 */
+    @media (max-width: 767px) {
+      .container { padding: 1rem; }
+      h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+      .number-display { font-size: 2rem; }
+      .factor-input-section { padding: 1rem; }
+      .factor-grid { gap: 5px; }
+      .factor-button { padding: 0.6rem; font-size: 1.1rem; }
+      .btn { padding: 0.6rem; }
+      .difficulty-buttons { flex-direction: row; }
+      .difficulty-btn { flex: 1; min-width: 45%; text-align: center; }
     }
   </style>
 </head>
@@ -348,51 +334,57 @@
   <div class="container">
     <h1>🧠 素因数分解トレーナー</h1>
     
-    <div class="difficulty-selector">
-      <h3>難易度を選択:</h3>
-      <div class="difficulty-buttons">
-        <div class="difficulty-btn active" onclick="setDifficulty('easy')">簡単 (10-50)</div>
-        <div class="difficulty-btn" onclick="setDifficulty('medium')">普通 (50-200)</div>
-        <div class="difficulty-btn" onclick="setDifficulty('hard')">難しい (200-500)</div>
-        <div class="difficulty-btn" onclick="setDifficulty('very_hard')">超難しい (500-1000)</div>
+    <div class="layout-wrapper">
+      <div class="left-panel">
+        <div class="difficulty-selector">
+          <h3>難易度を選択:</h3>
+          <div class="difficulty-buttons">
+            <div class="difficulty-btn active" onclick="setDifficulty('easy')">簡単</div>
+            <div class="difficulty-btn" onclick="setDifficulty('medium')">普通</div>
+            <div class="difficulty-btn" onclick="setDifficulty('hard')">難しい</div>
+            <div class="difficulty-btn" onclick="setDifficulty('very_hard')">超難しい</div>
+          </div>
+        </div>
+        
+        <div class="question-section">
+          <div class="question-text">この数を素因数分解してください:</div>
+          <div class="number-display" id="numberDisplay">読み込み中...</div>
+        </div>
+
+        <div class="stats">
+          <div class="stat-item">
+            <div class="stat-value" id="scoreValue">0</div>
+            <div class="stat-label">正解数</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="totalValue">0</div>
+            <div class="stat-label">総問題数</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" id="accuracyValue">0%</div>
+            <div class="stat-label">正答率</div>
+          </div>
+        </div>
+
+        <div class="result" id="result"></div>
       </div>
-    </div>
-    
-    <div class="question-section">
-      <div class="question-text">この数を素因数分解してください:</div>
-      <div class="number-display" id="numberDisplay">読み込み中...</div>
-    </div>
-    
-    <div class="factor-input-section">
-      <h3>素因数を入力してください:</h3>
-      <div class="input-display" id="inputDisplay"></div>
-      <div class="factor-grid" id="factorGrid"></div>
       
-      <div class="selected-factors" id="selectedFactors">
-        <span style="color: #999;">ここに選択した素因数が表示されます</span>
-      </div>
-      
-      <div class="controls">
-        <button class="btn btn-primary" onclick="checkAnswer()">回答する</button>
-        <button class="btn btn-secondary" onclick="clearFactors()">クリア</button>
-        <button class="btn btn-danger" onclick="generateQuestion()">次の問題</button>
-      </div>
-    </div>
-    
-    <div class="result" id="result"></div>
-    
-    <div class="stats">
-      <div class="stat-item">
-        <div class="stat-value" id="scoreValue">0</div>
-        <div class="stat-label">正解数</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-value" id="totalValue">0</div>
-        <div class="stat-label">総問題数</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-value" id="accuracyValue">0%</div>
-        <div class="stat-label">正答率</div>
+      <div class="right-panel">
+        <div class="factor-input-section">
+          <h3>素因数を入力してください:</h3>
+          <div class="input-display" id="inputDisplay"></div>
+          <div class="factor-grid" id="factorGrid"></div>
+          
+          <div class="selected-factors" id="selectedFactors">
+            <span style="color: #999; font-size: 0.9rem;">ここに素因数が表示されます</span>
+          </div>
+          
+          <div class="controls">
+            <button class="btn btn-primary" onclick="checkAnswer()">回答</button>
+            <button class="btn btn-secondary" onclick="clearFactors()">クリア</button>
+            <button class="btn btn-danger" onclick="generateQuestion()">次へ</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -471,14 +463,14 @@
     
     function updateInputDisplay() {
       const display = document.getElementById('inputDisplay');
-      display.textContent = currentInput || '数字を入力...';
+      display.textContent = currentInput || '';
     }
     
     function updateSelectedFactorsDisplay() {
       const container = document.getElementById('selectedFactors');
       
       if (selectedFactors.length === 0) {
-        container.innerHTML = '<span style="color: #999;">ここに選択した素因数が表示されます</span>';
+        container.innerHTML = '<span style="color: #999; font-size: 0.9rem;">ここに素因数が表示されます</span>';
         return;
       }
       
@@ -558,7 +550,7 @@
       let content = `<div>${message}</div>`;
       
       if (!correct && correctFactors.length > 0) {
-        content += `<div>正しくは: ${correctFactors.join(' × ')}</div>`;
+        content += `<div style="margin-top: 0.5rem;">正しくは: ${correctFactors.join(' × ')}</div>`;
         content += `<div class="explanation">計算過程:<br>${getFactorizationSteps(currentNumber)}</div>`;
       }
       
@@ -576,7 +568,7 @@
       let current = n;
       let divisor = 2;
       
-      steps.push(`${n} を素因数分解:`);
+      steps.push(`${n} の分解:`);
       
       while (current > 1) {
         if (current % divisor === 0) {
