@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D 振り子タイミングゲーム - 精密採点版</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            user-select: none;
+        }
+        #ui-container {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            text-align: center;
+            color: #fff;
+            pointer-events: none; /* 背面のキャンバスタップを許可 */
+            z-index: 10;
+        }
+        h1 {
+            margin: 0 0 5px 0;
+            font-size: 24px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+        p {
+            margin: 0 0 10px 0;
+            font-size: 13px;
+            color: #aaa;
+        }
+        .score-board {
+            font-size: 32px;
+            font-weight: bold;
+            color: #00ffcc;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+        .message {
+            font-size: 36px;
+            height: 45px;
+            margin-top: 10px;
+            font-weight: bold;
+            transition: transform 0.1s ease;
+            text-shadow: 0 2px 12px rgba(0,0,0,0.8);
+        }
+        /* コントロールパネルの設定 */
+        .controls {
+            margin-top: 15px;
+            pointer-events: auto; /* ボタンやスライダーは操作可能にする */
+            display: inline-flex;
+            gap: 15px;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        button {
+            padding: 8px 16px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            background-color: #e91e63;
+            color: white;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background-color: #ff4081;
+        }
+        #btn-end {
+            background-color: #555;
+        }
+        #btn-end:hover {
+            background-color: #777;
+        }
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 13px;
+        }
+        input[type="range"] {
+            cursor: pointer;
+            margin-top: 4px;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+<div id="ui-container">
+    <h1>3D 振り子タイミングゲーム</h1>
+    <p>中心に近ければ近いほど高得点！（最大100点〜最少1点）</p>
+    <div>スコア: <span id="score" class="score-board">0</span></div>
+    <div id="message" class="message">READY?</div>
+    
+    <div class="controls">
+        <button id="btn-restart">初めから</button>
+        <button id="btn-end">終了</button>
+        <div class="slider-container">
+            <label for="speed-slider">スピード: <span id="speed-label">1.0</span>x</label>
+            <input type="range" id="speed-slider" min="0.5" max="3.0" step="0.1" value="1.0">
+        </div>
+    </div>
+</div>
+
+<script>
+    // ==========================================
+    // UI・ゲーム状態の管理
+    // ==========================================
+    const scoreEl = document.getElementById('score');
+    const messageEl = document.getElementById('message');
+    const btnRestart = document.getElementById('btn-restart');
+    const btnEnd = document.getElementById('btn-end');
+    const speedSlider = document.getElementById('speed-slider');
+    const speedLabel = document.getElementById('speed-label');
+
+    let score = 0;
+    let isPlaying = true;
+    let time = 0;           // 振り子の計算用の時間
+    let speed = 1.0;        // 振り子の基本スピード
+
+    // ==========================================
+    // Three.js の基本設定（シーン、カメラ、レンダラー）
+    // ==========================================
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.Fog(0x111122, 20, 100);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 5, 45);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x111122);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    document.body.appendChild(renderer.domElement);
+
+    // ライティング
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+    scene.add(ambientLight);
+
+    const spotLight = new THREE.SpotLight(0xffffff, 1.5);
+    spotLight.position.set(10, 30, 20);
+    spotLight.angle = Math.PI / 4;
+    spotLight.penumbra = 0.5;
+    spotLight.castShadow = true;
+    scene.add(spotLight);
+
+    // ==========================================
+    // オブジェクトの作成
+    // ==========================================
+    const pendulumLength = 20;
+    const maxHitDistance = 3.0; // これ以上離れたらMISS（リングの外枠半径に相当）
+    
+    // 回転軸（ピボット）
+    const pivot = new THREE.Group();
+    pivot.position.set(0, 15, 0);
+    scene.add(pivot);
+
+    // 固定根元
+    const anchor = new THREE.Mesh(
+        new THREE.SphereGeometry(0.8, 16, 16),
+        new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.8, roughness: 0.2 })
+    );
+    pivot.add(anchor);
+
+    // 紐
+    const string = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.1, 0.1, pendulumLength, 8),
+        new THREE.MeshStandardMaterial({ color: 0xaaaaaa })
+    );
+    string.position.y = -pendulumLength / 2;
+    string.castShadow = true;
+    pivot.add(string);
+
+    // 振り子の玉
+    const bob = new THREE.Mesh(
+        new THREE.SphereGeometry(2, 32, 32),
+        new THREE.MeshStandardMaterial({ color: 0xe91e63, metalness: 0.7, roughness: 0.2 })
+    );
+    bob.position.y = -pendulumLength;
+    bob.castShadow = true;
+    pivot.add(bob);
+
+    // ターゲット（光るネオンリング）
+    const target = new THREE.Mesh(
+        new THREE.TorusGeometry(maxHitDistance, 0.15, 16, 64),
+        new THREE.MeshBasicMaterial({ color: 0x00bfff })
+    );
+    target.rotation.x = Math.PI / 2;
+    target.position.set(0, pivot.position.y - pendulumLength, 0);
+    scene.add(target);
+
+    // 床面
+    const floor = new THREE.Mesh(
+        new THREE.PlaneGeometry(100, 100),
+        new THREE.MeshStandardMaterial({ color: 0x1a1a26, roughness: 0.8 })
+    );
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = target.position.y - 1;
+    floor.receiveShadow = true;
+    scene.add(floor);
+
+    // ==========================================
+    // 定期的なリズム（単振動）アニメーション
+    // ==========================================
+    const maxAngle = Math.PI / 3; // 最大の振れ幅（60度）
+
+    function animate() {
+        requestAnimationFrame(animate);
+
+        if (isPlaying) {
+            time += 0.05 * speed;
+            // コサイン波を使い、振れ幅が小さくならない一定のリズムにする
+            pivot.rotation.z = maxAngle * Math.cos(time);
+            target.rotation.z += 0.02; // リングの演出用回転
+        }
+
+        renderer.render(scene, camera);
+    }
+
+    // ==========================================
+    // 💥 精密・1点単位のタイミング判定処理
+    // ==========================================
+    const bobWorldPosition = new THREE.Vector3();
+
+    function checkTiming() {
+        if (!isPlaying) return; 
+
+        // 3D空間上の玉の現在地を取得
+        bob.getWorldPosition(bobWorldPosition);
+        // ターゲット中心からの絶対距離（ズレ）を測定
+        const distance = bobWorldPosition.distanceTo(target.position);
+
+        // タップ時のテキスト跳ね上げ演出
+        messageEl.style.transform = 'scale(1.2)';
+        setTimeout(() => messageEl.style.transform = 'scale(1)', 100);
+
+        // --- 1点単位の判定ロジック ---
+        if (distance >= maxHitDistance) {
+            // リングの外側：完全に空振り
+            showResult("😢 MISS", "#ff3333", 0);
+        } else {
+            // リングの内側：1点〜100点までの精密計算
+            // ズレが0に近いほど100点に近づき、3.0(外枠)に近いほど1点に近づく
+            const accuracy = (maxHitDistance - distance) / maxHitDistance; // 1.0(完璧) 〜 0.0(ギリギリ)
+            const points = Math.ceil(accuracy * 100); // 小数点を切り上げて1〜100点にする
+
+            // 点数に応じた称号分け
+            let rating = "";
+            let color = "";
+            if (points >= 95) {
+                rating = "👑 PERFECT!!!";
+                color = "#ff00ff"; // ピンクパープル
+            } else if (points >= 80) {
+                rating = "✨ EXCELLENT";
+                color = "#00ffff"; // シアンブルー
+            } else if (points >= 50) {
+                rating = "👍 GREAT";
+                color = "#00ffcc"; // グリーンブルー
+            } else {
+                rating = "🙂 GOOD";
+                color = "#ffff00"; // イエロー
+            }
+
+            showResult(`${rating} (+${points})`, color, points);
+        }
+    }
+
+    function showResult(text, color, points) {
+        messageEl.textContent = text;
+        messageEl.style.color = color;
+        if (points > 0) {
+            score += points;
+            scoreEl.textContent = score;
+        }
+    }
+
+    // ==========================================
+    // 各種イベントの設定
+    // ==========================================
+    
+    // 初めからボタン
+    btnRestart.addEventListener('click', (e) => {
+        e.stopPropagation(); // 背面のキャンバスタップ判定を防止
+        score = 0;
+        time = 0; // 振り子の位置（一番右端）をリセット
+        scoreEl.textContent = score;
+        messageEl.textContent = "GAME START!";
+        messageEl.style.color = "#fff";
+        isPlaying = true;
+    });
+
+    // 終了ボタン
+    btnEnd.addEventListener('click', (e) => {
+        e.stopPropagation(); 
+        isPlaying = false;
+        messageEl.textContent = `FINISH! スコア: ${score}`;
+        messageEl.style.color = "#fff";
+    });
+
+    // スピードスライダー
+    speedSlider.addEventListener('input', (e) => {
+        speed = parseFloat(e.target.value);
+        speedLabel.textContent = speed.toFixed(1);
+    });
+
+    // 画面タップ・クリック判定（UIコントロール以外のエリア）
+    renderer.domElement.addEventListener('mousedown', checkTiming);
+    renderer.domElement.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        checkTiming();
+    }, { passive: false });
+
+    // ウィンドウサイズ変更の追従
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // ゲームのループ開始
+    animate();
+</script>
+</body>
+</html>
