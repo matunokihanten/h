@@ -2,330 +2,758 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D 振り子タイミングゲーム - 精密採点版</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>3D Rhythm Pendulum - Compact PRO</title>
     <style>
-        body {
-            margin: 0;
-            padding: 0;
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        /* 画面全体のスクロール・バウンスを完璧に封じる */
+        html, body {
             overflow: hidden;
-            background-color: #000;
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            user-select: none;
+            position: fixed;
+            width: 100vw;
+            height: 100vh;
+            background-color: #05050a;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            user-select: none; -webkit-user-select: none;
+            touch-action: none;
         }
-        #ui-container {
-            position: absolute;
-            top: 20px;
-            width: 100%;
-            text-align: center;
-            color: #fff;
-            pointer-events: none; /* 背面のキャンバスタップを許可 */
-            z-index: 10;
-        }
-        h1 {
-            margin: 0 0 5px 0;
-            font-size: 24px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
-        }
-        p {
-            margin: 0 0 10px 0;
-            font-size: 13px;
-            color: #aaa;
-        }
-        .score-board {
-            font-size: 32px;
-            font-weight: bold;
-            color: #00ffcc;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
-        }
-        .message {
-            font-size: 36px;
-            height: 45px;
-            margin-top: 10px;
-            font-weight: bold;
-            transition: transform 0.1s ease;
-            text-shadow: 0 2px 12px rgba(0,0,0,0.8);
-        }
-        /* コントロールパネルの設定 */
-        .controls {
-            margin-top: 15px;
-            pointer-events: auto; /* ボタンやスライダーは操作可能にする */
-            display: inline-flex;
-            gap: 15px;
-            align-items: center;
-            background: rgba(0, 0, 0, 0.6);
-            padding: 10px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-        }
-        button {
-            padding: 8px 16px;
-            font-size: 15px;
-            font-weight: bold;
-            cursor: pointer;
-            border: none;
-            border-radius: 4px;
-            background-color: #e91e63;
-            color: white;
-            transition: background 0.2s;
-        }
-        button:hover {
-            background-color: #ff4081;
-        }
-        #btn-end {
-            background-color: #555;
-        }
-        #btn-end:hover {
-            background-color: #777;
-        }
-        .slider-container {
+
+        body {
             display: flex;
             flex-direction: column;
+        }
+
+        /* 上部UI：セーフエリアを考慮 */
+        #header-ui {
+            width: 100%;
+            padding: calc(10px + env(safe-area-inset-top)) 15px 10px 15px;
+            display: flex;
+            justify-content: space-between;
             align-items: center;
-            font-size: 13px;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.85), rgba(0,0,0,0));
+            position: absolute; top: 0; left: 0; z-index: 10; pointer-events: none;
         }
-        input[type="range"] {
-            cursor: pointer;
-            margin-top: 4px;
+        .score-box { text-align: left; min-width: 65px; }
+        .score-box.center { text-align: center; }
+        .score-box.right { text-align: right; }
+        .score-label { font-size: 9px; color: #777; text-transform: uppercase; letter-spacing: 0.05em; }
+        .score-val { font-size: 20px; font-weight: 900; color: #ff3344; text-shadow: 0 0 8px rgba(255,51,68,0.4); }
+        #hi-score { color: #ff3344; }
+        #max-combo { color: #ffe9b0; font-size: 16px; }
+
+        /* 中央アナウンス */
+        #center-ui {
+            position: absolute; top: 20%; width: 100%; text-align: center;
+            z-index: 10; pointer-events: none;
         }
+        #message {
+            font-size: 30px; font-weight: 900; height: 36px; margin: 0;
+            text-shadow: 0 0 10px rgba(0,0,0,0.9); transition: transform 0.05s ease;
+        }
+        #combo {
+            font-size: 15px; font-weight: bold; color: #ff3344; margin-top: 1px;
+            text-shadow: 0 0 5px rgba(0,0,0,0.9); visibility: hidden;
+        }
+        #milestone-banner {
+            position: absolute; top: -35px; left: 0; width: 100%; text-align: center;
+            font-size: 13px; font-weight: 900; color: #fff; letter-spacing: 0.1em;
+            opacity: 0; transition: opacity 0.2s, transform 0.2s; transform: translateY(10px);
+            text-shadow: 0 0 10px #ff3344;
+        }
+        #milestone-banner.show { opacity: 1; transform: translateY(0); }
+
+        /* 3D描画エリア */
+        #canvas-container { flex: 1; width: 100%; height: 100%; }
+
+        /* 下部UI */
+        #footer-ui {
+            position: absolute; bottom: 0; left: 0; width: 100%;
+            background: rgba(5, 5, 10, 0.94);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border-top: 1px solid rgba(255,255,255,0.08);
+            padding: 10px 15px calc(10px + env(safe-area-inset-bottom)) 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            z-index: 10;
+        }
+        
+        .slider-row {
+            display: flex; align-items: center; justify-content: space-between;
+            background: rgba(255,255,255,0.04); padding: 5px 10px; border-radius: 6px;
+            height: 28px;
+        }
+        .slider-row label { color: #ccc; font-size: 11px; font-weight: bold; white-space: nowrap; }
+        input[type="range"] { flex: 1; margin-left: 12px; accent-color: #ff3344; height: 14px; }
+
+        /* スリムトグルスイッチ */
+        .switch { position: relative; width: 36px; height: 18px; flex-shrink: 0; margin-left: 12px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider-track {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background: #333; transition: 0.2s; border-radius: 18px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .slider-track:before {
+            position: absolute; content: ""; height: 12px; width: 12px;
+            left: 2px; bottom: 2px; background: white; transition: 0.2s; border-radius: 50%;
+        }
+        .switch input:checked + .slider-track { background: #ff3344; border-color: transparent; }
+        .switch input:checked + .slider-track:before { transform: translateX(18px); }
+
+        .btn-row { display: flex; gap: 8px; width: 100%; margin-top: 2px; }
+        button {
+            flex: 1; padding: 10px; font-size: 14px; font-weight: 900;
+            border: none; border-radius: 6px; cursor: pointer; color: black;
+            transition: background 0.1s, transform 0.05s;
+            box-shadow: 0 2px 0 rgba(0,0,0,0.4);
+        }
+        button:active { transform: translateY(1px); box-shadow: none; }
+        #btn-restart { background: #ff3344; color: white; }
+        #btn-end { background: #2c2c2e; color: #fff; }
+
+        /* 結果画面オーバーレイ */
+        #result-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(2,2,6,0.94);
+            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+            display: none; align-items: center; justify-content: center;
+            z-index: 100; padding: 15px;
+        }
+        #result-overlay.show { display: flex; }
+        #result-card {
+            width: 100%; max-width: 320px;
+            background: linear-gradient(160deg, rgba(30,10,10,0.96), rgba(10,5,5,0.98));
+            border: 1px solid rgba(255,51,68,0.25);
+            border-radius: 14px; padding: 20px 15px; text-align: center;
+            box-shadow: 0 0 30px rgba(255,51,68,0.1), 0 8px 24px rgba(0,0,0,0.6);
+        }
+        #result-title { font-size: 11px; letter-spacing: 0.2em; color: #888; margin-bottom: 4px; }
+        #result-rank { font-size: 64px; font-weight: 900; margin: 0; line-height: 1; color: #ff3344; text-shadow: 0 0 20px rgba(255,51,68,0.6); }
+        #result-score { font-size: 26px; font-weight: 900; color: #fff; margin: 6px 0 2px 0; }
+        #result-sub { font-size: 11px; color: #777; margin-bottom: 14px; }
+        .result-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 14px; text-align: left; }
+        .stat-item { background: rgba(255,255,255,0.03); border-radius: 6px; padding: 6px 8px; }
+        .stat-item .lbl { font-size: 9px; color: #777; text-transform: uppercase; }
+        .stat-item .val { font-size: 15px; font-weight: 800; color: #ffe9a8; }
+        .judge-breakdown { display: flex; flex-direction: column; gap: 3px; margin-bottom: 16px; font-size: 11px; text-align: left; }
+        .judge-breakdown div { display: flex; justify-content: space-between; color: #ccc; }
+        .judge-breakdown .jname { color: #888; }
+        .judge-breakdown .jcount { color: #ff3344; font-weight: bold; }
+        #result-buttons { display: flex; gap: 8px; }
+        #result-buttons button { padding: 11px; font-size: 13px; }
+        #btn-result-restart { background: #ff3344; color: white; }
+        #btn-result-close { background: #2c2c2e; color: #fff; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
-<div id="ui-container">
-    <h1>3D 振り子タイミングゲーム</h1>
-    <p>中心に近ければ近いほど高得点！（最大100点〜最少1点）</p>
-    <div>スコア: <span id="score" class="score-board">0</span></div>
-    <div id="message" class="message">READY?</div>
-    
-    <div class="controls">
-        <button id="btn-restart">初めから</button>
-        <button id="btn-end">終了</button>
-        <div class="slider-container">
-            <label for="speed-slider">スピード: <span id="speed-label">1.0</span>x</label>
-            <input type="range" id="speed-slider" min="0.5" max="3.0" step="0.1" value="1.0">
+<div id="header-ui">
+    <div class="score-box">
+        <p class="score-label">Score</p>
+        <p id="score" class="score-val">0</p>
+    </div>
+    <div class="score-box center">
+        <p class="score-label">Max Combo</p>
+        <p id="max-combo" class="score-val">0</p>
+    </div>
+    <div class="score-box right">
+        <p class="score-label">Best</p>
+        <p id="hi-score" class="score-val">0</p>
+    </div>
+</div>
+
+<div id="center-ui">
+    <div id="milestone-banner">COMBO!</div>
+    <p id="message">TAP START</p>
+    <p id="combo">0 COMBO</p>
+</div>
+
+<div id="canvas-container"></div>
+
+<div id="result-overlay">
+    <div id="result-card">
+        <p id="result-title">RESULT</p>
+        <p id="result-rank">-</p>
+        <p id="result-score">0 PT</p>
+        <p id="result-sub">タップ精度のまとめ</p>
+        <div class="result-stats">
+            <div class="stat-item"><div class="lbl">Max Combo</div><div class="val" id="r-maxcombo">0</div></div>
+            <div class="stat-item"><div class="lbl">Best Combo</div><div class="val" id="r-bestcombo">0</div></div>
+            <div class="stat-item"><div class="lbl">Accuracy</div><div class="val" id="r-accuracy">0%</div></div>
+            <div class="stat-item"><div class="lbl">Total Taps</div><div class="val" id="r-totaltaps">0</div></div>
+        </div>
+        <div class="judge-breakdown" id="judge-breakdown"></div>
+        <div id="result-buttons">
+            <button id="btn-result-restart">もう一度</button>
+            <button id="btn-result-close">閉じる</button>
         </div>
     </div>
 </div>
 
+<div id="footer-ui">
+    <div class="slider-row">
+        <label>SPEED: <span id="speed-label">1.0</span>x</label>
+        <input type="range" id="speed-slider" min="0.5" max="2.5" step="0.1" value="1.0">
+    </div>
+    <div class="slider-row">
+        <label>VOLUME: <span id="volume-label">70</span></label>
+        <input type="range" id="volume-slider" min="0" max="100" step="1" value="70">
+    </div>
+    <div class="slider-row">
+        <label>VIBRATION</label>
+        <div class="switch">
+            <input type="checkbox" id="vibration-toggle" checked>
+            <span class="slider-track"></span>
+        </div>
+    </div>
+    <div class="btn-row">
+        <button id="btn-restart">初めから</button>
+        <button id="btn-end">終了</button>
+    </div>
+</div>
+
 <script>
-    // ==========================================
-    // UI・ゲーム状態の管理
-    // ==========================================
+    // ============================================================
+    // 設定の読み込み・永続化
+    // ============================================================
+    const SETTINGS_KEY = 'pendulum_settings_v3';
+    function loadSettings() {
+        try {
+            const raw = localStorage.getItem(SETTINGS_KEY);
+            if (raw) return JSON.parse(raw);
+        } catch (e) {}
+        return { speed: 1.0, volume: 70, vibration: true };
+    }
+    function saveSettings() {
+        try {
+            localStorage.setItem(SETTINGS_KEY, JSON.stringify({ speed, volume, vibration: vibrationEnabled }));
+        } catch (e) {}
+    }
+    const settings = loadSettings();
+
+    // ============================================================
+    // 状態管理
+    // ============================================================
+    let score = 0;
+    let hiScore = parseInt(localStorage.getItem('pendulum_hi') || '0', 10);
+    let bestCombo = parseInt(localStorage.getItem('pendulum_best_combo') || '0', 10);
+    let combo = 0, maxCombo = 0;
+    let isPlaying = true, time = 0;
+    let speed = settings.speed;
+    let volume = settings.volume;
+    let vibrationEnabled = settings.vibration;
+    let lastSign = 0;
+    let judgeCounts = { perfect: 0, excellent: 0, great: 0, good: 0, miss: 0 };
+
     const scoreEl = document.getElementById('score');
+    const hiScoreEl = document.getElementById('hi-score');
+    const maxComboEl = document.getElementById('max-combo');
     const messageEl = document.getElementById('message');
-    const btnRestart = document.getElementById('btn-restart');
-    const btnEnd = document.getElementById('btn-end');
+    const comboEl = document.getElementById('combo');
+    const milestoneEl = document.getElementById('milestone-banner');
     const speedSlider = document.getElementById('speed-slider');
     const speedLabel = document.getElementById('speed-label');
+    const volumeSlider = document.getElementById('volume-slider');
+    const volumeLabel = document.getElementById('volume-label');
+    const vibrationToggle = document.getElementById('vibration-toggle');
 
-    let score = 0;
-    let isPlaying = true;
-    let time = 0;           // 振り子の計算用の時間
-    let speed = 1.0;        // 振り子の基本スピード
+    hiScoreEl.textContent = hiScore;
+    speedSlider.value = speed;
+    speedLabel.textContent = speed.toFixed(1);
+    volumeSlider.value = volume;
+    volumeLabel.textContent = volume;
+    vibrationToggle.checked = vibrationEnabled;
 
-    // ==========================================
-    // Three.js の基本設定（シーン、カメラ、レンダラー）
-    // ==========================================
+    // ============================================================
+    // 音響システム (Web Audio API)
+    // ============================================================
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+    let masterGain = null;
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new AudioContextClass();
+            masterGain = audioCtx.createGain();
+            masterGain.gain.value = volume / 100;
+            masterGain.connect(audioCtx.destination);
+        }
+    }
+
+    function playTone(freq, type, duration, vol = 0.15) {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(masterGain);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    }
+
+    function playMetronome() { playTone(880, 'triangle', 0.04, 0.1); }
+    function playHitSound(points) {
+        const freq = 523.25 + (points * 5);
+        playTone(freq, 'sine', 0.2, 0.15);
+    }
+    function playMissSound() { playTone(140, 'sawtooth', 0.15, 0.15); }
+    function playMilestoneFanfare() {
+        if (!audioCtx) return;
+        const notes = [659.25, 783.99, 1046.5];
+        notes.forEach((f, i) => {
+            setTimeout(() => playTone(f, 'triangle', 0.18, 0.12), i * 60);
+        });
+    }
+
+    function vibrate(pattern) {
+        if (vibrationEnabled && navigator.vibrate) {
+            // iOS端末など非対応ブラウザでは無視される安全な設計です
+            navigator.vibrate(pattern);
+        }
+    }
+
+    // ============================================================
+    // Three.js セットアップ
+    // ============================================================
+    const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(0x111122, 20, 100);
+    scene.fog = new THREE.Fog(0x05050a, 20, 60);
 
-    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 5, 45);
+    function createSkyTexture() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 4; canvas.height = 256;
+        const ctx = canvas.getContext('2d');
+        const grad = ctx.createLinearGradient(0, 0, 0, 256);
+        grad.addColorStop(0, '#000004');
+        grad.addColorStop(0.45, '#0a0a16');
+        grad.addColorStop(0.75, '#140f0f');
+        grad.addColorStop(1, '#000000');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 4, 256);
+        return new THREE.CanvasTexture(canvas);
+    }
+    scene.background = createSkyTexture();
+
+    // 星屑
+    (function createStarfield() {
+        const starCount = 400;
+        const positions = new Float32Array(starCount * 3);
+        for (let i = 0; i < starCount; i++) {
+            const r = 70 + Math.random() * 20;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos((Math.random() * 2) - 1);
+            positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+            positions[i * 3 + 1] = r * Math.cos(phi);
+            positions[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
+        }
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const mat = new THREE.PointsMaterial({ color: 0xffe9b0, size: 0.4, transparent: true, opacity: 0.6 });
+        scene.add(new THREE.Points(geo, mat));
+    })();
+
+    const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+    
+    // 【修正箇所】カメラを少し後ろに下げて、全体が画面に収まるようにしました
+    const baseCameraPos = new THREE.Vector3(0, 5.5, 42); 
+    camera.position.copy(baseCameraPos);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(0x111122);
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setClearColor(0x05050a);
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    document.body.appendChild(renderer.domElement);
+    container.appendChild(renderer.domElement);
 
-    // ライティング
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-    scene.add(ambientLight);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.15));
 
-    const spotLight = new THREE.SpotLight(0xffffff, 1.5);
-    spotLight.position.set(10, 30, 20);
-    spotLight.angle = Math.PI / 4;
-    spotLight.penumbra = 0.5;
-    spotLight.castShadow = true;
-    scene.add(spotLight);
+    const mainLight = new THREE.SpotLight(0xffffff, 1.8, 100, Math.PI / 4, 0.4, 1);
+    mainLight.position.set(5, 25, 15);
+    mainLight.castShadow = true;
+    scene.add(mainLight);
 
-    // ==========================================
-    // オブジェクトの作成
-    // ==========================================
-    const pendulumLength = 20;
-    const maxHitDistance = 3.0; // これ以上離れたらMISS（リングの外枠半径に相当）
-    
-    // 回転軸（ピボット）
+    const warmLight = new THREE.DirectionalLight(0xffaa44, 0.6);
+    warmLight.position.set(-10, 10, 5);
+    scene.add(warmLight);
+
+    const rimLight = new THREE.DirectionalLight(0x0088ff, 0.4);
+    rimLight.position.set(0, -5, -10);
+    scene.add(rimLight);
+
+    // --- オブジェクト ---
+    const pendulumLength = 16, maxHitDistance = 2.6;
     const pivot = new THREE.Group();
-    pivot.position.set(0, 15, 0);
+    // 【修正箇所】支点の位置を持ち上げ、的が操作バーに被らないようにしました
+    pivot.position.set(0, 14.5, 0); 
     scene.add(pivot);
 
-    // 固定根元
-    const anchor = new THREE.Mesh(
-        new THREE.SphereGeometry(0.8, 16, 16),
-        new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.8, roughness: 0.2 })
-    );
-    pivot.add(anchor);
-
-    // 紐
+    // ⚡ 紐：ネオンホワイト仕様
     const string = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.1, 0.1, pendulumLength, 8),
-        new THREE.MeshStandardMaterial({ color: 0xaaaaaa })
+        new THREE.CylinderGeometry(0.06, 0.06, pendulumLength, 8),
+        new THREE.MeshStandardMaterial({ 
+            color: 0xffffff, 
+            emissive: 0xaaaaaa,
+            metalness: 0.1, 
+            roughness: 0.4 
+        })
     );
     string.position.y = -pendulumLength / 2;
     string.castShadow = true;
     pivot.add(string);
 
-    // 振り子の玉
+    // 環境反射用キューブカメラ
+    const cubeRenderTarget = new THREE.WebGLCubeRenderTarget(128, {
+        format: THREE.RGBAFormat, generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter
+    });
+    const cubeCamera = new THREE.CubeCamera(0.1, 100, cubeRenderTarget);
+    scene.add(cubeCamera);
+
+    // 👑 玉：キャンディメタリックレッド
     const bob = new THREE.Mesh(
-        new THREE.SphereGeometry(2, 32, 32),
-        new THREE.MeshStandardMaterial({ color: 0xe91e63, metalness: 0.7, roughness: 0.2 })
+        new THREE.SphereGeometry(1.6, 64, 64),
+        new THREE.MeshStandardMaterial({
+            color: 0xcc1122,
+            emissive: 0x330000,
+            metalness: 1.0,
+            roughness: 0.06,
+            envMap: cubeRenderTarget.texture,
+            envMapIntensity: 1.4
+        })
     );
     bob.position.y = -pendulumLength;
     bob.castShadow = true;
     pivot.add(bob);
 
-    // ターゲット（光るネオンリング）
-    const target = new THREE.Mesh(
-        new THREE.TorusGeometry(maxHitDistance, 0.15, 16, 64),
-        new THREE.MeshBasicMaterial({ color: 0x00bfff })
-    );
-    target.rotation.x = Math.PI / 2;
-    target.position.set(0, pivot.position.y - pendulumLength, 0);
-    scene.add(target);
+    // --- ターゲット：4重判定リング ---
+    const targetGroup = new THREE.Group();
+    targetGroup.position.set(0, pivot.position.y - pendulumLength, 0);
+    scene.add(targetGroup);
 
-    // 床面
+    const ringDefs = [
+        { radius: maxHitDistance, color: 0xffffff, baseOpacity: 0.30, tube: 0.045 },
+        { radius: maxHitDistance * 0.50, color: 0xffaa00, baseOpacity: 0.45, tube: 0.05 },
+        { radius: maxHitDistance * 0.18, color: 0xff6688, baseOpacity: 0.6, tube: 0.06 },
+        { radius: maxHitDistance * 0.04, color: 0xff1133, baseOpacity: 0.9, tube: 0.07 }
+    ];
+    const rings = ringDefs.map(def => {
+        const ring = new THREE.Mesh(
+            new THREE.TorusGeometry(Math.max(def.radius, 0.05), def.tube, 16, 64),
+            new THREE.MeshBasicMaterial({ color: def.color, transparent: true, opacity: def.baseOpacity })
+        );
+        ring.rotation.x = Math.PI / 2;
+        targetGroup.add(ring);
+        return ring;
+    });
+
     const floor = new THREE.Mesh(
         new THREE.PlaneGeometry(100, 100),
-        new THREE.MeshStandardMaterial({ color: 0x1a1a26, roughness: 0.8 })
+        new THREE.MeshStandardMaterial({ color: 0x05050a, roughness: 0.4 })
     );
     floor.rotation.x = -Math.PI / 2;
-    floor.position.y = target.position.y - 1;
+    floor.position.y = targetGroup.position.y - 0.8;
     floor.receiveShadow = true;
     scene.add(floor);
 
-    // ==========================================
-    // 定期的なリズム（単振動）アニメーション
-    // ==========================================
-    const maxAngle = Math.PI / 3; // 最大の振れ幅（60度）
+    // ============================================================
+    // パーティクルシステム
+    // ============================================================
+    const particleSystems = [];
+    function createBurst(position, color, count = 22, speedScale = 1) {
+        const positions = new Float32Array(count * 3);
+        const velocities = new Float32Array(count * 3);
+        for (let i = 0; i < count; i++) {
+            positions[i * 3] = position.x;
+            positions[i * 3 + 1] = position.y;
+            positions[i * 3 + 2] = position.z;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.random() * Math.PI;
+            const spd = (0.05 + Math.random() * 0.15) * speedScale;
+            velocities[i * 3] = Math.sin(phi) * Math.cos(theta) * spd;
+            velocities[i * 3 + 1] = Math.cos(phi) * spd + 0.04;
+            velocities[i * 3 + 2] = Math.sin(phi) * Math.sin(theta) * spd;
+        }
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const material = new THREE.PointsMaterial({ color, size: 0.18, transparent: true, opacity: 1, depthWrite: false });
+        const points = new THREE.Points(geometry, material);
+        scene.add(points);
+        particleSystems.push({ points, velocities, life: 1.0, decay: 0.025 });
+    }
+
+    function updateParticles() {
+        for (let i = particleSystems.length - 1; i >= 0; i--) {
+            const p = particleSystems[i];
+            p.life -= p.decay;
+            if (p.life <= 0) {
+                scene.remove(p.points);
+                p.points.geometry.dispose();
+                p.points.material.dispose();
+                particleSystems.splice(i, 1);
+                continue;
+            }
+            const positions = p.points.geometry.attributes.position.array;
+            const velocities = p.velocities;
+            for (let j = 0; j < positions.length / 3; j++) {
+                positions[j * 3] += velocities[j * 3];
+                positions[j * 3 + 1] += velocities[j * 3 + 1];
+                positions[j * 3 + 2] += velocities[j * 3 + 2];
+                velocities[j * 3 + 1] -= 0.0025;
+            }
+            p.points.geometry.attributes.position.needsUpdate = true;
+            p.points.material.opacity = Math.max(0, p.life);
+        }
+    }
+
+    // ============================================================
+    // 画面シェイク
+    // ============================================================
+    let shakeAmount = 0;
+    function triggerShake(amount) { shakeAmount = Math.max(shakeAmount, amount); }
+
+    // ============================================================
+    // メインループ
+    // ============================================================
+    const maxAngle = Math.PI / 3.2;
+    const bobPos = new THREE.Vector3();
+    let frameCount = 0;
 
     function animate() {
         requestAnimationFrame(animate);
+        frameCount++;
 
         if (isPlaying) {
-            time += 0.05 * speed;
-            // コサイン波を使い、振れ幅が小さくならない一定のリズムにする
-            pivot.rotation.z = maxAngle * Math.cos(time);
-            target.rotation.z += 0.02; // リングの演出用回転
+            time += 0.04 * speed;
+            const currentAngle = maxAngle * Math.cos(time);
+            pivot.rotation.z = currentAngle;
+
+            const currentSign = Math.sign(Math.sin(time));
+            if (currentSign !== lastSign && lastSign !== 0) {
+                playMetronome();
+            }
+            lastSign = currentSign;
+        }
+
+        rings.forEach((ring, i) => {
+            const base = ringDefs[i].baseOpacity;
+            ring.material.opacity = base * (0.65 + 0.35 * Math.sin(time * 2.2 + i * 0.8));
+            ring.rotation.z += 0.0025 * (i + 1);
+        });
+
+        updateParticles();
+
+        if (shakeAmount > 0.002) {
+            camera.position.x = baseCameraPos.x + (Math.random() - 0.5) * shakeAmount;
+            camera.position.y = baseCameraPos.y + (Math.random() - 0.5) * shakeAmount;
+            shakeAmount *= 0.85;
+        } else {
+            camera.position.x = baseCameraPos.x;
+            camera.position.y = baseCameraPos.y;
+        }
+
+        bob.getWorldPosition(bobPos);
+        if (frameCount % 3 === 0) {
+            bob.visible = false;
+            cubeCamera.position.copy(bobPos);
+            cubeCamera.update(renderer, scene);
+            bob.visible = true;
         }
 
         renderer.render(scene, camera);
     }
 
-    // ==========================================
-    // 💥 精密・1点単位のタイミング判定処理
-    // ==========================================
-    const bobWorldPosition = new THREE.Vector3();
+    // ============================================================
+    // 判定ロジック
+    // ============================================================
+    function showMilestone(text) {
+        milestoneEl.textContent = text;
+        milestoneEl.classList.add('show');
+        clearTimeout(milestoneEl._timer);
+        milestoneEl._timer = setTimeout(() => milestoneEl.classList.remove('show'), 900);
+    }
 
     function checkTiming() {
-        if (!isPlaying) return; 
+        initAudio();
+        if (!isPlaying) return;
 
-        // 3D空間上の玉の現在地を取得
-        bob.getWorldPosition(bobWorldPosition);
-        // ターゲット中心からの絶対距離（ズレ）を測定
-        const distance = bobWorldPosition.distanceTo(target.position);
+        bob.getWorldPosition(bobPos);
+        const distance = bobPos.distanceTo(targetGroup.position);
 
-        // タップ時のテキスト跳ね上げ演出
-        messageEl.style.transform = 'scale(1.2)';
-        setTimeout(() => messageEl.style.transform = 'scale(1)', 100);
+        messageEl.style.transform = 'scale(1.1)';
+        setTimeout(() => messageEl.style.transform = 'scale(1)', 60);
 
-        // --- 1点単位の判定ロジック ---
         if (distance >= maxHitDistance) {
-            // リングの外側：完全に空振り
-            showResult("😢 MISS", "#ff3333", 0);
+            combo = 0;
+            judgeCounts.miss++;
+            comboEl.style.visibility = 'hidden';
+            messageEl.textContent = "😢 MISS";
+            messageEl.style.color = "#888888";
+            playMissSound();
+            triggerShake(0.2);
+            
+            // 【修正箇所】バイブレーションの時間を長くして、確実に振動するようにしました
+            vibrate([50, 40, 50]); 
         } else {
-            // リングの内側：1点〜100点までの精密計算
-            // ズレが0に近いほど100点に近づき、3.0(外枠)に近いほど1点に近づく
-            const accuracy = (maxHitDistance - distance) / maxHitDistance; // 1.0(完璧) 〜 0.0(ギリギリ)
-            const points = Math.ceil(accuracy * 100); // 小数点を切り上げて1〜100点にする
+            combo++;
+            if (combo > maxCombo) maxCombo = combo;
+            maxComboEl.textContent = maxCombo;
+            comboEl.textContent = `${combo} COMBO`;
+            comboEl.style.visibility = 'visible';
 
-            // 点数に応じた称号分け
-            let rating = "";
-            let color = "";
-            if (points >= 95) {
-                rating = "👑 PERFECT!!!";
-                color = "#ff00ff"; // ピンクパープル
-            } else if (points >= 80) {
-                rating = "✨ EXCELLENT";
-                color = "#00ffff"; // シアンブルー
-            } else if (points >= 50) {
-                rating = "👍 GREAT";
-                color = "#00ffcc"; // グリーンブルー
-            } else {
-                rating = "🙂 GOOD";
-                color = "#ffff00"; // イエロー
-            }
+            const accuracy = (maxHitDistance - distance) / maxHitDistance;
+            let basePoints = Math.ceil(accuracy * 100);
 
-            showResult(`${rating} (+${points})`, color, points);
-        }
-    }
+            const comboMultiplier = Math.min(2.0, 1.0 + (combo * 0.05));
+            let points = Math.round(basePoints * comboMultiplier);
 
-    function showResult(text, color, points) {
-        messageEl.textContent = text;
-        messageEl.style.color = color;
-        if (points > 0) {
+            let rating = "GOOD", color = "#ffffaa", burstColor = 0xffffff, shake = 0.04, vibePattern = [15];
+            let judgeKey = 'good';
+            
+            // 【修正箇所】判定ごとのバイブレーション時間も少し長めに設定
+            if (basePoints >= 96) { rating = "👑 PERFECT"; color = "#ff3344"; burstColor = 0xff3344; shake = 0.18; vibePattern = [40]; judgeKey = 'perfect'; }
+            else if (basePoints >= 82) { rating = "✨ EXCELLENT"; color = "#ff6688"; burstColor = 0xff6688; shake = 0.12; vibePattern = [30]; judgeKey = 'excellent'; }
+            else if (basePoints >= 50) { rating = "👍 GREAT"; color = "#ffaa00"; burstColor = 0xffaa00; shake = 0.08; vibePattern = [20]; judgeKey = 'great'; }
+
+            judgeCounts[judgeKey]++;
             score += points;
             scoreEl.textContent = score;
+            messageEl.textContent = `${rating} (+${points})`;
+            messageEl.style.color = color;
+            playHitSound(basePoints);
+            triggerShake(shake);
+            vibrate(vibePattern);
+            createBurst(bobPos, burstColor, judgeKey === 'perfect' ? 30 : 18, judgeKey === 'perfect' ? 1.3 : 1.0);
+
+            if (combo > 0 && combo % 10 === 0) {
+                playMilestoneFanfare();
+                showMilestone(`${combo} COMBO!!`);
+                triggerShake(0.25);
+            }
+
+            if (score > hiScore) {
+                hiScore = score;
+                hiScoreEl.textContent = hiScore;
+                localStorage.setItem('pendulum_hi', hiScore);
+            }
+            if (maxCombo > bestCombo) {
+                bestCombo = maxCombo;
+                localStorage.setItem('pendulum_best_combo', bestCombo);
+            }
         }
     }
 
-    // ==========================================
-    // 各種イベントの設定
-    // ==========================================
-    
-    // 初めからボタン
-    btnRestart.addEventListener('click', (e) => {
-        e.stopPropagation(); // 背面のキャンバスタップ判定を防止
-        score = 0;
-        time = 0; // 振り子の位置（一番右端）をリセット
-        scoreEl.textContent = score;
-        messageEl.textContent = "GAME START!";
+    // ============================================================
+    // 結果画面
+    // ============================================================
+    const resultOverlay = document.getElementById('result-overlay');
+    const judgeLabels = { perfect: 'PERFECT', excellent: 'EXCELLENT', great: 'GREAT', good: 'GOOD', miss: 'MISS' };
+
+    function computeRank(totalTaps, hitTaps, perfectCount) {
+        if (totalTaps === 0) return '-';
+        const acc = hitTaps / totalTaps;
+        const perfectRatio = perfectCount / totalTaps;
+        if (acc >= 0.95 && perfectRatio >= 0.6) return 'S';
+        if (acc >= 0.85) return 'A';
+        if (acc >= 0.70) return 'B';
+        if (acc >= 0.50) return 'C';
+        return 'D';
+    }
+
+    function showResults() {
+        const totalTaps = Object.values(judgeCounts).reduce((a, b) => a + b, 0);
+        const hitTaps = totalTaps - judgeCounts.miss;
+        const accuracyPct = totalTaps > 0 ? Math.round((hitTaps / totalTaps) * 100) : 0;
+        const rank = computeRank(totalTaps, hitTaps, judgeCounts.perfect);
+
+        document.getElementById('result-rank').textContent = rank;
+        document.getElementById('result-score').textContent = `${score} PT`;
+        document.getElementById('r-maxcombo').textContent = maxCombo;
+        document.getElementById('r-bestcombo').textContent = bestCombo;
+        document.getElementById('r-accuracy').textContent = `${accuracyPct}%`;
+        document.getElementById('r-totaltaps').textContent = totalTaps;
+
+        const breakdown = document.getElementById('judge-breakdown');
+        breakdown.innerHTML = '';
+        ['perfect', 'excellent', 'great', 'good', 'miss'].forEach(key => {
+            const row = document.createElement('div');
+            row.innerHTML = `<span class="jname">${judgeLabels[key]}</span><span class="jcount">${judgeCounts[key]}</span>`;
+            breakdown.appendChild(row);
+        });
+
+        resultOverlay.classList.add('show');
+    }
+
+    function hideResults() { resultOverlay.classList.remove('show'); }
+
+    function startGame() {
+        score = 0; combo = 0; maxCombo = 0; time = 0; lastSign = 0;
+        judgeCounts = { perfect: 0, excellent: 0, great: 0, good: 0, miss: 0 };
+        scoreEl.textContent = 0;
+        maxComboEl.textContent = 0;
+        comboEl.style.visibility = 'hidden';
+        messageEl.textContent = "READY?";
         messageEl.style.color = "#fff";
         isPlaying = true;
+    }
+
+    // ============================================================
+    // イベント処理
+    // ============================================================
+    document.getElementById('btn-restart').addEventListener('click', (e) => {
+        e.stopPropagation(); initAudio(); startGame();
     });
 
-    // 終了ボタン
-    btnEnd.addEventListener('click', (e) => {
-        e.stopPropagation(); 
+    document.getElementById('btn-end').addEventListener('click', (e) => {
+        e.stopPropagation();
         isPlaying = false;
-        messageEl.textContent = `FINISH! スコア: ${score}`;
-        messageEl.style.color = "#fff";
+        messageEl.textContent = `FINISH!`; messageEl.style.color = "#fff";
+        comboEl.style.visibility = 'hidden';
+        showResults();
     });
 
-    // スピードスライダー
+    document.getElementById('btn-result-restart').addEventListener('click', (e) => {
+        e.stopPropagation(); initAudio(); hideResults(); startGame();
+    });
+
+    document.getElementById('btn-result-close').addEventListener('click', (e) => {
+        e.stopPropagation(); hideResults();
+    });
+
     speedSlider.addEventListener('input', (e) => {
         speed = parseFloat(e.target.value);
         speedLabel.textContent = speed.toFixed(1);
+        saveSettings();
     });
 
-    // 画面タップ・クリック判定（UIコントロール以外のエリア）
-    renderer.domElement.addEventListener('mousedown', checkTiming);
+    volumeSlider.addEventListener('input', (e) => {
+        volume = parseInt(e.target.value, 10);
+        volumeLabel.textContent = volume;
+        if (masterGain) masterGain.gain.value = volume / 100;
+        saveSettings();
+    });
+
+    vibrationToggle.addEventListener('change', (e) => {
+        vibrationEnabled = e.target.checked;
+        saveSettings();
+        // 【修正箇所】スイッチをONにした時に、テストでブルッと振動させて確認できるようにしました
+        if (vibrationEnabled) vibrate([30]); 
+    });
+
     renderer.domElement.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        checkTiming();
+        e.preventDefault(); checkTiming();
     }, { passive: false });
+    renderer.domElement.addEventListener('mousedown', checkTiming);
 
-    // ウィンドウサイズ変更の追従
     window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.aspect = container.clientWidth / container.clientHeight;
         camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setSize(container.clientWidth, container.clientHeight);
     });
 
-    // ゲームのループ開始
     animate();
 </script>
 </body>
