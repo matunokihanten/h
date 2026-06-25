@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>戦国建築職人 - 無限ランダムパズル</title>
+    <style>
+        /* 全体の和風デザイン設定 */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #dcd3c4;
+            background-image: radial-gradient(#cbd2c2 1px, transparent 0), radial-gradient(#cbd2c2 1px, transparent 0);
+            background-size: 12px 12px;
+            background-position: 0 0, 6px 6px;
+            font-family: 'Hiragino Mincho ProN', 'Yu Mincho', 'MS Mincho', serif;
+            text-align: center;
+            user-select: none;
+            overflow: hidden;
+            min-height: 100vh;
+        }
+
+        #wrapper {
+            position: relative;
+            width: 900px;
+            height: 560px;
+            margin: 20px auto;
+            box-sizing: border-box;
+        }
+
+        /* 上部看板 */
+        #header-board {
+            position: absolute;
+            top: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 340px;
+            height: 65px;
+            background: linear-gradient(to bottom, #5c442c, #3d2c1c);
+            border: 3px solid #8e6d4f;
+            border-radius: 4px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+            color: #fcf8f2;
+            z-index: 10;
+        }
+
+        #level-title {
+            margin: 4px 0 2px 0;
+            font-size: 20px;
+            font-weight: bold;
+            letter-spacing: 4px;
+            color: #f1c40f;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+
+        #timer-display {
+            margin: 0;
+            font-size: 14px;
+            font-family: monospace;
+            color: #ffffff;
+            letter-spacing: 1px;
+        }
+
+        /* メインステージ */
+        #game-container {
+            position: absolute;
+            top: 85px;
+            left: 25px;
+            width: 850px;
+            height: 440px;
+            background-color: #f2e6d0;
+            border-top: 12px solid #4a3319;
+            border-bottom: 12px solid #4a3319;
+            box-shadow: 0 12px 25px rgba(0,0,0,0.3);
+            border-radius: 2px;
+        }
+
+        .scroll-roller {
+            position: absolute;
+            top: -15px;
+            width: 14px;
+            height: 470px;
+            background: linear-gradient(to right, #2c1a0c, #4a3319, #2c1a0c);
+            border-radius: 4px;
+            box-shadow: 2px 4px 6px rgba(0,0,0,0.3);
+        }
+        #roller-left { left: -14px; }
+        #roller-right { right: -14px; }
+
+        #stage-left {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 520px;
+            height: 440px;
+            background: #ebdcc5;
+            border-right: 4px dashed #caa885;
+            box-sizing: border-box;
+        }
+
+        /* 目標シルエット */
+        #silhouette {
+            position: absolute;
+            top: 100px;
+            left: 140px;
+            width: 240px;
+            height: 240px;
+            background-color: #3d3126;
+            opacity: 0.18;
+            transition: opacity 0.5s ease;
+        }
+
+        #glow-ring {
+            display: none;
+            position: absolute;
+            top: 85px;
+            left: 125px;
+            width: 270px;
+            height: 270px;
+            border-radius: 50%;
+            box-shadow: 0 0 40px #f39c12, inset 0 0 30px #f1c40f;
+            animation: pulseGlow 2s infinite ease-in-out;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        @keyframes pulseGlow {
+            0% { transform: scale(0.96); opacity: 0.6; }
+            50% { transform: scale(1.04); opacity: 1; }
+            100% { transform: scale(0.96); opacity: 0.6; }
+        }
+
+        #castle-icon {
+            display: none;
+            position: absolute;
+            top: 195px;
+            left: 235px;
+            width: 50px;
+            height: 50px;
+            z-index: 8;
+            pointer-events: none;
+            animation: fadeInIcon 0.8s ease-out forwards;
+        }
+
+        @keyframes fadeInIcon {
+            from { opacity: 0; transform: scale(0.5); }
+            to { opacity: 0.85; transform: scale(1); }
+        }
+
+        #stage-right {
+            position: absolute;
+            top: 0;
+            left: 520px;
+            width: 330px;
+            height: 440px;
+            background-color: #f5eedf;
+            box-sizing: border-box;
+        }
+
+        /* 動的生成ピース */
+        .piece {
+            position: absolute;
+            width: 240px;
+            height: 240px;
+            cursor: move;
+            transform-origin: center center;
+            filter: drop-shadow(3px 5px 6px rgba(0,0,0,0.35));
+            touch-action: none;
+            transition: transform 0.1s ease-out;
+        }
+
+        .piece.dragging {
+            filter: drop-shadow(5px 12px 14px rgba(0,0,0,0.4));
+            z-index: 100;
+        }
+
+        .flash-effect {
+            animation: successFlash 0.4s ease-out;
+        }
+        @keyframes successFlash {
+            0% { filter: brightness(1) drop-shadow(0 0 0px #fff); }
+            50% { filter: brightness(2) drop-shadow(0 0 25px #fff); }
+            100% { filter: brightness(1) drop-shadow(0 0 0px transparent); }
+        }
+
+        /* メニューボタン */
+        .side-menu-box {
+            position: absolute;
+            left: -15px;
+            width: 50px;
+            background: #fff5e6;
+            border: 2px solid #5c442c;
+            border-radius: 6px;
+            box-shadow: -2px 4px 6px rgba(0,0,0,0.2);
+            padding: 8px 0;
+            cursor: pointer;
+            text-align: center;
+            z-index: 12;
+            transition: all 0.2s;
+        }
+        .side-menu-box:hover {
+            background: #f39c12;
+            color: white;
+            border-color: #3d2c1c;
+        }
+        .side-menu-box.disabled {
+            background: #d5dbdb !important;
+            color: #7f8c8d !important;
+            border-color: #bdc3c7 !important;
+            cursor: not-allowed;
+        }
+        .side-menu-icon {
+            width: 32px;
+            height: 32px;
+            margin: 0 auto;
+        }
+        .side-menu-text {
+            font-size: 10px;
+            font-weight: bold;
+            margin-top: 3px;
+            line-height: 1.1;
+            color: #3d2c1c;
+        }
+        #btn-hint { top: 160px; }
+        #btn-instant { top: 250px; }
+
+        /* クリア文字演出 */
+        #clear-overlay-text {
+            display: none;
+            position: absolute;
+            top: 20px;
+            left: 260px;
+            transform: translateX(-50%);
+            z-index: 20;
+            pointer-events: none;
+        }
+        .clear-main-txt {
+            font-size: 42px;
+            font-weight: bold;
+            color: #e74c3c;
+            margin: 0;
+            letter-spacing: 6px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3), 0 0 20px #fff;
+            animation: scaleIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        .clear-sub-txt {
+            font-size: 22px;
+            font-weight: bold;
+            color: #4a3621;
+            margin: 5px 0 0 0;
+            letter-spacing: 4px;
+            text-shadow: 1px 1px 2px #fff;
+        }
+
+        @keyframes scaleIn {
+            from { transform: scale(0.3); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        /* アクションボタン */
+        .action-btn {
+            display: none;
+            position: absolute;
+            right: 40px;
+            width: 250px;
+            height: 50px;
+            line-height: 46px;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            border: 2px solid rgba(0,0,0,0.2);
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            box-sizing: border-box;
+            animation: fadeInRight 0.6s ease-out forwards;
+        }
+        .action-btn:hover {
+            filter: brightness(1.1);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.25);
+        }
+        #btn-next {
+            top: 200px;
+            background: linear-gradient(to bottom, #27ae60, #1e7e43);
+        }
+        #btn-reset {
+            top: 270px;
+            background: linear-gradient(to bottom, #2980b9, #1f618d);
+        }
+
+        @keyframes fadeInRight {
+            from { opacity: 0; transform: translateX(30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* ゲームオーバー画面 */
+        #gameover-screen {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(44, 34, 24, 0.85);
+            z-index: 100;
+            color: #fff;
+            box-sizing: border-box;
+            padding-top: 150px;
+        }
+        #gameover-screen h2 {
+            font-size: 36px;
+            color: #e74c3c;
+            margin-bottom: 20px;
+            letter-spacing: 4px;
+        }
+        #gameover-screen button {
+            padding: 10px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            background: #e67e22;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #gameover-screen button:hover { background: #d35400; }
+
+        #instruction-bottom {
+            margin-top: 15px;
+            font-size: 13px;
+            color: #4a3621;
+            line-height: 1.6;
+            font-weight: bold;
+        }
+        .maple-leaf { position: absolute; pointer-events: none; opacity: 0.85; }
+    </style>
+</head>
+<body>
+
+    <div id="wrapper">
+        <svg class="maple-leaf" width="70" height="70" viewBox="0 0 100 100" style="top:-15px; left:-15px; transform:rotate(-10deg);">
+            <path d="M50,95 Q46,65 46,55 Q20,68 8,50 Q35,46 40,40 Q12,22 24,10 Q45,32 46,38 Q50,4 54,4 Q54,38 55,38 Q76,10 88,22 Q65,40 60,46 Q88,50 92,62 Q54,65 50,95 Z" fill="#b22222"/>
+        </svg>
+        <svg class="maple-leaf" width="55" height="55" viewBox="0 0 100 100" style="top:10px; left:40px; transform:rotate(25deg); opacity:0.6;">
+            <path d="M50,95 Q46,65 46,55 Q20,68 8,50 Q35,46 40,40 Q12,22 24,10 Q45,32 46,38 Q50,4 54,4 Q54,38 55,38 Q76,10 88,22 Q65,40 60,46 Q88,50 92,62 Q54,65 50,95 Z" fill="#d35400"/>
+        </svg>
+
+        <div id="header-board">
+            <div id="level-title">Lv1 建築</div>
+            <div id="timer-display">残り時間: 01:00</div>
+        </div>
+
+        <div id="btn-hint" class="side-menu-box" onclick="triggerHint()">
+            <svg class="side-menu-icon" viewBox="0 0 24 24" fill="none" stroke="#5c442c" stroke-width="2">
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                <circle cx="12" cy="12" r="4"/>
+            </svg>
+            <div class="side-menu-text">匠の一手<br><span id="hint-count">3/3</span></div>
+        </div>
+
+        <div id="btn-instant" class="side-menu-box" onclick="triggerInstantClear()">
+            <svg class="side-menu-icon" viewBox="0 0 24 24" fill="none" stroke="#5c442c" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <path d="M21 7l-7 7-4-4-7 7"/>
+            </svg>
+            <div class="side-menu-text">匠心速成</div>
+        </div>
+
+        <div id="game-container">
+            <div id="roller-left" class="scroll-roller"></div>
+            <div id="roller-right" class="scroll-roller"></div>
+
+            <div id="stage-left">
+                <div id="silhouette"></div>
+                <div id="glow-ring"></div>
+                <div id="castle-icon">
+                    <svg viewBox="0 0 100 100" width="100%" height="100%">
+                        <path d="M20,85 L80,85 L80,70 L72,70 L72,55 L62,55 L62,35 L68,35 L68,22 L50,6 L32,22 L32,35 L38,35 L38,55 L28,55 L28,70 L20,70 Z" fill="#3d2c1c"/>
+                        <rect x="46" y="65" width="8" height="20" fill="#f2e6d0"/>
+                        <line x1="20" y1="85" x2="80" y2="85" stroke="#3d2c1c" stroke-width="4"/>
+                    </svg>
+                </div>
+                <div id="clear-overlay-text">
+                    <p class="clear-main-txt">正解！</p>
+                    <p class="clear-sub-txt">建築完了</p>
+                </div>
+            </div>
+
+            <div id="stage-right"></div>
+
+            <div id="btn-next" class="action-btn" onclick="goToNextLevel()">次のレベルへ (Lv2)</div>
+            <div id="btn-reset" class="action-btn" onclick="resetCurrentLevel()">もう一度やり直す</div>
+
+            <div id="gameover-screen">
+                <h2>無念！時間切れ</h2>
+                <p>制限時間内に建築が間に合いませんでした。</p>
+                <button onclick="resetCurrentLevel()">手直しする (再挑戦)</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="instruction-bottom">
+        【操作心得】<br>
+        一、木材パーツを左の影（型枠）へ運びハメ込むべし。レベルが上がるごとに「ピースの数」と「複雑さ」が増す。<br>
+        二、毎回ランダムで職人が木材を切り出すため、同じ図形は二度と出ぬ。影の形をよく観察せよ。
+    </div>
+
+    <script>
+        let currentLevel = 1;
+        let timeLeft = 60; 
+        let timerInterval = null;
+        let activePiece = null;
+        let offsetX = 0;
+        let offsetY = 0;
+        let hintsLeft = 3;
+        let isCleared = false;
+
+        const container = document.getElementById('game-container');
+        const stageRight = document.getElementById('stage-right');
+        const silhouette = document.getElementById('silhouette');
+        const timerDisplay = document.getElementById('timer-display');
+        const levelTitle = document.getElementById('level-title');
+
+        // ベースとなる図形群 (パーセンテージ座標)
+        const baseShapes = [
+            [{x:0, y:0}, {x:100, y:0}, {x:100, y:100}, {x:0, y:100}], // 四角
+            [{x:50,y:0}, {x:100,y:40}, {x:100,y:100}, {x:0,y:100}, {x:0,y:40}], // 家
+            [{x:50,y:0}, {x:100,y:25}, {x:100,y:75}, {x:50,y:100}, {x:0,y:75}, {x:0,y:25}], // 六角形
+            [{x:30,y:0}, {x:70,y:0}, {x:100,y:30}, {x:100,y:70}, {x:70,y:100}, {x:30,y:100}, {x:0,y:70}, {x:0,y:30}], // 八角形
+            [{x:50,y:0}, {x:100,y:50}, {x:50,y:100}, {x:0,y:50}] // 菱形
+        ];
+
+        // 木目テクスチャのバリエーション
+        const woodGradients = [
+            "linear-gradient(135deg, #6e473b, #4a2e25)",
+            "linear-gradient(135deg, #cc9966, #996633)",
+            "linear-gradient(135deg, #e6b981, #c4965c)",
+            "linear-gradient(135deg, #a0522d, #5c2c16)",
+            "linear-gradient(135deg, #d2b48c, #a08c6c)",
+            "linear-gradient(135deg, #8b4513, #5e2f0d)",
+            "linear-gradient(135deg, #cd853f, #9c6631)"
+        ];
+
+        // 多角形の重心を取得
+        function getCentroid(vertices) {
+            let x = 0, y = 0;
+            for (let v of vertices) { x += v.x; y += v.y; }
+            return { x: x / vertices.length, y: y / vertices.length };
+        }
+
+        // 多角形の面積を取得
+        function getArea(vertices) {
+            let area = 0;
+            for (let i = 0; i < vertices.length; i++) {
+                let j = (i + 1) % vertices.length;
+                area += vertices[i].x * vertices[j].y - vertices[j].x * vertices[i].y;
+            }
+            return Math.abs(area / 2);
+        }
+
+        // 凸多角形をランダムな直線で2つに分割するアルゴリズム
+        function splitPolygon(vertices) {
+            const centroid = getCentroid(vertices);
+            const angle = Math.random() * Math.PI; // ランダムな角度
+            const A = -Math.sin(angle);
+            const B = Math.cos(angle);
+            const C = Math.sin(angle) * centroid.x - Math.cos(angle) * centroid.y;
+
+            let poly1 = [];
+            let poly2 = [];
+
+            for (let i = 0; i < vertices.length; i++) {
+                let p1 = vertices[i];
+                let p2 = vertices[(i + 1) % vertices.length];
+
+                let d1 = A * p1.x + B * p1.y + C;
+                let d2 = A * p2.x + B * p2.y + C;
+
+                // 許容誤差を含めて頂点を振り分け
+                if (d1 >= -0.001) poly1.push(p1);
+                if (d1 <= 0.001) poly2.push(p1);
+
+                // 線分が直線をまたぐ場合、交点を計算
+                if (d1 * d2 < -0.001) {
+                    let num = -(A * p1.x + B * p1.y + C);
+                    let den = A * (p2.x - p1.x) + B * (p2.y - p1.y);
+                    let t = num / den;
+                    let intersect = {
+                        x: p1.x + t * (p2.x - p1.x),
+                        y: p1.y + t * (p2.y - p1.y)
+                    };
+                    poly1.push(intersect);
+                    poly2.push(intersect);
+                }
+            }
+            // 分割失敗（細すぎる等）の場合は元の図形を返す
+            if (poly1.length < 3 || poly2.length < 3) return [vertices];
+            return [poly1, poly2];
+        }
+
+        // 頂点配列をCSSの clip-path polygon文字列に変換
+        function toClipPath(vertices) {
+            return "polygon(" + vertices.map(v => `${v.x.toFixed(1)}% ${v.y.toFixed(1)}%`).join(", ") + ")";
+        }
+
+        // レベルの初期化とランダム生成
+        function initLevel(lv) {
+            currentLevel = lv;
+            isCleared = false;
+            
+            document.querySelectorAll('.piece').forEach(p => p.remove());
+            document.getElementById('clear-overlay-text').style.display = 'none';
+            document.getElementById('glow-ring').style.display = 'none';
+            document.getElementById('castle-icon').style.display = 'none';
+            document.getElementById('btn-next').style.display = 'none';
+            document.getElementById('btn-reset').style.display = 'none';
+            document.getElementById('gameover-screen').style.display = 'none';
+            silhouette.style.opacity = "0.18";
+
+            levelTitle.innerText = `Lv${lv} 建築`;
+            
+            // 時間：基礎60秒 ＋ レベル毎に20秒追加
+            timeLeft = 60 + (lv - 1) * 20;
+            updateTimerUI();
+            if(timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(countDown, 1000);
+
+            // 分割数の決定（レベルが上がるごとにピースが増える）
+            let targetPiecesCount = lv + 1;
+            if (targetPiecesCount > 12) targetPiecesCount = 12; // 最大12ピース程度に制限
+
+            // ベース図形をランダム選択
+            const baseShape = baseShapes[Math.floor(Math.random() * baseShapes.length)];
+            silhouette.style.clipPath = toClipPath(baseShape);
+
+            // 図形の分割処理
+            let polys = [baseShape];
+            while (polys.length < targetPiecesCount) {
+                // 面積が最大のピースを探して分割する
+                polys.sort((a, b) => getArea(b) - getArea(a));
+                const largest = polys.shift();
+                const splitResult = splitPolygon(largest);
+                
+                if (splitResult.length === 1) {
+                    // 分割に失敗した場合は戻して終了（無限ループ防止）
+                    polys.push(largest);
+                    break; 
+                } else {
+                    polys.push(splitResult[0], splitResult[1]);
+                }
+            }
+
+            // 分割されたピースを画面に配置
+            polys.forEach((polyCoords, index) => {
+                const pEl = document.createElement('div');
+                pEl.className = 'piece';
+                pEl.style.background = woodGradients[Math.floor(Math.random() * woodGradients.length)];
+                pEl.style.clipPath = toClipPath(polyCoords);
+                
+                // 右側のエリアにランダムに散らばらせる
+                const randomX = 520 + Math.random() * 80; // 520px ~ 600px
+                const randomY = 20 + Math.random() * 180; // 20px ~ 200px
+                
+                pEl.style.left = randomX + 'px';
+                pEl.style.top = randomY + 'px';
+                pEl.setAttribute('data-placed', 'false');
+
+                pEl.addEventListener('mousedown', startDrag);
+                pEl.addEventListener('touchstart', startDrag, { passive: false });
+
+                container.appendChild(pEl);
+            });
+
+            // ヒント回数のリセット
+            hintsLeft = 3;
+            document.getElementById('hint-count').innerText = "3/3";
+            document.getElementById('btn-hint').classList.remove('disabled');
+        }
+
+        // タイマー処理
+        function countDown() {
+            if (isCleared) return;
+            timeLeft--;
+            updateTimerUI();
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                document.getElementById('gameover-screen').style.display = 'block';
+            }
+        }
+
+        function updateTimerUI() {
+            const min = String(Math.floor(timeLeft / 60)).padStart(2, '0');
+            const sec = String(timeLeft % 60).padStart(2, '0');
+            timerDisplay.innerText = `残り時間: ${min}:${sec}`;
+        }
+
+        // ドラッグ操作関連
+        function startDrag(e) {
+            if (isCleared || e.target.getAttribute('data-placed') === 'true') return;
+            activePiece = e.target;
+            activePiece.classList.add('dragging');
+            const clientX = e.type.startsWith('touch') ? e.touches[0].clientX : e.clientX;
+            const clientY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
+            const containerRect = container.getBoundingClientRect();
+            offsetX = (clientX - containerRect.left) - activePiece.offsetLeft;
+            offsetY = (clientY - containerRect.top) - activePiece.offsetTop;
+        }
+
+        function drag(e) {
+            if (!activePiece) return;
+            if (e.cancelable) e.preventDefault();
+            const clientX = e.type.startsWith('touch') ? e.touches[0].clientX : e.clientX;
+            const clientY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
+            const containerRect = container.getBoundingClientRect();
+            let x = clientX - containerRect.left - offsetX;
+            let y = clientY - containerRect.top - offsetY;
+
+            if (x < 0) x = 0;
+            if (y < 0) y = 0;
+            if (x > containerRect.width - 50) x = containerRect.width - 50; 
+            if (y > containerRect.height - 50) y = containerRect.height - 50;
+
+            activePiece.style.left = x + 'px';
+            activePiece.style.top = y + 'px';
+        }
+
+        function endDrag(e) {
+            if (!activePiece) return;
+            const targetX = 140; // 目標位置の基準X
+            const targetY = 100; // 目標位置の基準Y
+
+            const currentX = activePiece.offsetLeft;
+            const currentY = activePiece.offsetTop;
+            const distance = Math.sqrt(Math.pow(targetX - currentX, 2) + Math.pow(targetY - currentY, 2));
+
+            // 吸着判定（50px以内）
+            if (distance < 50) {
+                activePiece.style.left = targetX + 'px';
+                activePiece.style.top = targetY + 'px';
+                activePiece.setAttribute('data-placed', 'true');
+                activePiece.classList.remove('dragging');
+                activePiece.style.cursor = 'default';
+                
+                activePiece.classList.add('flash-effect');
+                const targetPiece = activePiece;
+                setTimeout(() => targetPiece.classList.remove('flash-effect'), 400);
+
+                checkStageClear();
+            }
+
+            if(activePiece) {
+                activePiece.classList.remove('dragging');
+                activePiece = null;
+            }
+        }
+
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('touchmove', drag, { passive: false });
+        document.addEventListener('mouseup', endDrag);
+        document.addEventListener('touchend', endDrag);
+
+        function checkStageClear() {
+            const allPieces = document.querySelectorAll('.piece');
+            const allPlaced = Array.from(allPieces).every(p => p.getAttribute('data-placed') === 'true');
+
+            if (allPlaced && !isCleared) {
+                isCleared = true;
+                clearInterval(timerInterval);
+                
+                levelTitle.innerText = `Lv${currentLevel}（済）`;
+                silhouette.style.opacity = "0"; 
+                document.getElementById('glow-ring').style.display = 'block';
+                document.getElementById('castle-icon').style.display = 'block';
+                document.getElementById('clear-overlay-text').style.display = 'block';
+
+                setTimeout(() => {
+                    const btnNext = document.getElementById('btn-next');
+                    btnNext.innerText = `次のレベルへ (Lv${currentLevel + 1})`;
+                    btnNext.style.display = 'block';
+                    document.getElementById('btn-reset').style.display = 'block';
+                }, 600);
+            }
+        }
+
+        function triggerHint() {
+            if (isCleared || hintsLeft <= 0) return;
+            const unplaced = Array.from(document.querySelectorAll('.piece')).find(p => p.getAttribute('data-placed') === 'false');
+            if (unplaced) {
+                hintsLeft--;
+                document.getElementById('hint-count').innerText = `${hintsLeft}/3`;
+                if(hintsLeft === 0) document.getElementById('btn-hint').classList.add('disabled');
+
+                unplaced.style.left = '140px';
+                unplaced.style.top = '100px';
+                unplaced.setAttribute('data-placed', 'true');
+                unplaced.style.cursor = 'default';
+                unplaced.classList.add('flash-effect');
+                setTimeout(() => unplaced.classList.remove('flash-effect'), 400);
+
+                checkStageClear();
+            }
+        }
+
+        function triggerInstantClear() {
+            if (isCleared) return;
+            document.querySelectorAll('.piece').forEach(p => {
+                if(p.getAttribute('data-placed') === 'false') {
+                    p.style.left = '140px';
+                    p.style.top = '100px';
+                    p.setAttribute('data-placed', 'true');
+                    p.style.cursor = 'default';
+                }
+            });
+            checkStageClear();
+        }
+
+        function goToNextLevel() {
+            initLevel(currentLevel + 1);
+        }
+
+        function resetCurrentLevel() {
+            initLevel(currentLevel);
+        }
+
+        window.onload = () => {
+            initLevel(1);
+        };
+    </script>
+</body>
+</html>
