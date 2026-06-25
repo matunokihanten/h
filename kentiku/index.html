@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>建築職人 - 本格木組みパズル (確定版)</title>
+    <title>建築職人 - 本格木組みパズル (最新版)</title>
     <style>
         /* 全体の和風デザイン設定 */
         body {
@@ -101,9 +102,19 @@
         /* シルエット（影）の三角形 */
         .silhouette-tri {
             position: absolute;
-            background-color: #3d3126;
-            opacity: 0.25;
+            background-color: #b0a38f;
+            opacity: 0.6;
             transition: opacity 0.5s ease;
+            box-sizing: border-box;
+        }
+        /* 画像のようにシルエットにも目地（白線）を入れる */
+        .silhouette-up {
+            clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+            border-bottom: 1px solid #ebdcc5;
+        }
+        .silhouette-down {
+            clip-path: polygon(0% 0%, 100% 0%, 50% 100%);
+            border-top: 1px solid #ebdcc5;
         }
 
         #glow-ring {
@@ -172,8 +183,8 @@
             position: absolute;
             width: 46px; /* S */
             height: 39.84px; /* H */
-            /* 目地（隙間）を作るために 0.98に設定 */
-            transform: scale(0.98);
+            /* 1つの三角形の「頂点だけで繋がる」表現を再現するため縮尺を調整 */
+            transform: scale(0.98); 
             transform-origin: center center;
         }
 
@@ -311,7 +322,7 @@
 
     <div id="instruction-bottom">
         【操作心得】<br>
-        一、複数の三角が隙間なく連なった木材パーツを、左の影へハメ込むべし。<strong>（吸着判定：10px）</strong><br>
+        一、複数の三角が頂点や辺で繋がった木材パーツを、左の影へハメ込むべし。<strong>（吸着判定：10px）</strong><br>
         二、木材は必ず「最低3つ以上の三角」が結合しておる。右側の待機陣地からドラッグで運ぶのだ。
     </div>
 
@@ -331,18 +342,17 @@
         const timerDisplay = document.getElementById('timer-display');
         const levelTitle = document.getElementById('level-title');
 
-        // ==== 完璧な数学的グリッドの定義 ====
-        const S = 46; // 三角形の底辺
-        const H = 39.84; // 三角形の高さ
+        // ==== グリッド定義 ====
+        const S = 46; 
+        const H = 39.84; 
         
-        // シルエットを描画するベース位置（センタリング）
         const BASE_X = 156;
         const BASE_Y = 140;
 
         const baseGrid = [];
         let idCounter = 0;
 
-        // 全24マスの配置定義（ヘックス風の形状）
+        // 最大24マスの配置定義（六角形）
         const gridDef = [
             { r: 0, cStart: 2, cEnd: 6 },
             { r: 1, cStart: 1, cEnd: 7 },
@@ -350,45 +360,57 @@
             { r: 3, cStart: 2, cEnd: 6 }
         ];
 
-        // 座標と隣接関係の計算
         gridDef.forEach(row => {
             for (let c = row.cStart; c <= row.cEnd; c++) {
                 let type = ((row.r + c) % 2 === 0) ? 'up' : 'down';
                 let bx = c * (S / 2);
                 let by = row.r * H;
-                baseGrid.push({ id: idCounter++, type, bx, by, r: row.r, c: c, neighbors: [] });
+                // 画像(image_3ea57d.png)のように頂点同士でも繋がれるよう、neighbors に含めるための拡張
+                baseGrid.push({ id: idCounter++, type, bx, by, r: row.r, c: c, neighbors: [], vertexNeighbors: [] });
             }
         });
 
-        // 辺を共有する隣接関係の厳密な特定
+        // 隣接関係の特定（辺の共有 ＋ 頂点の共有）
         for (let i = 0; i < baseGrid.length; i++) {
             for (let j = 0; j < baseGrid.length; j++) {
                 if (i === j) continue;
                 let t1 = baseGrid[i], t2 = baseGrid[j];
-                let isNeighbor = false;
+                
+                // 1. 辺の共有 (Edge Neighbors)
+                let isEdgeNeighbor = false;
                 if (t1.type === 'up') {
-                    if (t2.r === t1.r + 1 && t2.c === t1.c) isNeighbor = true; // Bottom
-                    if (t2.r === t1.r && t2.c === t1.c - 1) isNeighbor = true; // Left
-                    if (t2.r === t1.r && t2.c === t1.c + 1) isNeighbor = true; // Right
+                    if (t2.r === t1.r + 1 && t2.c === t1.c) isEdgeNeighbor = true; 
+                    if (t2.r === t1.r && t2.c === t1.c - 1) isEdgeNeighbor = true; 
+                    if (t2.r === t1.r && t2.c === t1.c + 1) isEdgeNeighbor = true; 
                 } else {
-                    if (t2.r === t1.r - 1 && t2.c === t1.c) isNeighbor = true; // Top
-                    if (t2.r === t1.r && t2.c === t1.c - 1) isNeighbor = true; // Left
-                    if (t2.r === t1.r && t2.c === t1.c + 1) isNeighbor = true; // Right
+                    if (t2.r === t1.r - 1 && t2.c === t1.c) isEdgeNeighbor = true; 
+                    if (t2.r === t1.r && t2.c === t1.c - 1) isEdgeNeighbor = true; 
+                    if (t2.r === t1.r && t2.c === t1.c + 1) isEdgeNeighbor = true; 
                 }
-                if (isNeighbor) baseGrid[i].neighbors.push(j);
+                
+                // 2. 頂点のみの共有 (Vertex Neighbors) - 距離で大まかに判定
+                let dx = t1.bx - t2.bx;
+                let dy = t1.by - t2.by;
+                let dist = Math.sqrt(dx*dx + dy*dy);
+                
+                if (isEdgeNeighbor) {
+                    baseGrid[i].neighbors.push(j);
+                } else if (dist <= S + 2) { 
+                    // 辺は共有していないが距離が近い＝頂点で接している
+                    baseGrid[i].vertexNeighbors.push(j);
+                }
             }
         }
 
         const woodGradients = [
-            "linear-gradient(135deg, #6e473b, #4a2e25)",
-            "linear-gradient(135deg, #cc9966, #996633)",
-            "linear-gradient(135deg, #e6b981, #c4965c)",
-            "linear-gradient(135deg, #a0522d, #5c2c16)",
-            "linear-gradient(135deg, #d2b48c, #a08c6c)",
-            "linear-gradient(135deg, #8b4513, #5e2f0d)"
+            "linear-gradient(135deg, #5c3a21, #3d2616)", // 濃い茶色
+            "linear-gradient(135deg, #7c4f30, #5a3922)", // 少し明るい茶色
+            "linear-gradient(135deg, #8b5a33, #6b4426)", // さらに明るい茶色
+            "linear-gradient(135deg, #6b3e23, #4a2b18)", 
+            "linear-gradient(135deg, #543620, #382415)",
         ];
 
-        // ピースを「最低3つ以上の三角」で構成する安全な分割アルゴリズム
+        // ピースを「最低3つ以上の三角」で構成するアルゴリズム（頂点繋がりも許容）
         function generatePieceGroups() {
             let partitionSuccess = false;
             let finalGroups = [];
@@ -398,28 +420,33 @@
                 finalGroups = [];
                 let possible = true;
 
-                // 塊の生成
                 while (unassigned.size > 0) {
                     let start = Array.from(unassigned)[Math.floor(Math.random() * unassigned.size)];
                     let piece = [start];
                     unassigned.delete(start);
 
-                    let targetSize = 3 + Math.floor(Math.random() * 2); // 目標サイズ: 3〜4
-                    let currentNeighbors = new Set(baseGrid[start].neighbors.filter(n => unassigned.has(n)));
+                    let targetSize = 3 + Math.floor(Math.random() * 2); // 3〜4
+
+                    // 辺繋がり ＋ 頂点繋がり の両方を候補にする
+                    let currentNeighbors = new Set(
+                        [...baseGrid[start].neighbors, ...baseGrid[start].vertexNeighbors]
+                        .filter(n => unassigned.has(n))
+                    );
 
                     while(piece.length < targetSize && currentNeighbors.size > 0) {
                         let next = Array.from(currentNeighbors)[Math.floor(Math.random() * currentNeighbors.size)];
                         piece.push(next);
                         unassigned.delete(next);
                         currentNeighbors.delete(next);
-                        baseGrid[next].neighbors.forEach(n => {
+                        
+                        let allNewNeighbors = [...baseGrid[next].neighbors, ...baseGrid[next].vertexNeighbors];
+                        allNewNeighbors.forEach(n => {
                             if(unassigned.has(n)) currentNeighbors.add(n);
                         });
                     }
                     finalGroups.push(piece);
                 }
 
-                // 「3つ未満」のピースが出た場合、隣接するピースに吸収合併させる
                 let mergedAny = true;
                 let attempts = 0;
                 while (mergedAny && attempts < 50) {
@@ -435,7 +462,10 @@
                                 let isAdjacent = false;
                                 for (let n1 of smallPiece) {
                                     for (let n2 of finalGroups[j]) {
-                                        if (baseGrid[n1].neighbors.includes(n2)) { isAdjacent = true; break; }
+                                        // 辺または頂点で繋がっていれば結合可能
+                                        if (baseGrid[n1].neighbors.includes(n2) || baseGrid[n1].vertexNeighbors.includes(n2)) { 
+                                            isAdjacent = true; break; 
+                                        }
                                     }
                                     if(isAdjacent) break;
                                 }
@@ -457,7 +487,6 @@
                     attempts++;
                 }
                 
-                // 全てのピースが「3以上」なら成功
                 if (possible && finalGroups.every(p => p.length >= 3)) {
                     partitionSuccess = true;
                 }
@@ -465,7 +494,6 @@
             return finalGroups;
         }
 
-        // レベル初期化
         function initLevel(lv) {
             currentLevel = lv;
             isCleared = false;
@@ -485,20 +513,21 @@
             if(timerInterval) clearInterval(timerInterval);
             timerInterval = setInterval(countDown, 1000);
 
-            // シルエット（目標の影）の描画
+            // シルエット描画（画像のような白線付き）
             baseGrid.forEach(t => {
                 const sEl = document.createElement('div');
-                sEl.className = `silhouette-tri sub-triangle sub-${t.type}`;
+                sEl.className = `silhouette-tri silhouette-${t.type}`;
                 sEl.style.left = (BASE_X + t.bx) + 'px';
                 sEl.style.top = (BASE_Y + t.by) + 'px';
+                // 幅と高さを厳密に指定
+                sEl.style.width = S + 'px';
+                sEl.style.height = H + 'px';
                 stageLeft.appendChild(sEl);
             });
 
-            // ピース群の生成（最低3つ以上）
             const pieceGroups = generatePieceGroups();
 
-            // 右側のエリアに重ならないように整列配置するためのグリッド計算
-            const COLS = 2; // 2列でゆったり配置
+            const COLS = 2; 
             const CELL_W = 330 / COLS;
             const ROWS = Math.ceil(pieceGroups.length / COLS);
             const CELL_H = 440 / ROWS;
@@ -517,14 +546,12 @@
                 pContainer.style.width = pWidth + 'px';
                 pContainer.style.height = pHeight + 'px';
 
-                // 吸着時の目標絶対座標
                 pContainer.dataset.targetX = BASE_X + minBx;
                 pContainer.dataset.targetY = BASE_Y + minBy;
                 pContainer.dataset.placed = 'false';
 
                 const woodBg = woodGradients[index % woodGradients.length];
 
-                // ピース内部の小三角構築
                 group.forEach(id => {
                     let tData = baseGrid[id];
                     let tEl = document.createElement('div');
@@ -535,7 +562,6 @@
                     pContainer.appendChild(tEl);
                 });
 
-                // 右側エリアのグリッド中央に配置
                 const col = index % COLS;
                 const row = Math.floor(index / COLS);
                 const initX = 520 + (col * CELL_W) + (CELL_W / 2) - (pWidth / 2);
@@ -605,7 +631,7 @@
             const targetY = parseFloat(activePiece.dataset.targetY);
             const distance = Math.sqrt(Math.pow(targetX - activePiece.offsetLeft, 2) + Math.pow(targetY - activePiece.offsetTop, 2));
 
-            // ==== 吸着判定：ご要望通り厳密に「10px以内」に修正 ====
+            // 吸着判定：10px以内
             if (distance <= 10) {
                 activePiece.style.left = targetX + 'px';
                 activePiece.style.top = targetY + 'px';
