@@ -528,7 +528,7 @@
 
             // 分割数の決定（レベルが上がるごとにピースが増える）
             let targetPiecesCount = lv + 1;
-            if (targetPiecesCount > 12) targetPiecesCount = 12; // 最大12ピース程度に制限
+            if (targetPiecesCount > 24) targetPiecesCount = 24; // 最大12ピース程度に制限
 
             // ベース図形をランダム選択
             const baseShape = baseShapes[Math.floor(Math.random() * baseShapes.length)];
@@ -558,14 +558,46 @@
                 pEl.style.background = woodGradients[Math.floor(Math.random() * woodGradients.length)];
                 pEl.style.clipPath = toClipPath(polyCoords);
                 
-                // 右側のエリアにランダムに散らばらせる
-                const randomX = 520 + Math.random() * 80; // 520px ~ 600px
-                const randomY = 20 + Math.random() * 180; // 20px ~ 200px
+                // ===== 【修正箇所】ピースの重なりを防止するグリッド配置ロジック =====
                 
-                pEl.style.left = randomX + 'px';
-                pEl.style.top = randomY + 'px';
-                pEl.setAttribute('data-placed', 'false');
+                // 1. ピースの表示領域（バウンディングボックス）の最小・最大パーセントを取得
+                let minX = 100, maxX = 0, minY = 100, maxY = 0;
+                polyCoords.forEach(v => {
+                    if(v.x < minX) minX = v.x;
+                    if(v.x > maxX) maxX = v.x;
+                    if(v.y < minY) minY = v.y;
+                    if(v.y > maxY) maxY = v.y;
+                });
 
+                // 2. ピースの「見えている部分」の中心パーセントを算出
+                let centerX = (minX + maxX) / 2;
+                let centerY = (minY + maxY) / 2;
+
+                // 3. 240pxサイズの要素内における、実際のピクセル中心座標
+                let pieceCenterPixelX = (centerX / 100) * 240;
+                let pieceCenterPixelY = (centerY / 100) * 240;
+
+                // 4. 右側エリア(幅330px, 高さ440px, 左端520px)を分割するグリッド設定
+                const cols = 3; // 3列で配置
+                const rows = Math.ceil(targetPiecesCount / cols);
+                const cellWidth = 330 / cols;
+                const cellHeight = 440 / rows;
+
+                // 現在のピースが配置されるグリッドの列と行
+                const col = index % cols;
+                const row = Math.floor(index / cols);
+
+                // 5. グリッドセルの中心点（画面上の絶対座標）
+                const targetCenterX = 520 + (col * cellWidth) + (cellWidth / 2);
+                const targetCenterY = (row * cellHeight) + (cellHeight / 2);
+
+                // 6. 見た目の中心が、グリッドの中心に重なるようにleft/topを逆算
+                pEl.style.left = (targetCenterX - pieceCenterPixelX) + 'px';
+                pEl.style.top = (targetCenterY - pieceCenterPixelY) + 'px';
+                
+                // =====================================================================
+
+                pEl.setAttribute('data-placed', 'false');
                 pEl.addEventListener('mousedown', startDrag);
                 pEl.addEventListener('touchstart', startDrag, { passive: false });
 
