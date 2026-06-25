@@ -635,7 +635,7 @@
             const distance = Math.sqrt(Math.pow(targetX - currentX, 2) + Math.pow(targetY - currentY, 2));
 
             // 吸着判定（50px以内）
-            if (distance < 50) {
+            if (distance < 10) {
                 activePiece.style.left = targetX + 'px';
                 activePiece.style.top = targetY + 'px';
                 activePiece.setAttribute('data-placed', 'true');
