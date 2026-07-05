@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>コア・ネットワーク (Logic Grid Puzzle)</title>
+    <title>孤高のロジック 〜運要素ゼロの陣取りパズル〜</title>
     <style>
         :root {
             --bg-color: #FAF5F0;
@@ -11,35 +11,37 @@
             --panel-bg: #FFFFFF;
             --border-radius: 12px;
             
-            --zone-0: #EFA8E4;
-            --zone-1: #FCE28D;
-            --zone-2: #A56C47;
-            --zone-3: #927FE0;
-            --zone-4: #2D944E;
-            --zone-5: #4C75A7;
-            --zone-6: #FBA35D;
-            --zone-7: #D3A400;
-            --zone-8: #DB7297;
+            --zone-0: #EFA8E4; --zone-1: #FCE28D; --zone-2: #A56C47;
+            --zone-3: #927FE0; --zone-4: #2D944E; --zone-5: #4C75A7;
+            --zone-6: #FBA35D; --zone-7: #D3A400; --zone-8: #DB7297;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: var(--bg-color); color: var(--text-color); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 10px; }
-        .game-container { width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 14px; }
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: var(--bg-color); color: var(--text-color); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 10px; overflow: hidden; }
+        .game-container { width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 14px; position: relative; z-index: 10; }
         
         .header { display: flex; justify-content: space-between; align-items: center; }
-        .title-area h1 { font-size: 20px; color: #5A4A42; margin-bottom: 4px; }
-        .title-area p { font-size: 11px; color: #8A7A72; font-weight: bold; }
-        
-        /* ルールボタン */
+        .title-area h1 { font-size: 20px; color: #5A4A42; margin-bottom: 6px; letter-spacing: 0.5px; }
+        .level-setting select { padding: 4px 8px; border-radius: 6px; border: 1px solid #D1D5DB; background-color: var(--panel-bg); color: #5A4A42; font-size: 12px; font-weight: bold; outline: none; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+
         .btn-rule { background-color: var(--panel-bg); color: var(--text-color); border: 1px solid #D1D5DB; padding: 8px 12px; font-size: 13px; font-weight: bold; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: 0.2s; }
         .btn-rule:active { transform: scale(0.95); }
 
         .board-wrapper { background-color: #FFFFFF; padding: 6px; border-radius: var(--border-radius); box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
         .board { display: grid; grid-template-columns: repeat(9, 1fr); grid-template-rows: repeat(9, 1fr); gap: 3px; aspect-ratio: 1 / 1; width: 100%; background-color: #FFFFFF; }
         
-        .cell { cursor: pointer; display: flex; justify-content: center; align-items: center; aspect-ratio: 1 / 1; position: relative; border-radius: 4px; }
-        .cell.core::after { content: "⚡"; font-size: 22px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3)); }
+        .cell { cursor: pointer; display: flex; justify-content: center; align-items: center; aspect-ratio: 1 / 1; position: relative; border-radius: 4px; transition: transform 0.1s; }
+        .cell:active { transform: scale(0.92); }
+        .cell.core::after { content: "⚡"; font-size: 22px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3)); animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .cell.block::after { content: "⛔"; font-size: 14px; opacity: 0.6; }
+
+        @keyframes popIn { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+
+        @keyframes errorBlink {
+            0%, 100% { background-color: inherit; box-shadow: none; }
+            50% { background-color: #EF4444 !important; box-shadow: inset 0 0 0 3px #991B1B; }
+        }
+        .error-blink { animation: errorBlink 0.4s ease-in-out 4; } 
 
         .border-t { border-top: 3px solid #5A4A42 !important; border-top-left-radius: 0; border-top-right-radius: 0; }
         .border-b { border-bottom: 3px solid #5A4A42 !important; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
@@ -54,8 +56,10 @@
 
         .controls { display: flex; flex-direction: column; gap: 8px; }
         .row-buttons { display: flex; gap: 8px; }
-        .btn { flex: 1; padding: 12px; font-size: 14px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .btn { flex: 1; padding: 12px; font-size: 13px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); white-space: nowrap; }
         .btn:active { transform: scale(0.97); }
+        
+        .btn-undo { background-color: #8B5CF6; color: white; }
         .btn-check { background-color: #0EA5E9; color: white; }
         .btn-hint { background-color: #F59E0B; color: white; }
         .btn-clear { background-color: #E5E7EB; color: #4B5563; }
@@ -71,18 +75,28 @@
         .btn-wrap { display: flex; justify-content: center; }
         .modal button { background-color: #0EA5E9; color: white; border: none; padding: 10px 24px; font-weight: bold; border-radius: 6px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
 
-        /* エラー表示用のトースト */
         .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background-color: rgba(239, 68, 68, 0.95); color: white; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: bold; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 200; box-shadow: 0 4px 12px rgba(0,0,0,0.2); text-align: center; width: 90%; max-width: 340px; }
         .toast.show { opacity: 1; }
+
+        #confetti-canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 90; }
     </style>
 </head>
 <body>
 
+    <canvas id="confetti-canvas"></canvas>
+
     <div class="game-container">
         <div class="header">
             <div class="title-area">
-                <h1>CORE NETWORK</h1>
-                <p>∞ 無限自動生成（唯一解確定）</p>
+                <h1>孤高のロジック</h1>
+                <div class="level-setting">
+                    <select id="difficulty" onchange="startInfiniteGeneration()">
+                        <option value="10">レベル1 (初級)</option>
+                        <option value="50" selected>レベル2 (中級)</option>
+                        <option value="120">レベル3 (上級)</option>
+                        <option value="250">レベル4 (特級)</option>
+                    </select>
+                </div>
             </div>
             <button class="btn-rule" onclick="showRules()">📖 ルール</button>
         </div>
@@ -93,12 +107,13 @@
 
         <div class="controls">
             <div class="row-buttons">
+                <button class="btn btn-undo" onclick="undoMove()">↩️ 戻る</button>
                 <button class="btn btn-clear" onclick="clearBoard()">クリア</button>
                 <button class="btn btn-hint" onclick="showHint()">💡 ヒント</button>
-                <button class="btn btn-check" onclick="checkSolution()">CHECK</button>
             </div>
             <div class="row-buttons">
-                <button class="btn btn-cheat" onclick="showCorrectSolution()">正解を表示</button>
+                <button class="btn btn-cheat" onclick="showCorrectSolution()">正解表示</button>
+                <button class="btn btn-check" onclick="checkSolution()">✨ CHECK</button>
                 <button class="btn btn-new" onclick="startInfiniteGeneration()">🔄 新規作成</button>
             </div>
         </div>
@@ -117,6 +132,111 @@
     <div id="toast" class="toast"></div>
 
     <script>
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playSound(type) {
+            if (!audioCtx) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            const now = audioCtx.currentTime;
+            
+            if (type === 'block') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, now);
+                gain.gain.setValueAtTime(0.05, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                osc.start(now); osc.stop(now + 0.1);
+            } else if (type === 'core') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(523.25, now);
+                osc.frequency.exponentialRampToValueAtTime(1046.50, now + 0.1);
+                gain.gain.setValueAtTime(0.05, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+                osc.start(now); osc.stop(now + 0.15);
+            } else if (type === 'error') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, now);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+                osc.start(now); osc.stop(now + 0.2);
+            } else if (type === 'win') {
+                const notes = [523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, i) => {
+                    const o = audioCtx.createOscillator();
+                    const g = audioCtx.createGain();
+                    o.connect(g); g.connect(audioCtx.destination);
+                    o.type = 'triangle';
+                    o.frequency.value = freq;
+                    g.gain.setValueAtTime(0.1, now + i*0.1);
+                    g.gain.exponentialRampToValueAtTime(0.001, now + i*0.1 + 0.3);
+                    o.start(now + i*0.1); o.stop(now + i*0.1 + 0.3);
+                });
+            }
+        }
+
+        let confettiParticles = [];
+        let confettiAnimationId = null;
+
+        function fireConfetti() {
+            const canvas = document.getElementById('confetti-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            confettiParticles = [];
+            const colors = ['#EFA8E4', '#FCE28D', '#927FE0', '#2D944E', '#0EA5E9', '#EF4444'];
+            
+            for(let i=0; i<100; i++) {
+                confettiParticles.push({
+                    x: canvas.width / 2,
+                    y: canvas.height / 2 + 50,
+                    r: Math.random() * 6 + 4,
+                    dx: Math.random() * 10 - 5,
+                    dy: Math.random() * -10 - 5,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    tilt: Math.floor(Math.random() * 10) - 10,
+                    tiltAngleInc: (Math.random() * 0.07) + 0.05,
+                    tiltAngle: 0
+                });
+            }
+
+            function render() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                let active = false;
+                
+                for(let i=0; i<confettiParticles.length; i++) {
+                    let p = confettiParticles[i];
+                    p.tiltAngle += p.tiltAngleInc;
+                    p.y += (Math.cos(p.tiltAngle) + 1 + p.r / 2) / 2;
+                    p.x += Math.sin(p.tiltAngle) * 2 + p.dx;
+                    p.dy += 0.2;
+                    p.y += p.dy;
+
+                    if(p.y <= canvas.height) active = true;
+
+                    ctx.beginPath();
+                    ctx.lineWidth = p.r;
+                    ctx.strokeStyle = p.color;
+                    ctx.moveTo(p.x + p.tilt + p.r, p.y);
+                    ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r);
+                    ctx.stroke();
+                }
+
+                if(active) {
+                    confettiAnimationId = requestAnimationFrame(render);
+                } else {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            }
+            if(confettiAnimationId) cancelAnimationFrame(confettiAnimationId);
+            render();
+        }
+
         const SEED_MAPS = [
             {
                 map: [
@@ -124,26 +244,41 @@
                     [3, 3, 3, 4, 2, 5, 6, 5, 1], [3, 4, 4, 4, 2, 5, 6, 5, 1], [7, 7, 8, 4, 2, 5, 6, 5, 1],
                     [7, 4, 4, 4, 2, 5, 5, 5, 1], [7, 7, 7, 7, 7, 7, 7, 7, 1], [7, 7, 7, 7, 7, 7, 7, 7, 1]
                 ], sol: [1, 4, 0, 3, 6, 2, 7, 5, 8]
-            },
-            {
-                map: [
-                    [0, 0, 0, 0, 1, 1, 1, 1, 1], [0, 0, 0, 0, 1, 1, 1, 2, 2], [3, 3, 3, 0, 1, 1, 2, 2, 2],
-                    [3, 3, 3, 4, 4, 4, 2, 2, 2], [3, 3, 4, 4, 4, 4, 5, 5, 5], [6, 6, 4, 4, 4, 5, 5, 5, 5],
-                    [6, 6, 6, 7, 7, 7, 5, 5, 5], [6, 6, 6, 7, 7, 7, 8, 8, 8], [7, 7, 7, 7, 8, 8, 8, 8, 8]
-                ], sol: [2, 5, 8, 1, 4, 7, 0, 3, 6]
             }
         ];
 
         let zoneMap = [];
         let solution = [];
         let gridState = [];
+        let moveHistory = [];
+        
         let toastTimeout;
+        let clickTimers = [];
+        let clickCounts = [];
+
+        function saveState() {
+            moveHistory.push(JSON.parse(JSON.stringify(gridState)));
+        }
+
+        function undoMove() {
+            if (moveHistory.length > 0) {
+                gridState = moveHistory.pop();
+                for(let r=0; r<9; r++){
+                    for(let c=0; c<9; c++){
+                        const el = document.getElementById(`c-${r}-${c}`);
+                        el.classList.remove('block', 'core', 'error-blink');
+                        if (gridState[r][c] !== 'empty') el.classList.add(gridState[r][c]);
+                    }
+                }
+                playSound('block');
+            }
+        }
 
         function setCellState(r, c, state) {
             gridState[r][c] = state;
             const el = document.getElementById(`c-${r}-${c}`);
             if(!el) return;
-            el.classList.remove('block', 'core');
+            el.classList.remove('block', 'core', 'error-blink');
             if (state !== 'empty') el.classList.add(state);
         }
 
@@ -151,6 +286,9 @@
             const boardEl = document.getElementById('game-board');
             boardEl.innerHTML = '';
             gridState = Array(9).fill(null).map(() => Array(9).fill('empty'));
+            clickTimers = Array(9).fill(null).map(() => Array(9).fill(null));
+            clickCounts = Array(9).fill(null).map(() => Array(9).fill(0));
+            moveHistory = [];
 
             for (let r = 0; r < 9; r++) {
                 for (let c = 0; c < 9; c++) {
@@ -163,23 +301,67 @@
                     if (c === 8 || zoneMap[r][c+1] !== zoneMap[r][c]) cell.classList.add('border-r');
                     
                     cell.id = `c-${r}-${c}`;
-                    cell.addEventListener('click', () => handleCellClick(r, c));
+                    cell.addEventListener('click', () => handleCellInteraction(r, c));
                     boardEl.appendChild(cell);
                 }
             }
         }
 
-        // --- 追加: 矛盾防止のためのバリデーション機能 ---
+        function handleCellInteraction(r, c) {
+            clickCounts[r][c]++;
+            if (clickCounts[r][c] === 1) {
+                clickTimers[r][c] = setTimeout(() => {
+                    clickCounts[r][c] = 0;
+                    handleSingleTap(r, c);
+                }, 220); 
+            } else if (clickCounts[r][c] === 2) {
+                clearTimeout(clickTimers[r][c]);
+                clickCounts[r][c] = 0;
+                handleDoubleTap(r, c);
+            }
+        }
+
+        function handleSingleTap(r, c) {
+            const state = gridState[r][c];
+            if (state === 'core') return; 
+            
+            saveState();
+            if (state === 'empty') {
+                setCellState(r, c, 'block');
+                playSound('block');
+            } else if (state === 'block') {
+                setCellState(r, c, 'empty');
+                playSound('block');
+            }
+        }
+
+        function handleDoubleTap(r, c) {
+            const state = gridState[r][c];
+            saveState();
+            
+            if (state === 'core') {
+                setCellState(r, c, 'empty');
+                playSound('block');
+            } else {
+                if (canPlaceCore(r, c)) {
+                    setCellState(r, c, 'core');
+                    autoFillBlocks(r, c);
+                    playSound('core');
+                } else {
+                    moveHistory.pop();
+                    playSound('error');
+                    showToast("⚠️ 矛盾：行・列・同エリア、または隣接マスに⚡があります！");
+                }
+            }
+        }
+
         function canPlaceCore(r, c) {
             let targetZone = zoneMap[r][c];
             for (let i = 0; i < 9; i++) {
                 for (let j = 0; j < 9; j++) {
                     if (i === r && j === c) continue;
                     if (gridState[i][j] === 'core') {
-                        if (i === r) return false; // 同じ行に既にある
-                        if (j === c) return false; // 同じ列に既にある
-                        if (zoneMap[i][j] === targetZone) return false; // 同じ色エリアに既にある
-                        if (Math.abs(i - r) <= 1 && Math.abs(j - c) <= 1) return false; // 周囲8マスに既にある
+                        if (i === r || j === c || zoneMap[i][j] === targetZone || (Math.abs(i - r) <= 1 && Math.abs(j - c) <= 1)) return false; 
                     }
                 }
             }
@@ -194,25 +376,6 @@
             toastTimeout = setTimeout(() => toast.classList.remove('show'), 2500);
         }
 
-        function handleCellClick(r, c) {
-            const state = gridState[r][c];
-            if (state === 'empty') {
-                setCellState(r, c, 'block');
-            } else if (state === 'block') {
-                // ⚡を置く前にルール違反がないかチェック
-                if (canPlaceCore(r, c)) {
-                    setCellState(r, c, 'core');
-                    autoFillBlocks(r, c);
-                } else {
-                    // ルール違反の場合は置かずに空マスに戻し、警告を出す
-                    setCellState(r, c, 'empty');
-                    showToast("⚠️ 矛盾エラー：同じ行・列・色エリア、または隣接マスにすでに⚡があります！");
-                }
-            } else {
-                setCellState(r, c, 'empty');
-            }
-        }
-
         function autoFillBlocks(cr, cc) {
             for (let r = 0; r < 9; r++) {
                 for (let c = 0; c < 9; c++) {
@@ -225,28 +388,30 @@
         }
 
         function clearBoard() {
+            saveState();
             for (let r = 0; r < 9; r++) {
                 for (let c = 0; c < 9; c++) setCellState(r, c, 'empty');
             }
+            playSound('block');
         }
 
-        // --- 追加: ルール説明 ---
         function showRules() {
             document.getElementById('modal-box').classList.remove('center');
             showModal("📖 ルール説明", 
                 "⚡ コアの配置ルール ⚡\n\n" +
-                "1️⃣ 各【色のエリア】に、⚡を1つだけ配置します。\n" +
-                "2️⃣ 各【タテの列・ヨコの行】に、⚡を1つだけ配置します。\n" +
-                "3️⃣ ⚡同士は、タテ・ヨコ・斜めに接触させることはできません。\n\n" +
-                "👆 タップ操作:\n空マス → ⛔(メモ) → ⚡(コア) → 空マス"
+                "1️⃣ 各【色のエリア】に、⚡を1つだけ配置。\n" +
+                "2️⃣ 各【タテの列・ヨコの行】に、⚡を1つだけ配置。\n" +
+                "3️⃣ ⚡同士は、タテ・ヨコ・斜めに接触不可。\n\n" +
+                "👇 タップ操作\n" +
+                "👆 シングルタップ: ⛔(メモ) の配置 / 解除\n" +
+                "✌️ ダブルタップ: ⚡(コア) の配置 / 解除"
             );
         }
 
-        // --- 追加: ヒント機能 ---
         function showHint() {
+            saveState();
             document.getElementById('modal-box').classList.add('center');
             
-            // 1. 間違って置かれている⚡を探す
             let wrongCore = null;
             for (let r = 0; r < 9; r++) {
                 for (let c = 0; c < 9; c++) {
@@ -259,11 +424,11 @@
             }
 
             if (wrongCore) {
+                playSound('error');
                 showModal("💡 ヒント：間違い発見！", `上から ${wrongCore.r + 1} 行目、左から ${wrongCore.c + 1} 列目の⚡は間違っています。\nまずはこれを取り除いて計算し直しましょう。`);
                 return;
             }
 
-            // 2. まだ置かれていない正解を探す
             let missingCores = [];
             for (let r = 0; r < 9; r++) {
                 if (gridState[r][solution[r]] !== 'core') {
@@ -272,10 +437,10 @@
             }
 
             if (missingCores.length > 0) {
-                // ランダムに1つ選んで配置してあげる
                 let target = missingCores[Math.floor(Math.random() * missingCores.length)];
                 setCellState(target.r, target.c, 'core');
                 autoFillBlocks(target.r, target.c);
+                playSound('core');
                 showModal("💡 ヒント：自動配置", "確定できるコア（⚡）を1つ自動で配置しました！\nこれを起点に周囲を計算してみてください。");
             } else {
                 showModal("💡 ヒント", "すでに全てのコアが正しい位置にあります！\n「CHECK」ボタンを押してクリアしましょう。");
@@ -283,6 +448,7 @@
         }
 
         function showCorrectSolution() {
+            saveState();
             clearBoard();
             for (let r = 0; r < 9; r++) {
                 const targetCol = solution[r];
@@ -292,34 +458,65 @@
                 }
             }
             document.getElementById('modal-box').classList.add('center');
-            showModal("正解表示", "これが現在のマップの論理的な確定ルートです。\nランダム生成ですが、必ず答えが1つになります。");
+            playSound('win');
+            showModal("正解表示", "これが現在のマップの論理的な確定ルートです。\n「戻る」ボタンで前の状態に戻れます。");
         }
 
+        // --- CHECKボタン時のモーダルを削除し、トーストと演出だけに変更 ---
         function checkSolution() {
             let isPerfect = true;
             let totalCores = 0;
-            for (let r = 0; r < 9; r++) {
-                if (gridState[r][solution[r]] !== 'core') isPerfect = false;
-                for (let c = 0; c < 9; c++) {
-                    if (gridState[r][c] === 'core') totalCores++;
+            let hasErrors = false;
+
+            for(let r = 0; r < 9; r++){
+                for(let c = 0; c < 9; c++){
+                    document.getElementById(`c-${r}-${c}`).classList.remove('error-blink');
                 }
             }
-            document.getElementById('modal-box').classList.add('center');
+
+            for (let r = 0; r < 9; r++) {
+                for (let c = 0; c < 9; c++) {
+                    if (gridState[r][c] === 'core') {
+                        totalCores++;
+                        if (solution[r] !== c) {
+                            isPerfect = false;
+                            hasErrors = true;
+                            document.getElementById(`c-${r}-${c}`).classList.add('error-blink');
+                        }
+                    }
+                }
+                if (gridState[r][solution[r]] !== 'core') {
+                    isPerfect = false;
+                }
+            }
+
+            if (hasErrors) {
+                setTimeout(() => {
+                    for(let r = 0; r < 9; r++){
+                        for(let c = 0; c < 9; c++){
+                            const el = document.getElementById(`c-${r}-${c}`);
+                            if(el) el.classList.remove('error-blink');
+                        }
+                    }
+                }, 1600); 
+            }
+
             if (isPerfect && totalCores === 9) {
-                showModal("SUCCESS ⚡", "完璧です！複雑な回路を見事に解き明かしました。");
+                playSound('win');
+                fireConfetti();
+                // 成功時は紙吹雪とファンファーレのみで、モーダル（説明窓）は出さない
             } else {
-                showModal("ERROR ⚠️", "回路のどこかで計算が矛盾しています。\n（※必ず1色に1つ、縦横に1つ、斜め接触なしを満たす必要があります）");
+                playSound('error');
+                // 失敗時は点滅とエラー音に加え、邪魔にならないトーストで知らせる
+                showToast("⚠️ 計算が矛盾しています。赤く点滅した⚡が間違っています！");
             }
         }
 
-        // ==========================================
-        // ♾️ 無限マップ生成エンジン
-        // ==========================================
         async function startInfiniteGeneration() {
             showLoadingModal();
             await new Promise(res => setTimeout(res, 50)); 
 
-            let base = SEED_MAPS[Math.floor(Math.random() * SEED_MAPS.length)];
+            let base = SEED_MAPS[0];
             let currentMap = base.map.map(row => [...row]);
             let currentSol = [...base.sol];
 
@@ -333,8 +530,9 @@
                 currentMap = res.map; currentSol = res.sol;
             }
 
-            const TARGET_MUTATIONS = 50;  
-            const MAX_ATTEMPTS = 1500;    
+            const TARGET_MUTATIONS = parseInt(document.getElementById('difficulty').value);  
+            const MAX_ATTEMPTS = TARGET_MUTATIONS * 30; 
+            
             let mutationsDone = 0;
             let attempts = 0;
 
@@ -355,8 +553,7 @@
                         if(currentSol[r] === c) continue;
 
                         let oldReg = currentMap[r][c];
-                        const dr = [-1, 1, 0, 0];
-                        const dc = [0, 0, -1, 1];
+                        const dr = [-1, 1, 0, 0]; const dc = [0, 0, -1, 1];
                         let dir = Math.floor(Math.random() * 4);
                         let nr = r + dr[dir], nc = c + dc[dir];
 
@@ -394,14 +591,12 @@
                     let reg = zMap[r][c];
                     if ((regsUsed & (1 << reg))) continue;
                     if (r > 0 && Math.abs(result[r-1] - c) <= 1) continue;
-
                     colsUsed |= (1 << c); regsUsed |= (1 << reg); result[r] = c;
                     solve(r + 1);
                     colsUsed &= ~(1 << c); regsUsed &= ~(1 << reg);
                 }
             }
-            solve(0);
-            return solutions;
+            solve(0); return solutions;
         }
 
         function isConnected(map, targetReg) {
@@ -427,9 +622,7 @@
                 for(let i=0; i<4; i++) {
                     let nr = r + dr[i], nc = c + dc[i];
                     if(nr >= 0 && nr < 9 && nc >= 0 && nc < 9 && map[nr][nc] === targetReg && !visited[nr][nc]) {
-                        visited[nr][nc] = true;
-                        queue.push([nr, nc]);
-                        count++;
+                        visited[nr][nc] = true; queue.push([nr, nc]); count++;
                     }
                 }
             }
