@@ -22,18 +22,23 @@
         
         .header { display: flex; justify-content: space-between; align-items: center; }
         .title-area h1 { font-size: 20px; color: #5A4A42; margin-bottom: 6px; letter-spacing: 0.5px; }
-        .level-setting select { padding: 4px 8px; border-radius: 6px; border: 1px solid #D1D5DB; background-color: var(--panel-bg); color: #5A4A42; font-size: 12px; font-weight: bold; outline: none; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .level-setting select { padding: 4px 8px; border-radius: 6px; border: 1px solid #D1D5DB; background-color: var(--panel-bg); color: #5A4A42; font-size: 13px; font-weight: bold; outline: none; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
 
         .btn-rule { background-color: var(--panel-bg); color: var(--text-color); border: 1px solid #D1D5DB; padding: 8px 12px; font-size: 13px; font-weight: bold; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: 0.2s; }
         .btn-rule:active { transform: scale(0.95); }
 
         .board-wrapper { background-color: #FFFFFF; padding: 6px; border-radius: var(--border-radius); box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
-        .board { display: grid; grid-template-columns: repeat(9, 1fr); grid-template-rows: repeat(9, 1fr); gap: 3px; aspect-ratio: 1 / 1; width: 100%; background-color: #FFFFFF; }
+        
+        .board { display: grid; gap: 3px; aspect-ratio: 1 / 1; width: 100%; background-color: #FFFFFF; }
         
         .cell { cursor: pointer; display: flex; justify-content: center; align-items: center; aspect-ratio: 1 / 1; position: relative; border-radius: 4px; transition: transform 0.1s; }
         .cell:active { transform: scale(0.92); }
+        
         .cell.core::after { content: "⚡"; font-size: 22px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3)); animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .cell.block::after { content: "⛔"; font-size: 14px; opacity: 0.6; }
+
+        .board.grid-6 .cell.core::after { font-size: 34px; }
+        .board.grid-6 .cell.block::after { font-size: 20px; }
 
         @keyframes popIn { 0% { transform: scale(0); } 100% { transform: scale(1); } }
 
@@ -91,10 +96,10 @@
                 <h1>孤高のロジック</h1>
                 <div class="level-setting">
                     <select id="difficulty" onchange="startInfiniteGeneration()">
-                        <option value="10">レベル1 (初級)</option>
-                        <option value="50" selected>レベル2 (中級)</option>
-                        <option value="120">レベル3 (上級)</option>
-                        <option value="250">レベル4 (特級)</option>
+                        <option value="1">レベル1 (初級 6×6)</option>
+                        <option value="2" selected>レベル2 (中級 9×9)</option>
+                        <option value="3">レベル3 (上級 9×9)</option>
+                        <option value="4">レベル4 (特級 9×9)</option>
                     </select>
                 </div>
             </div>
@@ -137,13 +142,11 @@
         function playSound(type) {
             if (!audioCtx) return;
             if (audioCtx.state === 'suspended') audioCtx.resume();
-            
+            const now = audioCtx.currentTime;
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.connect(gain);
             gain.connect(audioCtx.destination);
-            
-            const now = audioCtx.currentTime;
             
             if (type === 'block') {
                 osc.type = 'sine';
@@ -181,77 +184,66 @@
 
         let confettiParticles = [];
         let confettiAnimationId = null;
-
         function fireConfetti() {
             const canvas = document.getElementById('confetti-canvas');
             const ctx = canvas.getContext('2d');
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            
             confettiParticles = [];
             const colors = ['#EFA8E4', '#FCE28D', '#927FE0', '#2D944E', '#0EA5E9', '#EF4444'];
-            
             for(let i=0; i<100; i++) {
                 confettiParticles.push({
-                    x: canvas.width / 2,
-                    y: canvas.height / 2 + 50,
-                    r: Math.random() * 6 + 4,
-                    dx: Math.random() * 10 - 5,
-                    dy: Math.random() * -10 - 5,
+                    x: canvas.width / 2, y: canvas.height / 2 + 50,
+                    r: Math.random() * 6 + 4, dx: Math.random() * 10 - 5, dy: Math.random() * -10 - 5,
                     color: colors[Math.floor(Math.random() * colors.length)],
-                    tilt: Math.floor(Math.random() * 10) - 10,
-                    tiltAngleInc: (Math.random() * 0.07) + 0.05,
-                    tiltAngle: 0
+                    tilt: Math.floor(Math.random() * 10) - 10, tiltAngleInc: (Math.random() * 0.07) + 0.05, tiltAngle: 0
                 });
             }
-
             function render() {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 let active = false;
-                
                 for(let i=0; i<confettiParticles.length; i++) {
                     let p = confettiParticles[i];
                     p.tiltAngle += p.tiltAngleInc;
-                    p.y += (Math.cos(p.tiltAngle) + 1 + p.r / 2) / 2;
-                    p.x += Math.sin(p.tiltAngle) * 2 + p.dx;
-                    p.dy += 0.2;
-                    p.y += p.dy;
-
+                    p.y += (Math.cos(p.tiltAngle) + 1 + p.r / 2) / 2; p.x += Math.sin(p.tiltAngle) * 2 + p.dx;
+                    p.dy += 0.2; p.y += p.dy;
                     if(p.y <= canvas.height) active = true;
-
-                    ctx.beginPath();
-                    ctx.lineWidth = p.r;
-                    ctx.strokeStyle = p.color;
-                    ctx.moveTo(p.x + p.tilt + p.r, p.y);
-                    ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r);
-                    ctx.stroke();
+                    ctx.beginPath(); ctx.lineWidth = p.r; ctx.strokeStyle = p.color;
+                    ctx.moveTo(p.x + p.tilt + p.r, p.y); ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r); ctx.stroke();
                 }
-
-                if(active) {
-                    confettiAnimationId = requestAnimationFrame(render);
-                } else {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                }
+                if(active) confettiAnimationId = requestAnimationFrame(render);
+                else ctx.clearRect(0, 0, canvas.width, canvas.height);
             }
             if(confettiAnimationId) cancelAnimationFrame(confettiAnimationId);
             render();
         }
 
-        const SEED_MAPS = [
-            {
-                map: [
-                    [0, 0, 0, 1, 1, 1, 1, 1, 1], [0, 0, 2, 2, 2, 1, 1, 1, 1], [3, 4, 4, 4, 2, 5, 5, 5, 1],
-                    [3, 3, 3, 4, 2, 5, 6, 5, 1], [3, 4, 4, 4, 2, 5, 6, 5, 1], [7, 7, 8, 4, 2, 5, 6, 5, 1],
-                    [7, 4, 4, 4, 2, 5, 5, 5, 1], [7, 7, 7, 7, 7, 7, 7, 7, 1], [7, 7, 7, 7, 7, 7, 7, 7, 1]
-                ], sol: [1, 4, 0, 3, 6, 2, 7, 5, 8]
-            }
-        ];
+        // --- 今回の修正箇所：完全に答えが1つしかないと数学的に証明された6x6の初期マップ ---
+        const SEED_MAPS_9 = [{
+            map: [
+                [0, 0, 0, 1, 1, 1, 1, 1, 1], [0, 0, 2, 2, 2, 1, 1, 1, 1], [3, 4, 4, 4, 2, 5, 5, 5, 1],
+                [3, 3, 3, 4, 2, 5, 6, 5, 1], [3, 4, 4, 4, 2, 5, 6, 5, 1], [7, 7, 8, 4, 2, 5, 6, 5, 1],
+                [7, 4, 4, 4, 2, 5, 5, 5, 1], [7, 7, 7, 7, 7, 7, 7, 7, 1], [7, 7, 7, 7, 7, 7, 7, 7, 1]
+            ], sol: [1, 4, 0, 3, 6, 2, 7, 5, 8]
+        }];
 
+        // 前回のマップは2つの解があったため、プログラムで算出した完璧な1解マップに差し替えました！
+        const SEED_MAPS_6 = [{
+            map: [
+                [0, 0, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 2],
+                [1, 1, 1, 1, 2, 2],
+                [3, 3, 3, 4, 2, 2],
+                [3, 4, 4, 4, 4, 2],
+                [3, 3, 4, 4, 4, 5]
+            ], sol: [0, 2, 4, 1, 3, 5]
+        }];
+
+        let gridSize = 9; 
         let zoneMap = [];
         let solution = [];
         let gridState = [];
         let moveHistory = [];
-        
         let toastTimeout;
         let clickTimers = [];
         let clickCounts = [];
@@ -263,8 +255,8 @@
         function undoMove() {
             if (moveHistory.length > 0) {
                 gridState = moveHistory.pop();
-                for(let r=0; r<9; r++){
-                    for(let c=0; c<9; c++){
+                for(let r=0; r<gridSize; r++){
+                    for(let c=0; c<gridSize; c++){
                         const el = document.getElementById(`c-${r}-${c}`);
                         el.classList.remove('block', 'core', 'error-blink');
                         if (gridState[r][c] !== 'empty') el.classList.add(gridState[r][c]);
@@ -285,20 +277,26 @@
         function initBoard() {
             const boardEl = document.getElementById('game-board');
             boardEl.innerHTML = '';
-            gridState = Array(9).fill(null).map(() => Array(9).fill('empty'));
-            clickTimers = Array(9).fill(null).map(() => Array(9).fill(null));
-            clickCounts = Array(9).fill(null).map(() => Array(9).fill(0));
+            
+            boardEl.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+            boardEl.style.gridTemplateRows = `repeat(${gridSize}, 1fr)`;
+            if (gridSize === 6) boardEl.classList.add('grid-6');
+            else boardEl.classList.remove('grid-6');
+
+            gridState = Array(gridSize).fill(null).map(() => Array(gridSize).fill('empty'));
+            clickTimers = Array(gridSize).fill(null).map(() => Array(gridSize).fill(null));
+            clickCounts = Array(gridSize).fill(null).map(() => Array(gridSize).fill(0));
             moveHistory = [];
 
-            for (let r = 0; r < 9; r++) {
-                for (let c = 0; c < 9; c++) {
+            for (let r = 0; r < gridSize; r++) {
+                for (let c = 0; c < gridSize; c++) {
                     const cell = document.createElement('div');
                     cell.className = `cell z-${zoneMap[r][c]}`;
                     
                     if (r === 0 || zoneMap[r-1][c] !== zoneMap[r][c]) cell.classList.add('border-t');
-                    if (r === 8 || zoneMap[r+1][c] !== zoneMap[r][c]) cell.classList.add('border-b');
+                    if (r === gridSize - 1 || zoneMap[r+1][c] !== zoneMap[r][c]) cell.classList.add('border-b');
                     if (c === 0 || zoneMap[r][c-1] !== zoneMap[r][c]) cell.classList.add('border-l');
-                    if (c === 8 || zoneMap[r][c+1] !== zoneMap[r][c]) cell.classList.add('border-r');
+                    if (c === gridSize - 1 || zoneMap[r][c+1] !== zoneMap[r][c]) cell.classList.add('border-r');
                     
                     cell.id = `c-${r}-${c}`;
                     cell.addEventListener('click', () => handleCellInteraction(r, c));
@@ -324,32 +322,24 @@
         function handleSingleTap(r, c) {
             const state = gridState[r][c];
             if (state === 'core') return; 
-            
             saveState();
             if (state === 'empty') {
-                setCellState(r, c, 'block');
-                playSound('block');
+                setCellState(r, c, 'block'); playSound('block');
             } else if (state === 'block') {
-                setCellState(r, c, 'empty');
-                playSound('block');
+                setCellState(r, c, 'empty'); playSound('block');
             }
         }
 
         function handleDoubleTap(r, c) {
             const state = gridState[r][c];
             saveState();
-            
             if (state === 'core') {
-                setCellState(r, c, 'empty');
-                playSound('block');
+                setCellState(r, c, 'empty'); playSound('block');
             } else {
                 if (canPlaceCore(r, c)) {
-                    setCellState(r, c, 'core');
-                    autoFillBlocks(r, c);
-                    playSound('core');
+                    setCellState(r, c, 'core'); autoFillBlocks(r, c); playSound('core');
                 } else {
-                    moveHistory.pop();
-                    playSound('error');
+                    moveHistory.pop(); playSound('error');
                     showToast("⚠️ 矛盾：行・列・同エリア、または隣接マスに⚡があります！");
                 }
             }
@@ -357,8 +347,8 @@
 
         function canPlaceCore(r, c) {
             let targetZone = zoneMap[r][c];
-            for (let i = 0; i < 9; i++) {
-                for (let j = 0; j < 9; j++) {
+            for (let i = 0; i < gridSize; i++) {
+                for (let j = 0; j < gridSize; j++) {
                     if (i === r && j === c) continue;
                     if (gridState[i][j] === 'core') {
                         if (i === r || j === c || zoneMap[i][j] === targetZone || (Math.abs(i - r) <= 1 && Math.abs(j - c) <= 1)) return false; 
@@ -370,15 +360,14 @@
 
         function showToast(msg) {
             const toast = document.getElementById('toast');
-            toast.innerText = msg;
-            toast.classList.add('show');
+            toast.innerText = msg; toast.classList.add('show');
             clearTimeout(toastTimeout);
             toastTimeout = setTimeout(() => toast.classList.remove('show'), 2500);
         }
 
         function autoFillBlocks(cr, cc) {
-            for (let r = 0; r < 9; r++) {
-                for (let c = 0; c < 9; c++) {
+            for (let r = 0; r < gridSize; r++) {
+                for (let c = 0; c < gridSize; c++) {
                     if (r === cr && c === cc) continue;
                     if (r === cr || c === cc || (Math.abs(r - cr) <= 1 && Math.abs(c - cc) <= 1)) {
                         if (gridState[r][c] === 'empty') setCellState(r, c, 'block');
@@ -389,8 +378,8 @@
 
         function clearBoard() {
             saveState();
-            for (let r = 0; r < 9; r++) {
-                for (let c = 0; c < 9; c++) setCellState(r, c, 'empty');
+            for (let r = 0; r < gridSize; r++) {
+                for (let c = 0; c < gridSize; c++) setCellState(r, c, 'empty');
             }
             playSound('block');
         }
@@ -411,18 +400,15 @@
         function showHint() {
             saveState();
             document.getElementById('modal-box').classList.add('center');
-            
             let wrongCore = null;
-            for (let r = 0; r < 9; r++) {
-                for (let c = 0; c < 9; c++) {
+            for (let r = 0; r < gridSize; r++) {
+                for (let c = 0; c < gridSize; c++) {
                     if (gridState[r][c] === 'core' && solution[r] !== c) {
-                        wrongCore = {r, c};
-                        break;
+                        wrongCore = {r, c}; break;
                     }
                 }
                 if (wrongCore) break;
             }
-
             if (wrongCore) {
                 playSound('error');
                 showModal("💡 ヒント：間違い発見！", `上から ${wrongCore.r + 1} 行目、左から ${wrongCore.c + 1} 列目の⚡は間違っています。\nまずはこれを取り除いて計算し直しましょう。`);
@@ -430,30 +416,24 @@
             }
 
             let missingCores = [];
-            for (let r = 0; r < 9; r++) {
-                if (gridState[r][solution[r]] !== 'core') {
-                    missingCores.push({r: r, c: solution[r]});
-                }
+            for (let r = 0; r < gridSize; r++) {
+                if (gridState[r][solution[r]] !== 'core') missingCores.push({r: r, c: solution[r]});
             }
-
             if (missingCores.length > 0) {
                 let target = missingCores[Math.floor(Math.random() * missingCores.length)];
-                setCellState(target.r, target.c, 'core');
-                autoFillBlocks(target.r, target.c);
-                playSound('core');
-                showModal("💡 ヒント：自動配置", "確定できるコア（⚡）を1つ自動で配置しました！\nこれを起点に周囲を計算してみてください。");
+                setCellState(target.r, target.c, 'core'); autoFillBlocks(target.r, target.c); playSound('core');
+                showModal("💡 ヒント：自動配置", "確定できるコア（⚡）を1つ自動で配置しました！");
             } else {
                 showModal("💡 ヒント", "すでに全てのコアが正しい位置にあります！\n「CHECK」ボタンを押してクリアしましょう。");
             }
         }
 
         function showCorrectSolution() {
-            saveState();
-            clearBoard();
-            for (let r = 0; r < 9; r++) {
+            saveState(); clearBoard();
+            for (let r = 0; r < gridSize; r++) {
                 const targetCol = solution[r];
                 setCellState(r, targetCol, 'core');
-                for (let c = 0; c < 9; c++) {
+                for (let c = 0; c < gridSize; c++) {
                     if (c !== targetCol) setCellState(r, c, 'block');
                 }
             }
@@ -462,38 +442,30 @@
             showModal("正解表示", "これが現在のマップの論理的な確定ルートです。\n「戻る」ボタンで前の状態に戻れます。");
         }
 
-        // --- CHECKボタン時のモーダルを削除し、トーストと演出だけに変更 ---
         function checkSolution() {
-            let isPerfect = true;
-            let totalCores = 0;
-            let hasErrors = false;
-
-            for(let r = 0; r < 9; r++){
-                for(let c = 0; c < 9; c++){
+            let isPerfect = true, totalCores = 0, hasErrors = false;
+            for(let r = 0; r < gridSize; r++) {
+                for(let c = 0; c < gridSize; c++) {
                     document.getElementById(`c-${r}-${c}`).classList.remove('error-blink');
                 }
             }
-
-            for (let r = 0; r < 9; r++) {
-                for (let c = 0; c < 9; c++) {
+            for (let r = 0; r < gridSize; r++) {
+                for (let c = 0; c < gridSize; c++) {
                     if (gridState[r][c] === 'core') {
                         totalCores++;
                         if (solution[r] !== c) {
-                            isPerfect = false;
-                            hasErrors = true;
+                            isPerfect = false; hasErrors = true;
                             document.getElementById(`c-${r}-${c}`).classList.add('error-blink');
                         }
                     }
                 }
-                if (gridState[r][solution[r]] !== 'core') {
-                    isPerfect = false;
-                }
+                if (gridState[r][solution[r]] !== 'core') isPerfect = false;
             }
 
             if (hasErrors) {
                 setTimeout(() => {
-                    for(let r = 0; r < 9; r++){
-                        for(let c = 0; c < 9; c++){
+                    for(let r = 0; r < gridSize; r++) {
+                        for(let c = 0; c < gridSize; c++) {
                             const el = document.getElementById(`c-${r}-${c}`);
                             if(el) el.classList.remove('error-blink');
                         }
@@ -501,13 +473,10 @@
                 }, 1600); 
             }
 
-            if (isPerfect && totalCores === 9) {
-                playSound('win');
-                fireConfetti();
-                // 成功時は紙吹雪とファンファーレのみで、モーダル（説明窓）は出さない
+            if (isPerfect && totalCores === gridSize) {
+                playSound('win'); fireConfetti();
             } else {
                 playSound('error');
-                // 失敗時は点滅とエラー音に加え、邪魔にならないトーストで知らせる
                 showToast("⚠️ 計算が矛盾しています。赤く点滅した⚡が間違っています！");
             }
         }
@@ -516,7 +485,20 @@
             showLoadingModal();
             await new Promise(res => setTimeout(res, 50)); 
 
-            let base = SEED_MAPS[0];
+            const diff = parseInt(document.getElementById('difficulty').value);
+            let TARGET_MUTATIONS = 0;
+
+            let base;
+            if (diff === 1) { 
+                gridSize = 6;
+                TARGET_MUTATIONS = 15;
+                base = SEED_MAPS_6[0];
+            } else {          
+                gridSize = 9;
+                TARGET_MUTATIONS = diff === 2 ? 50 : (diff === 3 ? 120 : 250);
+                base = SEED_MAPS_9[0];
+            }
+
             let currentMap = base.map.map(row => [...row]);
             let currentSol = [...base.sol];
 
@@ -530,26 +512,20 @@
                 currentMap = res.map; currentSol = res.sol;
             }
 
-            const TARGET_MUTATIONS = parseInt(document.getElementById('difficulty').value);  
             const MAX_ATTEMPTS = TARGET_MUTATIONS * 30; 
-            
-            let mutationsDone = 0;
-            let attempts = 0;
+            let mutationsDone = 0; let attempts = 0;
 
             await new Promise((resolve) => {
                 function mutateChunk() {
                     for(let i=0; i<100; i++) {
                         attempts++;
                         if(mutationsDone >= TARGET_MUTATIONS || attempts > MAX_ATTEMPTS) {
-                            zoneMap = currentMap;
-                            solution = currentSol;
-                            shuffleColors(); 
-                            resolve();
-                            return;
+                            zoneMap = currentMap; solution = currentSol;
+                            shuffleColors(); resolve(); return;
                         }
 
-                        let r = Math.floor(Math.random() * 9);
-                        let c = Math.floor(Math.random() * 9);
+                        let r = Math.floor(Math.random() * gridSize);
+                        let c = Math.floor(Math.random() * gridSize);
                         if(currentSol[r] === c) continue;
 
                         let oldReg = currentMap[r][c];
@@ -557,10 +533,11 @@
                         let dir = Math.floor(Math.random() * 4);
                         let nr = r + dr[dir], nc = c + dc[dir];
 
-                        if(nr >= 0 && nr < 9 && nc >= 0 && nc < 9) {
+                        if(nr >= 0 && nr < gridSize && nc >= 0 && nc < gridSize) {
                             let newReg = currentMap[nr][nc];
                             if(oldReg !== newReg) {
                                 currentMap[r][c] = newReg;
+                                // 答えが1つであることを常に確認しながら変異！
                                 if(isConnected(currentMap, oldReg) && countSolutions(currentMap) === 1) {
                                     mutationsDone++; 
                                 } else {
@@ -581,12 +558,12 @@
         function countSolutions(zMap) {
             let solutions = 0;
             let colsUsed = 0, regsUsed = 0;
-            let result = Array(9).fill(-1);
+            let result = Array(gridSize).fill(-1);
 
             function solve(r) {
                 if (solutions > 1) return;
-                if (r === 9) { solutions++; return; }
-                for (let c = 0; c < 9; c++) {
+                if (r === gridSize) { solutions++; return; }
+                for (let c = 0; c < gridSize; c++) {
                     if ((colsUsed & (1 << c))) continue;
                     let reg = zMap[r][c];
                     if ((regsUsed & (1 << reg))) continue;
@@ -601,8 +578,8 @@
 
         function isConnected(map, targetReg) {
             let startR = -1, startC = -1, total = 0;
-            for(let r=0; r<9; r++) {
-                for(let c=0; c<9; c++) {
+            for(let r=0; r<gridSize; r++) {
+                for(let c=0; c<gridSize; c++) {
                     if(map[r][c] === targetReg) {
                         if(startR === -1) { startR = r; startC = c; }
                         total++;
@@ -611,7 +588,7 @@
             }
             if(total === 0) return false;
 
-            let visited = Array(9).fill(null).map(() => Array(9).fill(false));
+            let visited = Array(gridSize).fill(null).map(() => Array(gridSize).fill(false));
             let queue = [[startR, startC]];
             visited[startR][startC] = true;
             let count = 1, head = 0;
@@ -621,7 +598,7 @@
                 let [r, c] = queue[head++];
                 for(let i=0; i<4; i++) {
                     let nr = r + dr[i], nc = c + dc[i];
-                    if(nr >= 0 && nr < 9 && nc >= 0 && nc < 9 && map[nr][nc] === targetReg && !visited[nr][nc]) {
+                    if(nr >= 0 && nr < gridSize && nc >= 0 && nc < gridSize && map[nr][nc] === targetReg && !visited[nr][nc]) {
                         visited[nr][nc] = true; queue.push([nr, nc]); count++;
                     }
                 }
@@ -630,29 +607,31 @@
         }
 
         function rotateMapCW(map, sol) {
-            let newMap = Array(9).fill(null).map(() => Array(9).fill(0));
-            let newSol = Array(9).fill(-1);
-            for(let r=0; r<9; r++) {
-                for(let c=0; c<9; c++) newMap[c][8-r] = map[r][c];
-                newSol[sol[r]] = 8 - r;
+            let newMap = Array(gridSize).fill(null).map(() => Array(gridSize).fill(0));
+            let newSol = Array(gridSize).fill(-1);
+            for(let r=0; r<gridSize; r++) {
+                for(let c=0; c<gridSize; c++) newMap[c][(gridSize-1)-r] = map[r][c];
+                newSol[sol[r]] = (gridSize-1) - r;
             }
             return {map: newMap, sol: newSol};
         }
         
         function flipMapH(map, sol) {
-            let newMap = Array(9).fill(null).map(() => Array(9).fill(0));
-            let newSol = Array(9).fill(-1);
-            for(let r=0; r<9; r++) {
-                for(let c=0; c<9; c++) newMap[r][8-c] = map[r][c];
-                newSol[r] = 8 - sol[r];
+            let newMap = Array(gridSize).fill(null).map(() => Array(gridSize).fill(0));
+            let newSol = Array(gridSize).fill(-1);
+            for(let r=0; r<gridSize; r++) {
+                for(let c=0; c<gridSize; c++) newMap[r][(gridSize-1)-c] = map[r][c];
+                newSol[r] = (gridSize-1) - sol[r];
             }
             return {map: newMap, sol: newSol};
         }
 
         function shuffleColors() {
-            let palette = [0,1,2,3,4,5,6,7,8].sort(() => Math.random() - 0.5);
-            for (let r = 0; r < 9; r++) {
-                for (let c = 0; c < 9; c++) zoneMap[r][c] = palette[zoneMap[r][c]];
+            let palette = [];
+            for(let i = 0; i < gridSize; i++) palette.push(i);
+            palette.sort(() => Math.random() - 0.5);
+            for (let r = 0; r < gridSize; r++) {
+                for (let c = 0; c < gridSize; c++) zoneMap[r][c] = palette[zoneMap[r][c]];
             }
         }
 
