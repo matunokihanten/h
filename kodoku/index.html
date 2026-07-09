@@ -1,343 +1,409 @@
-
 <!DOCTYPE html>
 <html data-theme="light">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="color-scheme" content="light">
-<style>
-
-:root {
-  --color-brand-primary: #232425;
-  --color-brand-secondary: #0F7FFF;
-  --color-bg-page: #FFFFFF;
-  --color-bg-surface: #FAFAFA;
-  --color-bg-subtle: #F5F5F5;
-  --color-text-primary: #232425;
-  --color-text-secondary: #606366;
-  --color-text-tertiary: #909499;
-  --color-text-disabled: #C4C7CC;
-  --color-text-link: #0F7FFF;
-  --color-text-on-brand: #FFFFFF;
-  --color-success: #10B981;
-  --color-warning: #F59E0B;
-  --color-error: #EF4444;
-  --color-info: #3B82F6;
-  --color-border-default: #EAEAEA;
-  --color-border-strong: #D0D3D8;
-  --color-border-subtle: #F2F2F2;
-  --color-border-brand: #0F7FFF;
-  --color-border-error: #EF4444;
-  --color-border-success: #10B981;
-  --space-4: 4px; --space-8: 8px; --space-12: 12px; --space-16: 16px;
-  --space-20: 20px; --space-24: 24px; --space-32: 32px; --space-48: 48px;
-  --text-h1: 36px; --text-h2: 28px; --text-h3: 22px; --text-h4: 18px;
-  --text-body: 16px; --text-small: 14px; --text-caption: 12px;
-  --radius-4: 4px; --radius-8: 8px; --radius-12: 12px;
-  --border-width-1: 1px; --border-width-2: 2px;
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-  --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
-  --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
-
-  /* Categorical color ramps (mirror of design-tokens.css) */
-  --color-cat-blue-50:#EBF3FE;--color-cat-blue-100:#C5DDFC;--color-cat-blue-200:#92BEF8;--color-cat-blue-400:#0F7FFF;--color-cat-blue-600:#0561C5;--color-cat-blue-800:#053F7C;--color-cat-blue-900:#06294F;
-  --color-cat-green-50:#E5F8F1;--color-cat-green-100:#B7EFD8;--color-cat-green-200:#7DE0BA;--color-cat-green-400:#10B981;--color-cat-green-600:#088762;--color-cat-green-800:#045A41;--color-cat-green-900:#023A29;
-  --color-cat-amber-50:#FEF3D9;--color-cat-amber-100:#FCE0A0;--color-cat-amber-200:#FAC865;--color-cat-amber-400:#F59E0B;--color-cat-amber-600:#B16E03;--color-cat-amber-800:#6E4500;--color-cat-amber-900:#422900;
-  --color-cat-red-50:#FDE9E9;--color-cat-red-100:#F9C2C2;--color-cat-red-200:#F49595;--color-cat-red-400:#EF4444;--color-cat-red-600:#C41B1B;--color-cat-red-800:#821212;--color-cat-red-900:#520B0B;
-  --color-cat-purple-50:#F0EAFE;--color-cat-purple-100:#D5C2FB;--color-cat-purple-200:#B59AF8;--color-cat-purple-400:#8B5CF6;--color-cat-purple-600:#6431D2;--color-cat-purple-800:#441E8E;--color-cat-purple-900:#2A1259;
-  --color-cat-teal-50:#DEF7F4;--color-cat-teal-100:#A6EBE2;--color-cat-teal-200:#6BDCCD;--color-cat-teal-400:#14B8A6;--color-cat-teal-600:#0D8779;--color-cat-teal-800:#075A50;--color-cat-teal-900:#043934;
-  --color-cat-coral-50:#FEE7EB;--color-cat-coral-100:#FCC0CA;--color-cat-coral-200:#FA98A8;--color-cat-coral-400:#FB7185;--color-cat-coral-600:#D14258;--color-cat-coral-800:#8C2336;--color-cat-coral-900:#5A111F;
-  --color-cat-pink-50:#FCE4F1;--color-cat-pink-100:#F7BAD9;--color-cat-pink-200:#F18BBE;--color-cat-pink-400:#EC4899;--color-cat-pink-600:#B81F75;--color-cat-pink-800:#7B0F4D;--color-cat-pink-900:#4D0530;
-  --color-cat-gray-50:#F3F4F6;--color-cat-gray-100:#E5E7EB;--color-cat-gray-200:#CBD0D7;--color-cat-gray-400:#6B7280;--color-cat-gray-600:#4A4F58;--color-cat-gray-800:#2A2D33;--color-cat-gray-900:#16181B;
-}
-.c-blue   { fill: var(--color-cat-blue-50);   stroke: var(--color-cat-blue-600);   color: var(--color-cat-blue-800);   background-color: var(--color-cat-blue-50);   border-color: var(--color-cat-blue-600); }
-.c-green  { fill: var(--color-cat-green-50);  stroke: var(--color-cat-green-600);  color: var(--color-cat-green-800);  background-color: var(--color-cat-green-50);  border-color: var(--color-cat-green-600); }
-.c-amber  { fill: var(--color-cat-amber-50);  stroke: var(--color-cat-amber-600);  color: var(--color-cat-amber-800);  background-color: var(--color-cat-amber-50);  border-color: var(--color-cat-amber-600); }
-.c-red    { fill: var(--color-cat-red-50);    stroke: var(--color-cat-red-600);    color: var(--color-cat-red-800);    background-color: var(--color-cat-red-50);    border-color: var(--color-cat-red-600); }
-.c-purple { fill: var(--color-cat-purple-50); stroke: var(--color-cat-purple-600); color: var(--color-cat-purple-800); background-color: var(--color-cat-purple-50); border-color: var(--color-cat-purple-600); }
-.c-teal   { fill: var(--color-cat-teal-50);   stroke: var(--color-cat-teal-600);   color: var(--color-cat-teal-800);   background-color: var(--color-cat-teal-50);   border-color: var(--color-cat-teal-600); }
-.c-coral  { fill: var(--color-cat-coral-50);  stroke: var(--color-cat-coral-600);  color: var(--color-cat-coral-800);  background-color: var(--color-cat-coral-50);  border-color: var(--color-cat-coral-600); }
-.c-pink   { fill: var(--color-cat-pink-50);   stroke: var(--color-cat-pink-600);   color: var(--color-cat-pink-800);   background-color: var(--color-cat-pink-50);   border-color: var(--color-cat-pink-600); }
-.c-gray   { fill: var(--color-cat-gray-50);   stroke: var(--color-cat-gray-600);   color: var(--color-cat-gray-800);   background-color: var(--color-cat-gray-50);   border-color: var(--color-cat-gray-600); }
-.c-blue text, .c-green text, .c-amber text, .c-red text,
-.c-purple text, .c-teal text, .c-coral text, .c-pink text, .c-gray text { fill: currentColor; stroke: none; }
-@media (prefers-color-scheme: dark) {
-  :root {
-  --color-brand-primary: #E8E9EA;
-  --color-brand-secondary: #4a9eff;
-  --color-bg-page: #1A1B1C;
-  --color-bg-surface: #232425;
-  --color-bg-subtle: #2A2B2C;
-  --color-text-primary: #FFFFFF;
-  --color-text-secondary: #B8BBBF;
-  --color-text-tertiary: #868B92;
-  --color-text-disabled: #4A4C4F;
-  --color-text-link: #8bb8ff;
-  --color-text-on-brand: #1A1B1C;
-  --color-border-default: #3A3B3C;
-  --color-border-strong: #4A4C4F;
-  --color-border-subtle: #2E2F30;
-  --color-border-brand: #4a9eff;
-  --color-border-error: #f87171;
-  --color-border-success: #34d399;
-  }
-  .c-blue { fill: var(--color-cat-blue-800); stroke: var(--color-cat-blue-200); color: var(--color-cat-blue-100); background-color: var(--color-cat-blue-800); border-color: var(--color-cat-blue-200); }
-  .c-green { fill: var(--color-cat-green-800); stroke: var(--color-cat-green-200); color: var(--color-cat-green-100); background-color: var(--color-cat-green-800); border-color: var(--color-cat-green-200); }
-  .c-amber { fill: var(--color-cat-amber-800); stroke: var(--color-cat-amber-200); color: var(--color-cat-amber-100); background-color: var(--color-cat-amber-800); border-color: var(--color-cat-amber-200); }
-  .c-red { fill: var(--color-cat-red-800); stroke: var(--color-cat-red-200); color: var(--color-cat-red-100); background-color: var(--color-cat-red-800); border-color: var(--color-cat-red-200); }
-  .c-purple { fill: var(--color-cat-purple-800); stroke: var(--color-cat-purple-200); color: var(--color-cat-purple-100); background-color: var(--color-cat-purple-800); border-color: var(--color-cat-purple-200); }
-  .c-teal { fill: var(--color-cat-teal-800); stroke: var(--color-cat-teal-200); color: var(--color-cat-teal-100); background-color: var(--color-cat-teal-800); border-color: var(--color-cat-teal-200); }
-  .c-coral { fill: var(--color-cat-coral-800); stroke: var(--color-cat-coral-200); color: var(--color-cat-coral-100); background-color: var(--color-cat-coral-800); border-color: var(--color-cat-coral-200); }
-  .c-pink { fill: var(--color-cat-pink-800); stroke: var(--color-cat-pink-200); color: var(--color-cat-pink-100); background-color: var(--color-cat-pink-800); border-color: var(--color-cat-pink-200); }
-  .c-gray { fill: var(--color-cat-gray-800); stroke: var(--color-cat-gray-200); color: var(--color-cat-gray-100); background-color: var(--color-cat-gray-800); border-color: var(--color-cat-gray-200); }
-}
-html[data-theme="dark"] {
-  --color-brand-primary: #E8E9EA;
-  --color-brand-secondary: #4a9eff;
-  --color-bg-page: #1A1B1C;
-  --color-bg-surface: #232425;
-  --color-bg-subtle: #2A2B2C;
-  --color-text-primary: #FFFFFF;
-  --color-text-secondary: #B8BBBF;
-  --color-text-tertiary: #868B92;
-  --color-text-disabled: #4A4C4F;
-  --color-text-link: #8bb8ff;
-  --color-text-on-brand: #1A1B1C;
-  --color-border-default: #3A3B3C;
-  --color-border-strong: #4A4C4F;
-  --color-border-subtle: #2E2F30;
-  --color-border-brand: #4a9eff;
-  --color-border-error: #f87171;
-  --color-border-success: #34d399;
-}
-html[data-theme="dark"] .c-blue { fill: var(--color-cat-blue-800); stroke: var(--color-cat-blue-200); color: var(--color-cat-blue-100); background-color: var(--color-cat-blue-800); border-color: var(--color-cat-blue-200); }
-html[data-theme="dark"] .c-green { fill: var(--color-cat-green-800); stroke: var(--color-cat-green-200); color: var(--color-cat-green-100); background-color: var(--color-cat-green-800); border-color: var(--color-cat-green-200); }
-html[data-theme="dark"] .c-amber { fill: var(--color-cat-amber-800); stroke: var(--color-cat-amber-200); color: var(--color-cat-amber-100); background-color: var(--color-cat-amber-800); border-color: var(--color-cat-amber-200); }
-html[data-theme="dark"] .c-red { fill: var(--color-cat-red-800); stroke: var(--color-cat-red-200); color: var(--color-cat-red-100); background-color: var(--color-cat-red-800); border-color: var(--color-cat-red-200); }
-html[data-theme="dark"] .c-purple { fill: var(--color-cat-purple-800); stroke: var(--color-cat-purple-200); color: var(--color-cat-purple-100); background-color: var(--color-cat-purple-800); border-color: var(--color-cat-purple-200); }
-html[data-theme="dark"] .c-teal { fill: var(--color-cat-teal-800); stroke: var(--color-cat-teal-200); color: var(--color-cat-teal-100); background-color: var(--color-cat-teal-800); border-color: var(--color-cat-teal-200); }
-html[data-theme="dark"] .c-coral { fill: var(--color-cat-coral-800); stroke: var(--color-cat-coral-200); color: var(--color-cat-coral-100); background-color: var(--color-cat-coral-800); border-color: var(--color-cat-coral-200); }
-html[data-theme="dark"] .c-pink { fill: var(--color-cat-pink-800); stroke: var(--color-cat-pink-200); color: var(--color-cat-pink-100); background-color: var(--color-cat-pink-800); border-color: var(--color-cat-pink-200); }
-html[data-theme="dark"] .c-gray { fill: var(--color-cat-gray-800); stroke: var(--color-cat-gray-200); color: var(--color-cat-gray-100); background-color: var(--color-cat-gray-800); border-color: var(--color-cat-gray-200); }
-:root { color-scheme: light; }
-html, body { margin: 0; padding: 0; background: transparent !important; box-sizing: border-box;
-             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Inter', 'Helvetica Neue', Arial, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', 'Noto Sans JP', 'Noto Sans KR', system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji'; }
-*, *::before, *::after { box-sizing: inherit; }
-svg, svg text, svg tspan { font-family: inherit; }
-</style>
-<script>
-function sendPrompt(text) {
-  window.parent.postMessage(
-    { type: 'genspark_visualize_send_prompt', text: String(text) }, '*'
-  );
-}
-function _reportHeight() {
-  var h = Math.max(
-    document.body ? document.body.scrollHeight : 0,
-    document.documentElement ? document.documentElement.scrollHeight : 0,
-    100
-  );
-  window.parent.postMessage({ type: 'genspark_visualize_height', height: h }, '*');
-}
-window.addEventListener('load', function() {
-  _reportHeight();
-  if (window.ResizeObserver) {
-    new ResizeObserver(_reportHeight).observe(document.body);
-  }
-});
-window.addEventListener('resize', _reportHeight);
-
-// ── PNG export (rasterize the rendered widget inside the iframe) ─────────────
-// Runs here because sandbox="allow-scripts" (no allow-same-origin) makes the
-// iframe DOM unreachable from the parent. Clone <body>, swap each <canvas>
-// (Chart.js) for a snapshot <img>, inline the document styles with dark-scheme
-// rules stripped for a deterministic light export, wrap in <svg><foreignObject>,
-// and rasterize via a data: URL (a Blob URL would taint the canvas in Chromium).
-function _gsExportFont() { return "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Inter', 'Helvetica Neue', Arial, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', 'Noto Sans JP', 'Noto Sans KR', system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji'"; }
-function _gsCollectStyles() {
-  var out = '';
-  var s = document.querySelectorAll('style');
-  for (var i = 0; i < s.length; i++) { out += (s[i].textContent || '') + '\n'; }
-  return out;
-}
-function _gsStripDarkMedia(css) {
-  var marker = '@media (prefers-color-scheme: dark)';
-  var idx = css.indexOf(marker);
-  while (idx !== -1) {
-    var brace = css.indexOf('{', idx);
-    if (brace === -1) { css = css.slice(0, idx); break; }
-    var depth = 1, j = brace + 1;
-    while (j < css.length && depth > 0) {
-      var ch = css.charAt(j);
-      if (ch === '{') depth++; else if (ch === '}') depth--;
-      j++;
-    }
-    css = css.slice(0, idx) + css.slice(j);
-    idx = css.indexOf(marker);
-  }
-  return css;
-}
-function _gsCleanup(node) {
-  var scripts = node.querySelectorAll('script');
-  for (var i = 0; i < scripts.length; i++) {
-    if (scripts[i].parentNode) scripts[i].parentNode.removeChild(scripts[i]);
-  }
-  var nameRe = /^[A-Za-z_:][A-Za-z0-9_:.-]*$/;
-  var els = node.querySelectorAll('*');
-  for (var k = 0; k < els.length; k++) {
-    var attrs = els[k].attributes;
-    for (var a = attrs.length - 1; a >= 0; a--) {
-      if (!nameRe.test(attrs[a].name)) els[k].removeAttribute(attrs[a].name);
-    }
-  }
-}
-function _gsSubstituteCanvases(live, clone) {
-  var lc = live.querySelectorAll('canvas');
-  var cc = clone.querySelectorAll('canvas');
-  for (var i = 0; i < lc.length && i < cc.length; i++) {
-    var data = lc[i].toDataURL('image/png');
-    var img = document.createElement('img');
-    img.setAttribute('src', data);
-    img.setAttribute('style', (cc[i].getAttribute('style') || '') +
-      ';width:' + lc[i].offsetWidth + 'px;height:' + lc[i].offsetHeight + 'px');
-    if (cc[i].parentNode) cc[i].parentNode.replaceChild(img, cc[i]);
-  }
-}
-function _gsPostPng(id, dataUrl, error) {
-  window.parent.postMessage(
-    { type: 'genspark_visualize_png', id: id, dataUrl: dataUrl || null, error: error || null },
-    '*'
-  );
-}
-function _gsRasterize(id, scale) {
-  try {
-    scale = scale || 2;
-    var PAD = 16;  // breathing room so content never sits flush against the edge
-    var W = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth, 1);
-    var H = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight, 1);
-    var bodyClone = document.body.cloneNode(true);
-    _gsSubstituteCanvases(document.body, bodyClone);
-    _gsCleanup(bodyClone);
-    var wrapper = document.createElement('div');
-    wrapper.setAttribute('style',
-      'font-family:' + _gsExportFont() + ';box-sizing:border-box;width:' + W + 'px');
-    while (bodyClone.firstChild) { wrapper.appendChild(bodyClone.firstChild); }
-    var inner = new XMLSerializer().serializeToString(wrapper);
-    var styleTag = '<style>' + _gsStripDarkMedia(_gsCollectStyles()) +
-      ' svg, svg text, svg tspan { font-family:' + _gsExportFont() + '; }</style>';
-    var CW = W + PAD * 2, CH = H + PAD * 2;
-    var SW = Math.round(CW * scale), SH = Math.round(CH * scale);
-    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + SW +
-      '" height="' + SH + '" viewBox="0 0 ' + CW + ' ' + CH + '">' +
-      '<foreignObject x="' + PAD + '" y="' + PAD + '" width="' + W + '" height="' + H + '">' +
-      '<div xmlns="http://www.w3.org/1999/xhtml">' + styleTag + inner + '</div>' +
-      '</foreignObject></svg>';
-    var img = new Image();
-    img.onload = function() {
-      try {
-        var cv = document.createElement('canvas');
-        cv.width = SW; cv.height = SH;
-        var ctx = cv.getContext('2d');
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(0, 0, SW, SH);
-        ctx.drawImage(img, 0, 0);
-        _gsPostPng(id, cv.toDataURL('image/png'), null);
-      } catch (e) { _gsPostPng(id, null, 'tainted'); }
-    };
-    img.onerror = function() { _gsPostPng(id, null, 'image_error'); };
-    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-  } catch (e) {
-    _gsPostPng(id, null,
-      (e && e.name === 'SecurityError') ? 'tainted' : String((e && e.message) || e));
-  }
-}
-window.addEventListener('message', function(ev) {
-  var d = ev.data || {};
-  if (!d || d.type !== 'genspark_visualize_request_png') return;
-  var run = function() { _gsRasterize(d.id, d.scale); };
-  if (document.fonts && document.fonts.ready && document.fonts.ready.then) {
-    document.fonts.ready.then(function() {
-      if (window.requestAnimationFrame) window.requestAnimationFrame(run);
-      else window.setTimeout(run, 0);
-    });
-  } else if (window.requestAnimationFrame) {
-    window.requestAnimationFrame(run);
-  } else {
-    window.setTimeout(run, 0);
-  }
-});
-</script>
-</head>
-<body><div id="logic-pro-app">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
   <style>
-    #logic-pro-app{width:100%;max-width:758px;color:var(--color-text-primary)}
-    #logic-pro-app *{box-sizing:border-box}
-    #logic-pro-app .shell{display:grid;gap:var(--space-16)}
-    #logic-pro-app .card{background:var(--color-bg-surface);border:1px solid var(--color-border-default);border-radius:var(--radius-12);box-shadow:var(--shadow-sm)}
-    #logic-pro-app .hero{padding:var(--space-20);display:grid;gap:var(--space-16)}
-    #logic-pro-app .hero-top{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--space-12);flex-wrap:wrap}
-    #logic-pro-app h2{font-size:var(--text-h3);line-height:1.2;margin:0}
-    #logic-pro-app .sub{font-size:var(--text-small);color:var(--color-text-secondary);line-height:1.6}
-    #logic-pro-app .toolbar{display:grid;gap:var(--space-12)}
-    #logic-pro-app .toolbar-row{display:flex;gap:var(--space-8);flex-wrap:wrap;align-items:center}
-    #logic-pro-app select,#logic-pro-app button{font:inherit}
-    #logic-pro-app select{height:44px;padding:0 12px;border-radius:var(--radius-8);border:1px solid var(--color-border-default);background:var(--color-bg-surface);color:var(--color-text-primary)}
-    #logic-pro-app .seg{display:inline-flex;background:var(--color-bg-subtle);padding:4px;border-radius:999px;border:1px solid var(--color-border-default);gap:4px}
-    #logic-pro-app .seg button{height:36px;padding:0 14px;border:none;border-radius:999px;background:transparent;color:var(--color-text-secondary);cursor:pointer;min-width:88px}
-    #logic-pro-app .seg button.active{background:var(--color-brand-primary);color:var(--color-text-on-brand)}
-    #logic-pro-app .btn{height:42px;padding:0 14px;border-radius:var(--radius-8);border:1px solid var(--color-border-default);background:var(--color-bg-surface);color:var(--color-text-primary);cursor:pointer;min-width:88px}
-    #logic-pro-app .btn.primary{background:var(--color-brand-primary);border-color:var(--color-brand-primary);color:var(--color-text-on-brand)}
-    #logic-pro-app .btn.warn{background:var(--color-warning);border-color:var(--color-warning);color:var(--color-text-on-brand)}
-    #logic-pro-app .btn.good{background:var(--color-success);border-color:var(--color-success);color:var(--color-text-on-brand)}
-    #logic-pro-app .btn.ghost{background:transparent}
-    #logic-pro-app .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-8)}
-    #logic-pro-app .stat{padding:12px;border:1px solid var(--color-border-default);border-radius:var(--radius-8);background:var(--color-bg-subtle)}
-    #logic-pro-app .stat .k{font-size:var(--text-caption);color:var(--color-text-secondary);margin-bottom:4px}
-    #logic-pro-app .stat .v{font-size:var(--text-body);font-weight:700}
-    #logic-pro-app .layout{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:var(--space-16)}
-    #logic-pro-app .board-card{padding:var(--space-16);display:grid;gap:var(--space-12)}
-    #logic-pro-app .board-wrap{aspect-ratio:1/1;background:var(--color-bg-page);border-radius:var(--radius-12);padding:8px;border:1px solid var(--color-border-default);position:relative}
-    #logic-pro-app .board{width:100%;height:100%;display:grid;gap:3px;touch-action:manipulation}
-    #logic-pro-app .cell{position:relative;border:none;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:800;transition:transform .08s ease, box-shadow .12s ease, opacity .12s ease;min-width:0;min-height:0;color:rgba(0,0,0,.78)}
-    #logic-pro-app .cell:hover{box-shadow:inset 0 0 0 2px rgba(0,0,0,.12)}
-    #logic-pro-app .cell:active{transform:scale(.96)}
-    #logic-pro-app .cell.core::after{content:'⚡';font-size:clamp(15px,2.7vw,28px);filter:drop-shadow(0 1px 1px rgba(0,0,0,.18))}
-    #logic-pro-app .cell.block::after{content:'×';font-size:clamp(13px,2vw,20px);opacity:.55}
-    #logic-pro-app .cell.hint{box-shadow:inset 0 0 0 3px var(--color-warning)}
-    #logic-pro-app .cell.conflict{box-shadow:inset 0 0 0 3px var(--color-error);animation:lp-blink .8s ease-in-out 2}
-    #logic-pro-app .cell.reveal{box-shadow:inset 0 0 0 3px var(--color-success)}
-    #logic-pro-app .border-t{border-top:3px solid var(--color-text-primary)!important;border-top-left-radius:0;border-top-right-radius:0}
-    #logic-pro-app .border-b{border-bottom:3px solid var(--color-text-primary)!important;border-bottom-left-radius:0;border-bottom-right-radius:0}
-    #logic-pro-app .border-l{border-left:3px solid var(--color-text-primary)!important;border-top-left-radius:0;border-bottom-left-radius:0}
-    #logic-pro-app .border-r{border-right:3px solid var(--color-text-primary)!important;border-top-right-radius:0;border-bottom-right-radius:0}
-    #logic-pro-app .z0{background:#f7c7ea} #logic-pro-app .z1{background:#f8e9a6} #logic-pro-app .z2{background:#cf9e75}
-    #logic-pro-app .z3{background:#b5a8f0} #logic-pro-app .z4{background:#86d89b} #logic-pro-app .z5{background:#9ec0e8}
-    #logic-pro-app .z6{background:#fdc18d} #logic-pro-app .z7{background:#ecd469} #logic-pro-app .z8{background:#f1abc3} #logic-pro-app .z9{background:#8be3de}
-    #logic-pro-app .panel{padding:var(--space-16);display:grid;gap:var(--space-12)}
-    #logic-pro-app .status{padding:12px 14px;border-radius:var(--radius-8);background:var(--color-bg-subtle);font-size:var(--text-small);line-height:1.6;border:1px solid var(--color-border-default)}
-    #logic-pro-app .status.good{background:color-mix(in srgb, var(--color-success) 14%, transparent);border-color:var(--color-border-success)}
-    #logic-pro-app .status.bad{background:color-mix(in srgb, var(--color-error) 12%, transparent);border-color:var(--color-border-error)}
-    #logic-pro-app .status.info{background:color-mix(in srgb, var(--color-info) 10%, transparent)}
-    #logic-pro-app details{border:1px solid var(--color-border-default);border-radius:var(--radius-8);padding:12px;background:var(--color-bg-subtle)}
-    #logic-pro-app summary{cursor:pointer;font-weight:700}
-    #logic-pro-app .mini{font-size:var(--text-small);color:var(--color-text-secondary);line-height:1.7;margin-top:8px}
-    #logic-pro-app .actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-8)}
-    #logic-pro-app .footer{display:flex;justify-content:space-between;gap:var(--space-8);align-items:center;flex-wrap:wrap}
-    #logic-pro-app .kbd{display:inline-block;padding:2px 8px;border:1px solid var(--color-border-default);border-radius:999px;font-size:var(--text-caption);background:var(--color-bg-surface)}
-    #logic-pro-app .toast{position:sticky;bottom:12px;justify-self:center;max-width:520px;padding:10px 14px;border-radius:999px;background:var(--color-text-primary);color:var(--color-bg-surface);font-size:var(--text-small);opacity:0;transform:translateY(8px);pointer-events:none;transition:.22s ease;z-index:5}
-    #logic-pro-app .toast.show{opacity:1;transform:translateY(0)}
-    #logic-pro-app .overlay{position:absolute;inset:0;background:rgba(0,0,0,.28);display:none;align-items:center;justify-content:center;border-radius:var(--radius-12);padding:16px}
-    #logic-pro-app .overlay.show{display:flex}
-    #logic-pro-app .modal{max-width:420px;width:100%;padding:20px;border-radius:16px;background:var(--color-bg-surface);border:1px solid var(--color-border-default);box-shadow:var(--shadow-lg);display:grid;gap:12px}
-    #logic-pro-app .modal h3{font-size:var(--text-h4);margin:0}
-    #logic-pro-app .modal p{margin:0;font-size:var(--text-small);line-height:1.7;color:var(--color-text-secondary);white-space:pre-wrap}
-    #logic-pro-app .confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:var(--radius-12)}
-    #logic-pro-app .piece{position:absolute;top:-12px;width:10px;height:16px;border-radius:3px;opacity:.92;animation:lp-fall 1.8s linear forwards}
-    @keyframes lp-fall{to{transform:translateY(120%) rotate(720deg);opacity:.2}}
-    @keyframes lp-blink{50%{transform:scale(.95);filter:brightness(.85)}}
-    @media (max-width:720px){
-      #logic-pro-app .layout{grid-template-columns:1fr}
-      #logic-pro-app .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+    :root {
+      --color-brand-primary: #232425;
+      --color-brand-secondary: #0F7FFF;
+      --color-bg-page: #FFFFFF;
+      --color-bg-surface: #FAFAFA;
+      --color-bg-subtle: #F5F5F5;
+      --color-text-primary: #232425;
+      --color-text-secondary: #606366;
+      --color-text-tertiary: #909499;
+      --color-text-disabled: #C4C7CC;
+      --color-text-link: #0F7FFF;
+      --color-text-on-brand: #FFFFFF;
+      --color-success: #10B981;
+      --color-warning: #F59E0B;
+      --color-error: #EF4444;
+      --color-info: #3B82F6;
+      --color-border-default: #EAEAEA;
+      --color-border-strong: #D0D3D8;
+      --color-border-subtle: #F2F2F2;
+      --color-border-brand: #0F7FFF;
+      --color-border-error: #EF4444;
+      --color-border-success: #10B981;
+      --space-4: 4px;
+      --space-8: 8px;
+      --space-12: 12px;
+      --space-16: 16px;
+      --space-20: 20px;
+      --space-24: 24px;
+      --space-32: 32px;
+      --space-48: 48px;
+      --text-h1: 36px;
+      --text-h2: 28px;
+      --text-h3: 22px;
+      --text-h4: 18px;
+      --text-body: 16px;
+      --text-small: 14px;
+      --text-caption: 12px;
+      --radius-4: 4px;
+      --radius-8: 8px;
+      --radius-12: 12px;
+      --border-width-1: 1px;
+      --border-width-2: 2px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
+      --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+
+      /* Categorical color ramps */
+      --color-cat-blue-50: #EBF3FE; --color-cat-blue-100: #C5DDFC; --color-cat-blue-200: #92BEF8; --color-cat-blue-400: #0F7FFF; --color-cat-blue-600: #0561C5; --color-cat-blue-800: #053F7C; --color-cat-blue-900: #06294F;
+      --color-cat-green-50: #E5F8F1; --color-cat-green-100: #B7EFD8; --color-cat-green-200: #7DE0BA; --color-cat-green-400: #10B981; --color-cat-green-600: #088762; --color-cat-green-800: #045A41; --color-cat-green-900: #023A29;
+      --color-cat-amber-50: #FEF3D9; --color-cat-amber-100: #FCE0A0; --color-cat-amber-200: #FAC865; --color-cat-amber-400: #F59E0B; --color-cat-amber-600: #B16E03; --color-cat-amber-800: #6E4500; --color-cat-amber-900: #422900;
+      --color-cat-red-50: #FDE9E9; --color-cat-red-100: #F9C2C2; --color-cat-red-200: #F49595; --color-cat-red-400: #EF4444; --color-cat-red-600: #C41B1B; --color-cat-red-800: #821212; --color-cat-red-900: #520B0B;
+      --color-cat-purple-50: #F0EAFE; --color-cat-purple-100: #D5C2FB; --color-cat-purple-200: #B59AF8; --color-cat-purple-400: #8B5CF6; --color-cat-purple-600: #6431D2; --color-cat-purple-800: #441E8E; --color-cat-purple-900: #2A1259;
+      --color-cat-teal-50: #DEF7F4; --color-cat-teal-100: #A6EBE2; --color-cat-teal-200: #6BDCCD; --color-cat-teal-400: #14B8A6; --color-cat-teal-600: #0D8779; --color-cat-teal-800: #075A50; --color-cat-teal-900: #043934;
+      --color-cat-coral-50: #FEE7EB; --color-cat-coral-100: #FCC0CA; --color-cat-coral-200: #FA98A8; --color-cat-coral-400: #FB7185; --color-cat-coral-600: #D14258; --color-cat-coral-800: #8C2336; --color-cat-coral-900: #5A111F;
+      --color-cat-pink-50: #FCE4F1; --color-cat-pink-100: #F7BAD9; --color-cat-pink-200: #F18BBE; --color-cat-pink-400: #EC4899; --color-cat-pink-600: #B81F75; --color-cat-pink-800: #7B0F4D; --color-cat-pink-900: #4D0530;
+      --color-cat-gray-50: #F3F4F6; --color-cat-gray-100: #E5E7EB; --color-cat-gray-200: #CBD0D7; --color-cat-gray-400: #6B7280; --color-cat-gray-600: #4A4F58; --color-cat-gray-800: #2A2D33; --color-cat-gray-900: #16181B;
+    }
+
+    .c-blue   { fill: var(--color-cat-blue-50); stroke: var(--color-cat-blue-600); color: var(--color-cat-blue-800); background-color: var(--color-cat-blue-50); border-color: var(--color-cat-blue-600); }
+    .c-green  { fill: var(--color-cat-green-50); stroke: var(--color-cat-green-600); color: var(--color-cat-green-800); background-color: var(--color-cat-green-50); border-color: var(--color-cat-green-600); }
+    .c-amber  { fill: var(--color-cat-amber-50); stroke: var(--color-cat-amber-600); color: var(--color-cat-amber-800); background-color: var(--color-cat-amber-50); border-color: var(--color-cat-amber-600); }
+    .c-red    { fill: var(--color-cat-red-50); stroke: var(--color-cat-red-600); color: var(--color-cat-red-800); background-color: var(--color-cat-red-50); border-color: var(--color-cat-red-600); }
+    .c-purple { fill: var(--color-cat-purple-50); stroke: var(--color-cat-purple-600); color: var(--color-cat-purple-800); background-color: var(--color-cat-purple-50); border-color: var(--color-cat-purple-600); }
+    .c-teal   { fill: var(--color-cat-teal-50); stroke: var(--color-cat-teal-600); color: var(--color-cat-teal-800); background-color: var(--color-cat-teal-50); border-color: var(--color-cat-teal-600); }
+    .c-coral  { fill: var(--color-cat-coral-50); stroke: var(--color-cat-coral-600); color: var(--color-cat-coral-800); background-color: var(--color-cat-coral-50); border-color: var(--color-cat-coral-600); }
+    .c-pink   { fill: var(--color-cat-pink-50); stroke: var(--color-cat-pink-600); color: var(--color-cat-pink-800); background-color: var(--color-cat-pink-50); border-color: var(--color-cat-pink-600); }
+    .c-gray   { fill: var(--color-cat-gray-50); stroke: var(--color-cat-gray-600); color: var(--color-cat-gray-800); background-color: var(--color-cat-gray-50); border-color: var(--color-cat-gray-600); }
+
+    .c-blue text, .c-green text, .c-amber text, .c-red text, .c-purple text, .c-teal text, .c-coral text, .c-pink text, .c-gray text {
+      fill: currentColor;
+      stroke: none;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --color-brand-primary: #E8E9EA;
+        --color-brand-secondary: #4a9eff;
+        --color-bg-page: #1A1B1C;
+        --color-bg-surface: #232425;
+        --color-bg-subtle: #2A2B2C;
+        --color-text-primary: #FFFFFF;
+        --color-text-secondary: #B8BBBF;
+        --color-text-tertiary: #868B92;
+        --color-text-disabled: #4A4C4F;
+        --color-text-link: #8bb8ff;
+        --color-text-on-brand: #1A1B1C;
+        --color-border-default: #3A3B3C;
+        --color-border-strong: #4A4C4F;
+        --color-border-subtle: #2E2F30;
+        --color-border-brand: #4a9eff;
+        --color-border-error: #f87171;
+        --color-border-success: #34d399;
+      }
+      .c-blue { fill: var(--color-cat-blue-800); stroke: var(--color-cat-blue-200); color: var(--color-cat-blue-100); background-color: var(--color-cat-blue-800); border-color: var(--color-cat-blue-200); }
+      .c-green { fill: var(--color-cat-green-800); stroke: var(--color-cat-green-200); color: var(--color-cat-green-100); background-color: var(--color-cat-green-800); border-color: var(--color-cat-green-200); }
+      .c-amber { fill: var(--color-cat-amber-800); stroke: var(--color-cat-amber-200); color: var(--color-cat-amber-100); background-color: var(--color-cat-amber-800); border-color: var(--color-cat-amber-200); }
+      .c-red { fill: var(--color-cat-red-800); stroke: var(--color-cat-red-200); color: var(--color-cat-red-100); background-color: var(--color-cat-red-800); border-color: var(--color-cat-red-200); }
+      .c-purple { fill: var(--color-cat-purple-800); stroke: var(--color-cat-purple-200); color: var(--color-cat-purple-100); background-color: var(--color-cat-purple-800); border-color: var(--color-cat-purple-200); }
+      .c-teal { fill: var(--color-cat-teal-800); stroke: var(--color-cat-teal-200); color: var(--color-cat-teal-100); background-color: var(--color-cat-teal-800); border-color: var(--color-cat-teal-200); }
+      .c-coral { fill: var(--color-cat-coral-800); stroke: var(--color-cat-coral-200); color: var(--color-cat-coral-100); background-color: var(--color-cat-coral-800); border-color: var(--color-cat-coral-200); }
+      .c-pink { fill: var(--color-cat-pink-800); stroke: var(--color-cat-pink-200); color: var(--color-cat-pink-100); background-color: var(--color-cat-pink-800); border-color: var(--color-cat-pink-200); }
+      .c-gray { fill: var(--color-cat-gray-800); stroke: var(--color-cat-gray-200); color: var(--color-cat-gray-100); background-color: var(--color-cat-gray-800); border-color: var(--color-cat-gray-200); }
+    }
+
+    html[data-theme="dark"] {
+      --color-brand-primary: #E8E9EA;
+      --color-brand-secondary: #4a9eff;
+      --color-bg-page: #1A1B1C;
+      --color-bg-surface: #232425;
+      --color-bg-subtle: #2A2B2C;
+      --color-text-primary: #FFFFFF;
+      --color-text-secondary: #B8BBBF;
+      --color-text-tertiary: #868B92;
+      --color-text-disabled: #4A4C4F;
+      --color-text-link: #8bb8ff;
+      --color-text-on-brand: #1A1B1C;
+      --color-border-default: #3A3B3C;
+      --color-border-strong: #4A4C4F;
+      --color-border-subtle: #2E2F30;
+      --color-border-brand: #4a9eff;
+      --color-border-error: #f87171;
+      --color-border-success: #34d399;
+    }
+    
+    html[data-theme="dark"] .c-blue { fill: var(--color-cat-blue-800); stroke: var(--color-cat-blue-200); color: var(--color-cat-blue-100); background-color: var(--color-cat-blue-800); border-color: var(--color-cat-blue-200); }
+    html[data-theme="dark"] .c-green { fill: var(--color-cat-green-800); stroke: var(--color-cat-green-200); color: var(--color-cat-green-100); background-color: var(--color-cat-green-800); border-color: var(--color-cat-green-200); }
+    html[data-theme="dark"] .c-amber { fill: var(--color-cat-amber-800); stroke: var(--color-cat-amber-200); color: var(--color-cat-amber-100); background-color: var(--color-cat-amber-800); border-color: var(--color-cat-amber-200); }
+    html[data-theme="dark"] .c-red { fill: var(--color-cat-red-800); stroke: var(--color-cat-red-200); color: var(--color-cat-red-100); background-color: var(--color-cat-red-800); border-color: var(--color-cat-red-200); }
+    html[data-theme="dark"] .c-purple { fill: var(--color-cat-purple-800); stroke: var(--color-cat-purple-200); color: var(--color-cat-purple-100); background-color: var(--color-cat-purple-800); border-color: var(--color-cat-purple-200); }
+    html[data-theme="dark"] .c-teal { fill: var(--color-cat-teal-800); stroke: var(--color-cat-teal-200); color: var(--color-cat-teal-100); background-color: var(--color-cat-teal-800); border-color: var(--color-cat-teal-200); }
+    html[data-theme="dark"] .c-coral { fill: var(--color-cat-coral-800); stroke: var(--color-cat-coral-200); color: var(--color-cat-coral-100); background-color: var(--color-cat-coral-800); border-color: var(--color-cat-coral-200); }
+    html[data-theme="dark"] .c-pink { fill: var(--color-cat-pink-800); stroke: var(--color-cat-pink-200); color: var(--color-cat-pink-100); background-color: var(--color-cat-pink-800); border-color: var(--color-cat-pink-200); }
+    html[data-theme="dark"] .c-gray { fill: var(--color-cat-gray-800); stroke: var(--color-cat-gray-200); color: var(--color-cat-gray-100); background-color: var(--color-cat-gray-800); border-color: var(--color-cat-gray-200); }
+
+    :root { color-scheme: light; }
+    
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: transparent !important;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Inter', 'Helvetica Neue', Arial, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', 'Noto Sans JP', 'Noto Sans KR', system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+    }
+    
+    *, *::before, *::after {
+      box-sizing: inherit;
+    }
+    
+    svg, svg text, svg tspan {
+      font-family: inherit;
+    }
+  </style>
+  <script>
+    function sendPrompt(text) {
+      window.parent.postMessage(
+        { type: 'genspark_visualize_send_prompt', text: String(text) }, '*'
+      );
+    }
+
+    function _reportHeight() {
+      var h = Math.max(
+        document.body ? document.body.scrollHeight : 0,
+        document.documentElement ? document.documentElement.scrollHeight : 0,
+        100
+      );
+      window.parent.postMessage({ type: 'genspark_visualize_height', height: h }, '*');
+    }
+
+    window.addEventListener('load', function() {
+      _reportHeight();
+      if (window.ResizeObserver) {
+        new ResizeObserver(_reportHeight).observe(document.body);
+      }
+    });
+
+    window.addEventListener('resize', _reportHeight);
+
+    // ── PNG export (rasterize the rendered widget inside the iframe) ─────────────
+    function _gsExportFont() {
+      return "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Inter', 'Helvetica Neue', Arial, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', 'Noto Sans JP', 'Noto Sans KR', system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji'";
+    }
+
+    function _gsCollectStyles() {
+      var out = '';
+      var s = document.querySelectorAll('style');
+      for (var i = 0; i < s.length; i++) {
+        out += (s[i].textContent || '') + '\n';
+      }
+      return out;
+    }
+
+    function _gsStripDarkMedia(css) {
+      var marker = '@media (prefers-color-scheme: dark)';
+      var idx = css.indexOf(marker);
+      while (idx !== -1) {
+        var brace = css.indexOf('{', idx);
+        if (brace === -1) {
+          css = css.slice(0, idx);
+          break;
+        }
+        var depth = 1, j = brace + 1;
+        while (j < css.length && depth > 0) {
+          var ch = css.charAt(j);
+          if (ch === '{') depth++;
+          else if (ch === '}') depth--;
+          j++;
+        }
+        css = css.slice(0, idx) + css.slice(j);
+        idx = css.indexOf(marker);
+      }
+      return css;
+    }
+
+    function _gsCleanup(node) {
+      var scripts = node.querySelectorAll('script');
+      for (var i = 0; i < scripts.length; i++) {
+        if (scripts[i].parentNode) scripts[i].parentNode.removeChild(scripts[i]);
+      }
+      var nameRe = /^[A-Za-z_:][A-Za-z0-9_:.-]*$/;
+      var els = node.querySelectorAll('*');
+      for (var k = 0; k < els.length; k++) {
+        var attrs = els[k].attributes;
+        for (var a = attrs.length - 1; a >= 0; a--) {
+          if (!nameRe.test(attrs[a].name)) els[k].removeAttribute(attrs[a].name);
+        }
+      }
+    }
+
+    function _gsSubstituteCanvases(live, clone) {
+      var lc = live.querySelectorAll('canvas');
+      var cc = clone.querySelectorAll('canvas');
+      for (var i = 0; i < lc.length && i < cc.length; i++) {
+        var data = lc[i].toDataURL('image/png');
+        var img = document.createElement('img');
+        img.setAttribute('src', data);
+        img.setAttribute('style', (cc[i].getAttribute('style') || '') + ';width:' + lc[i].offsetWidth + 'px;height:' + lc[i].offsetHeight + 'px');
+        if (cc[i].parentNode) cc[i].parentNode.replaceChild(img, cc[i]);
+      }
+    }
+
+    function _gsPostPng(id, dataUrl, error) {
+      window.parent.postMessage({ type: 'genspark_visualize_png', id: id, dataUrl: dataUrl || null, error: error || null }, '*');
+    }
+
+    function _gsRasterize(id, scale) {
+      try {
+        scale = scale || 2;
+        var PAD = 16;
+        var W = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth, 1);
+        var H = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight, 1);
+        
+        var bodyClone = document.body.cloneNode(true);
+        _gsSubstituteCanvases(document.body, bodyClone);
+        _gsCleanup(bodyClone);
+        
+        var wrapper = document.createElement('div');
+        wrapper.setAttribute('style', 'font-family:' + _gsExportFont() + ';box-sizing:border-box;width:' + W + 'px');
+        while (bodyClone.firstChild) {
+          wrapper.appendChild(bodyClone.firstChild);
+        }
+        
+        var inner = new XMLSerializer().serializeToString(wrapper);
+        var styleTag = '<style>' + _gsStripDarkMedia(_gsCollectStyles()) + ' svg, svg text, svg tspan { font-family:' + _gsExportFont() + '; }</style>';
+        
+        var CW = W + PAD * 2, CH = H + PAD * 2;
+        var SW = Math.round(CW * scale), SH = Math.round(CH * scale);
+        
+        var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + SW + '" height="' + SH + '" viewBox="0 0 ' + CW + ' ' + CH + '">' +
+          '<foreignObject x="' + PAD + '" y="' + PAD + '" width="' + W + '" height="' + H + '">' +
+          '<div xmlns="http://www.w3.org/1999/xhtml">' + styleTag + inner + '</div>' +
+          '</foreignObject></svg>';
+          
+        var img = new Image();
+        img.onload = function() {
+          try {
+            var cv = document.createElement('canvas');
+            cv.width = SW; cv.height = SH;
+            var ctx = cv.getContext('2d');
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, SW, SH);
+            ctx.drawImage(img, 0, 0);
+            _gsPostPng(id, cv.toDataURL('image/png'), null);
+          } catch (e) {
+            _gsPostPng(id, null, 'tainted');
+          }
+        };
+        img.onerror = function() {
+          _gsPostPng(id, null, 'image_error');
+        };
+        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+      } catch (e) {
+        _gsPostPng(id, null, (e && e.name === 'SecurityError') ? 'tainted' : String((e && e.message) || e));
+      }
+    }
+
+    window.addEventListener('message', function(ev) {
+      var d = ev.data || {};
+      if (!d || d.type !== 'genspark_visualize_request_png') return;
+      var run = function() {
+        _gsRasterize(d.id, d.scale);
+      };
+      
+      if (document.fonts && document.fonts.ready && document.fonts.ready.then) {
+        document.fonts.ready.then(function() {
+          if (window.requestAnimationFrame) window.requestAnimationFrame(run);
+          else window.setTimeout(run, 0);
+        });
+      } else if (window.requestAnimationFrame) {
+        window.requestAnimationFrame(run);
+      } else {
+        window.setTimeout(run, 0);
+      }
+    });
+  </script>
+</head>
+<body>
+<div id="logic-pro-app">
+  <style>
+    #logic-pro-app { width: 100%; max-width: 758px; color: var(--color-text-primary); }
+    #logic-pro-app * { box-sizing: border-box; }
+    #logic-pro-app .shell { display: grid; gap: var(--space-16); }
+    #logic-pro-app .card { background: var(--color-bg-surface); border: 1px solid var(--color-border-default); border-radius: var(--radius-12); box-shadow: var(--shadow-sm); }
+    #logic-pro-app .hero { padding: var(--space-20); display: grid; gap: var(--space-16); }
+    #logic-pro-app .hero-top { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-12); flex-wrap: wrap; }
+    #logic-pro-app h2 { font-size: var(--text-h3); line-height: 1.2; margin: 0; }
+    #logic-pro-app .sub { font-size: var(--text-small); color: var(--color-text-secondary); line-height: 1.6; }
+    #logic-pro-app .toolbar { display: grid; gap: var(--space-12); }
+    #logic-pro-app .toolbar-row { display: flex; gap: var(--space-8); flex-wrap: wrap; align-items: center; }
+    #logic-pro-app select, #logic-pro-app button { font: inherit; }
+    #logic-pro-app select { height: 44px; padding: 0 12px; border-radius: var(--radius-8); border: 1px solid var(--color-border-default); background: var(--color-bg-surface); color: var(--color-text-primary); }
+    #logic-pro-app .seg { display: inline-flex; background: var(--color-bg-subtle); padding: 4px; border-radius: 999px; border: 1px solid var(--color-border-default); gap: 4px; }
+    #logic-pro-app .seg button { height: 36px; padding: 0 14px; border: none; border-radius: 999px; background: transparent; color: var(--color-text-secondary); cursor: pointer; min-width: 88px; }
+    #logic-pro-app .seg button.active { background: var(--color-brand-primary); color: var(--color-text-on-brand); }
+    #logic-pro-app .btn { height: 42px; padding: 0 14px; border-radius: var(--radius-8); border: 1px solid var(--color-border-default); background: var(--color-bg-surface); color: var(--color-text-primary); cursor: pointer; min-width: 88px; }
+    #logic-pro-app .btn.primary { background: var(--color-brand-primary); border-color: var(--color-brand-primary); color: var(--color-text-on-brand); }
+    #logic-pro-app .btn.warn { background: var(--color-warning); border-color: var(--color-warning); color: var(--color-text-on-brand); }
+    #logic-pro-app .btn.good { background: var(--color-success); border-color: var(--color-success); color: var(--color-text-on-brand); }
+    #logic-pro-app .btn.ghost { background: transparent; }
+    #logic-pro-app .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-8); }
+    #logic-pro-app .stat { padding: 12px; border: 1px solid var(--color-border-default); border-radius: var(--radius-8); background: var(--color-bg-subtle); }
+    #logic-pro-app .stat .k { font-size: var(--text-caption); color: var(--color-text-secondary); margin-bottom: 4px; }
+    #logic-pro-app .stat .v { font-size: var(--text-body); font-weight: 700; }
+    #logic-pro-app .layout { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: var(--space-16); }
+    #logic-pro-app .board-card { padding: var(--space-16); display: grid; gap: var(--space-12); }
+    #logic-pro-app .board-wrap { aspect-ratio: 1/1; background: var(--color-bg-page); border-radius: var(--radius-12); padding: 8px; border: 1px solid var(--color-border-default); position: relative; }
+    #logic-pro-app .board { width: 100%; height: 100%; display: grid; gap: 3px; touch-action: manipulation; }
+    #logic-pro-app .cell { position: relative; border: none; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: 800; transition: transform .08s ease, box-shadow .12s ease, opacity .12s ease; min-width: 0; min-height: 0; color: rgba(0, 0, 0, .78); }
+    #logic-pro-app .cell:hover { box-shadow: inset 0 0 0 2px rgba(0, 0, 0, .12); }
+    #logic-pro-app .cell:active { transform: scale(.96); }
+    #logic-pro-app .cell.core::after { content: '⚡'; font-size: clamp(15px, 2.7vw, 28px); filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .18)); }
+    #logic-pro-app .cell.block::after { content: '×'; font-size: clamp(13px, 2vw, 20px); opacity: .55; }
+    #logic-pro-app .cell.hint { box-shadow: inset 0 0 0 3px var(--color-warning); }
+    #logic-pro-app .cell.conflict { box-shadow: inset 0 0 0 3px var(--color-error); animation: lp-blink .8s ease-in-out 2; }
+    #logic-pro-app .cell.reveal { box-shadow: inset 0 0 0 3px var(--color-success); }
+    #logic-pro-app .border-t { border-top: 3px solid var(--color-text-primary) !important; border-top-left-radius: 0; border-top-right-radius: 0; }
+    #logic-pro-app .border-b { border-bottom: 3px solid var(--color-text-primary) !important; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+    #logic-pro-app .border-l { border-left: 3px solid var(--color-text-primary) !important; border-top-left-radius: 0; border-bottom-left-radius: 0; }
+    #logic-pro-app .border-r { border-right: 3px solid var(--color-text-primary) !important; border-top-right-radius: 0; border-bottom-right-radius: 0; }
+    #logic-pro-app .z0 { background: #f7c7ea; }
+    #logic-pro-app .z1 { background: #f8e9a6; }
+    #logic-pro-app .z2 { background: #cf9e75; }
+    #logic-pro-app .z3 { background: #b5a8f0; }
+    #logic-pro-app .z4 { background: #86d89b; }
+    #logic-pro-app .z5 { background: #9ec0e8; }
+    #logic-pro-app .z6 { background: #fdc18d; }
+    #logic-pro-app .z7 { background: #ecd469; }
+    #logic-pro-app .z8 { background: #f1abc3; }
+    #logic-pro-app .z9 { background: #8be3de; }
+    #logic-pro-app .panel { padding: var(--space-16); display: grid; gap: var(--space-12); }
+    #logic-pro-app .status { padding: 12px 14px; border-radius: var(--radius-8); background: var(--color-bg-subtle); font-size: var(--text-small); line-height: 1.6; border: 1px solid var(--color-border-default); }
+    #logic-pro-app .status.good { background: color-mix(in srgb, var(--color-success) 14%, transparent); border-color: var(--color-border-success); }
+    #logic-pro-app .status.bad { background: color-mix(in srgb, var(--color-error) 12%, transparent); border-color: var(--color-border-error); }
+    #logic-pro-app .status.info { background: color-mix(in srgb, var(--color-info) 10%, transparent); }
+    #logic-pro-app details { border: 1px solid var(--color-border-default); border-radius: var(--radius-8); padding: 12px; background: var(--color-bg-subtle); }
+    #logic-pro-app summary { cursor: pointer; font-weight: 700; }
+    #logic-pro-app .mini { font-size: var(--text-small); color: var(--color-text-secondary); line-height: 1.7; margin-top: 8px; }
+    #logic-pro-app .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-8); }
+    #logic-pro-app .footer { display: flex; justify-content: space-between; gap: var(--space-8); align-items: center; flex-wrap: wrap; }
+    #logic-pro-app .kbd { display: inline-block; padding: 2px 8px; border: 1px solid var(--color-border-default); border-radius: 999px; font-size: var(--text-caption); background: var(--color-bg-surface); }
+    #logic-pro-app .toast { position: sticky; bottom: 12px; justify-self: center; max-width: 520px; padding: 10px 14px; border-radius: 999px; background: var(--color-text-primary); color: var(--color-bg-surface); font-size: var(--text-small); opacity: 0; transform: translateY(8px); pointer-events: none; transition: .22s ease; z-index: 5; }
+    #logic-pro-app .toast.show { opacity: 1; transform: translateY(0); }
+    #logic-pro-app .overlay { position: absolute; inset: 0; background: rgba(0, 0, 0, .28); display: none; align-items: center; justify-content: center; border-radius: var(--radius-12); padding: 16px; }
+    #logic-pro-app .overlay.show { display: flex; }
+    #logic-pro-app .modal { max-width: 420px; width: 100%; padding: 20px; border-radius: 16px; background: var(--color-bg-surface); border: 1px solid var(--color-border-default); box-shadow: var(--shadow-lg); display: grid; gap: 12px; }
+    #logic-pro-app .modal h3 { font-size: var(--text-h4); margin: 0; }
+    #logic-pro-app .modal p { margin: 0; font-size: var(--text-small); line-height: 1.7; color: var(--color-text-secondary); white-space: pre-wrap; }
+    #logic-pro-app .confetti { position: absolute; inset: 0; pointer-events: none; overflow: hidden; border-radius: var(--radius-12); }
+    #logic-pro-app .piece { position: absolute; top: -12px; width: 10px; height: 16px; border-radius: 3px; opacity: .92; animation: lp-fall 1.8s linear forwards; }
+    
+    @keyframes lp-fall {
+      to { transform: translateY(120%) rotate(720deg); opacity: .2; }
+    }
+    @keyframes lp-blink {
+      50% { transform: scale(.95); filter: brightness(.85); }
+    }
+    
+    @media (max-width: 720px) {
+      #logic-pro-app .layout { grid-template-columns: 1fr; }
+      #logic-pro-app .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
   </style>
 
@@ -386,7 +452,7 @@ window.addEventListener('message', function(ev) {
             <div class="modal">
               <h3 id="modalTitle">完了</h3>
               <p id="modalText"></p>
-              <div class="toolbar-row" style="justify-content:flex-end">
+              <div class="toolbar-row" style="justify-content: flex-end;">
                 <button class="btn" id="closeModalBtn">閉じる</button>
               </div>
             </div>
@@ -429,302 +495,619 @@ window.addEventListener('message', function(ev) {
   </div>
 
   <script>
-    (()=>{
-      const seed6 = [{map:[[0,0,1,1,1,1],[1,1,1,1,1,2],[1,1,1,1,2,2],[3,3,3,4,2,2],[3,4,4,4,4,2],[3,3,4,4,4,5]],sol:[[0],[2],[4],[1],[3],[5]]}];
-      const seed8 = [{map:[[0,1,1,1,1,1,1,1],[2,2,1,2,2,2,2,2],[3,3,3,3,2,3,3,3],[4,4,4,4,4,4,3,4],[5,4,5,5,5,5,5,5],[6,6,6,5,6,6,6,6],[7,7,7,7,7,6,7,7],[7,7,7,7,7,7,7,7]],sol:[[0],[2],[4],[6],[1],[3],[5],[7]]}];
-      const seed9 = [{map:[[0,0,0,1,1,1,1,1,1],[0,0,2,2,2,1,1,1,1],[3,4,4,4,2,5,5,5,1],[3,3,3,4,2,5,6,5,1],[3,4,4,4,2,5,6,5,1],[7,7,8,4,2,5,6,5,1],[7,4,4,4,2,5,5,5,1],[7,7,7,7,7,7,7,7,1],[7,7,7,7,7,7,7,7,1]],sol:[[1],[4],[0],[3],[6],[2],[7],[5],[8]]}];
-      const seed10 = [{map:[[0,1,1,1,1,1,1,1,1,1],[2,2,1,2,2,2,2,2,2,2],[3,3,3,3,2,3,3,3,3,3],[4,4,4,4,4,4,3,4,4,4],[5,5,5,5,5,5,5,5,4,5],[6,5,6,6,6,6,6,6,6,6],[7,7,7,6,7,7,7,7,7,7],[8,8,8,8,8,7,8,8,8,8],[9,9,9,9,9,9,9,8,9,9],[9,9,9,9,9,9,9,9,9,9]],sol:[[0],[2],[4],[6],[8],[1],[3],[5],[7],[9]]}];
-      const seed92 = [{map:[[0,0,0,0,1,1,1,1,2],[0,2,3,0,1,1,1,1,2],[2,2,3,3,1,3,4,2,2],[5,3,3,5,3,3,4,4,2],[5,7,7,5,3,6,4,4,4],[5,5,7,5,5,6,4,6,4],[5,5,7,7,7,6,6,6,6],[5,7,7,7,8,8,8,8,6],[5,7,7,7,8,8,8,8,8]],sol:[[0,2],[4,6],[0,8],[2,4],[6,8],[1,3],[5,7],[1,3],[5,7]]}];
+    (() => {
+      const seed6 = [{ map: [[0, 0, 1, 1, 1, 1], [1, 1, 1, 1, 1, 2], [1, 1, 1, 1, 2, 2], [3, 3, 3, 4, 2, 2], [3, 4, 4, 4, 4, 2], [3, 3, 4, 4, 4, 5]], sol: [[0], [2], [4], [1], [3], [5]] }];
+      const seed8 = [{ map: [[0, 1, 1, 1, 1, 1, 1, 1], [2, 2, 1, 2, 2, 2, 2, 2], [3, 3, 3, 3, 2, 3, 3, 3], [4, 4, 4, 4, 4, 4, 3, 4], [5, 4, 5, 5, 5, 5, 5, 5], [6, 6, 6, 5, 6, 6, 6, 6], [7, 7, 7, 7, 7, 6, 7, 7], [7, 7, 7, 7, 7, 7, 7, 7]], sol: [[0], [2], [4], [6], [1], [3], [5], [7]] }];
+      const seed9 = [{ map: [[0, 0, 0, 1, 1, 1, 1, 1, 1], [0, 0, 2, 2, 2, 1, 1, 1, 1], [3, 4, 4, 4, 2, 5, 5, 5, 1], [3, 3, 3, 4, 2, 5, 6, 5, 1], [3, 4, 4, 4, 2, 5, 6, 5, 1], [7, 7, 8, 4, 2, 5, 6, 5, 1], [7, 4, 4, 4, 2, 5, 5, 5, 1], [7, 7, 7, 7, 7, 7, 7, 7, 1], [7, 7, 7, 7, 7, 7, 7, 7, 1]], sol: [[1], [4], [0], [3], [6], [2], [7], [5], [8]] }];
+      const seed10 = [{ map: [[0, 1, 1, 1, 1, 1, 1, 1, 1, 1], [2, 2, 1, 2, 2, 2, 2, 2, 2, 2], [3, 3, 3, 3, 2, 3, 3, 3, 3, 3], [4, 4, 4, 4, 4, 4, 3, 4, 4, 4], [5, 5, 5, 5, 5, 5, 5, 5, 4, 5], [6, 5, 6, 6, 6, 6, 6, 6, 6, 6], [7, 7, 7, 6, 7, 7, 7, 7, 7, 7], [8, 8, 8, 8, 8, 7, 8, 8, 8, 8], [9, 9, 9, 9, 9, 9, 9, 8, 9, 9], [9, 9, 9, 9, 9, 9, 9, 9, 9, 9]], sol: [[0], [2], [4], [6], [8], [1], [3], [5], [7], [9]] }];
+      const seed92 = [{ map: [[0, 0, 0, 0, 1, 1, 1, 1, 2], [0, 2, 3, 0, 1, 1, 1, 1, 2], [2, 2, 3, 3, 1, 3, 4, 2, 2], [5, 3, 3, 5, 3, 3, 4, 4, 2], [5, 7, 7, 5, 3, 6, 4, 4, 4], [5, 5, 7, 5, 5, 6, 4, 6, 4], [5, 5, 7, 7, 7, 6, 6, 6, 6], [5, 7, 7, 7, 8, 8, 8, 8, 6], [5, 7, 7, 7, 8, 8, 8, 8, 8]], sol: [[0, 2], [4, 6], [0, 8], [2, 4], [6, 8], [1, 3], [5, 7], [1, 3], [5, 7]] }];
 
       const cfgs = {
-        1:{size:6, stars:1, target:15, seed:seed6[0]},
-        2:{size:8, stars:1, target:30, seed:seed8[0]},
-        3:{size:9, stars:1, target:40, seed:seed9[0]},
-        4:{size:9, stars:1, target:100, seed:seed9[0]},
-        5:{size:10, stars:1, target:60, seed:seed10[0]},
-        6:{size:9, stars:2, target:15, seed:seed92[0]}
+        1: { size: 6, stars: 1, target: 15, seed: seed6[0] },
+        2: { size: 8, stars: 1, target: 30, seed: seed8[0] },
+        3: { size: 9, stars: 1, target: 40, seed: seed9[0] },
+        4: { size: 9, stars: 1, target: 100, seed: seed9[0] },
+        5: { size: 10, stars: 1, target: 60, seed: seed10[0] },
+        6: { size: 9, stars: 2, target: 15, seed: seed92[0] }
       };
 
-      const $ = s=>document.querySelector('#logic-pro-app '+s);
+      const $ = s => document.querySelector('#logic-pro-app ' + s);
       const boardEl = $('#board');
       const toastEl = $('#toast');
       const overlay = $('#overlay');
       const modeButtons = [$('#modeBlock'), $('#modeCore')];
-      let size=9, stars=1, zoneMap=[], solution=[], grid=[], history=[], mode='block', mistakes=0, timer=null, startedAt=0, paused=false, revealed=false, difficulty='3';
+      
+      let size = 9, stars = 1, zoneMap = [], solution = [], grid = [], history = [], mode = 'block', mistakes = 0, timer = null, startedAt = 0, paused = false, revealed = false, difficulty = '3';
 
-      function deep(v){return JSON.parse(JSON.stringify(v));}
-      function setMode(next){mode=next;modeButtons.forEach(b=>b.classList.toggle('active', b.dataset.mode===next));setSideMessage(next==='core'?'コア配置モードです。各行・各列・各エリアの規定数と隣接禁止を確認しながら置いてください。':'ブロック配置モードです。候補を消し込んで論理を絞り込みましょう。');}
-      function formatTime(sec){const m=String(Math.floor(sec/60)).padStart(2,'0');const s=String(sec%60).padStart(2,'0');return m+':'+s;}
-      function tick(){if(paused)return; $('#statTime').textContent = formatTime(Math.floor((Date.now()-startedAt)/1000));}
-      function startTimer(){clearInterval(timer);startedAt=Date.now();paused=false;tick();timer=setInterval(tick,1000);}      
-      function stopTimer(){paused=true;clearInterval(timer);}      
-      function showToast(msg){toastEl.textContent=msg;toastEl.classList.add('show');clearTimeout(showToast.t);showToast.t=setTimeout(()=>toastEl.classList.remove('show'),2200);}
-      function showModal(title,text){$('#modalTitle').textContent=title;$('#modalText').textContent=text;overlay.classList.add('show');_reportHeight&&_reportHeight();}
-      function hideModal(){overlay.classList.remove('show');}
-      function setStatus(text,type='info'){const el=$('#statusBar');el.className='status '+type;el.textContent=text;}
-      function setSideMessage(text){$('#sideMessage').textContent=text;}
-      function rulesText(){return `1. 各色エリアに ⚡ を ${stars} 個ずつ配置\n2. 各行・各列にも ⚡ を ${stars} 個ずつ配置\n3. ⚡ 同士はタテ・ヨコ・ナナメに接してはいけません\n4. × は置けないマスのメモです`;}
+      function deep(v) {
+        return JSON.parse(JSON.stringify(v));
+      }
 
-      function rotateMapCW(map, sol){
-        const newMap = Array(size).fill(0).map(()=>Array(size).fill(0));
-        const newSol = Array(size).fill(0).map(()=>[]);
-        for(let r=0;r<size;r++){
-          for(let c=0;c<size;c++) newMap[c][size-1-r]=map[r][c];
-          for(const c of sol[r]) newSol[c].push(size-1-r);
+      function setMode(next) {
+        mode = next;
+        modeButtons.forEach(b => b.classList.toggle('active', b.dataset.mode === next));
+        setSideMessage(next === 'core' ? 'コア配置モードです。各行・各列・各エリアの規定数と隣接禁止を確認しながら置いてください。' : 'ブロック配置モードです。候補を消し込んで論理を絞り込みましょう。');
+      }
+
+      function formatTime(sec) {
+        const m = String(Math.floor(sec / 60)).padStart(2, '0');
+        const s = String(sec % 60).padStart(2, '0');
+        return m + ':' + s;
+      }
+
+      function tick() {
+        if (paused) return;
+        $('#statTime').textContent = formatTime(Math.floor((Date.now() - startedAt) / 1000));
+      }
+
+      function startTimer() {
+        clearInterval(timer);
+        startedAt = Date.now();
+        paused = false;
+        tick();
+        timer = setInterval(tick, 1000);
+      }
+
+      function stopTimer() {
+        paused = true;
+        clearInterval(timer);
+      }
+
+      function showToast(msg) {
+        toastEl.textContent = msg;
+        toastEl.classList.add('show');
+        clearTimeout(showToast.t);
+        showToast.t = setTimeout(() => toastEl.classList.remove('show'), 2200);
+      }
+
+      function showModal(title, text) {
+        $('#modalTitle').textContent = title;
+        $('#modalText').textContent = text;
+        overlay.classList.add('show');
+        _reportHeight && _reportHeight();
+      }
+
+      function hideModal() {
+        overlay.classList.remove('show');
+      }
+
+      function setStatus(text, type = 'info') {
+        const el = $('#statusBar');
+        el.className = 'status ' + type;
+        el.textContent = text;
+      }
+
+      function setSideMessage(text) {
+        $('#sideMessage').textContent = text;
+      }
+
+      function rulesText() {
+        return `1. 各色エリアに ⚡ を ${stars} 個ずつ配置\n2. 各行・各列にも ⚡ を ${stars} 個ずつ配置\n3. ⚡ 同士はタテ・ヨコ・ナナメに接してはいけません\n4. × は置けないマスのメモです`;
+      }
+
+      function rotateMapCW(map, sol) {
+        const newMap = Array(size).fill(0).map(() => Array(size).fill(0));
+        const newSol = Array(size).fill(0).map(() => []);
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size; c++) {
+            newMap[c][size - 1 - r] = map[r][c];
+          }
+          for (const c of sol[r]) {
+            newSol[c].push(size - 1 - r);
+          }
         }
-        newSol.forEach(r=>r.sort((a,b)=>a-b));
-        return {map:newMap,sol:newSol};
+        newSol.forEach(r => r.sort((a, b) => a - b));
+        return { map: newMap, sol: newSol };
       }
-      function flipMapH(map, sol){
-        const newMap = Array(size).fill(0).map(()=>Array(size).fill(0));
-        const newSol = Array(size).fill(0).map(()=>[]);
-        for(let r=0;r<size;r++){
-          for(let c=0;c<size;c++) newMap[r][size-1-c]=map[r][c];
-          for(const c of sol[r]) newSol[r].push(size-1-c);
-          newSol[r].sort((a,b)=>a-b);
+
+      function flipMapH(map, sol) {
+        const newMap = Array(size).fill(0).map(() => Array(size).fill(0));
+        const newSol = Array(size).fill(0).map(() => []);
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size; c++) {
+            newMap[r][size - 1 - c] = map[r][c];
+          }
+          for (const c of sol[r]) {
+            newSol[r].push(size - 1 - c);
+          }
+          newSol[r].sort((a, b) => a - b);
         }
-        return {map:newMap,sol:newSol};
+        return { map: newMap, sol: newSol };
       }
-      function shuffleColors(){
-        const palette = Array.from({length:size},(_,i)=>i).sort(()=>Math.random()-.5);
-        for(let r=0;r<size;r++) for(let c=0;c<size;c++) zoneMap[r][c]=palette[zoneMap[r][c]];
+
+      function shuffleColors() {
+        const palette = Array.from({ length: size }, (_, i) => i).sort(() => Math.random() - .5);
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size; c++) {
+            zoneMap[r][c] = palette[zoneMap[r][c]];
+          }
+        }
       }
-      function isConnected(map, reg){
-        let sr=-1, sc=-1, total=0;
-        for(let r=0;r<size;r++)for(let c=0;c<size;c++)if(map[r][c]===reg){if(sr<0){sr=r;sc=c;}total++;}
-        if(total===0) return false;
-        const vis = Array(size).fill(0).map(()=>Array(size).fill(false));
-        const q=[[sr,sc]];vis[sr][sc]=true;let count=1, head=0;
-        const dr=[-1,1,0,0], dc=[0,0,-1,1];
-        while(head<q.length){const [r,c]=q[head++];for(let i=0;i<4;i++){const nr=r+dr[i], nc=c+dc[i];if(nr>=0&&nr<size&&nc>=0&&nc<size&&map[nr][nc]===reg&&!vis[nr][nc]){vis[nr][nc]=true;q.push([nr,nc]);count++;}}}
-        return count===total;
-      }
-      function countSolutions(zMap){
-        let solutions=0;
-        const colCounts=Array(size).fill(0), regCounts=Array(size).fill(0), result=Array(size).fill(0).map(()=>[]);
-        function solve(r){
-          if(solutions>1) return;
-          if(r===size){solutions++;return;}
-          function pickCols(cIdx,picked){
-            if(solutions>1) return;
-            if(picked.length===stars){result[r]=[...picked];solve(r+1);return;}
-            const startC = picked.length===0 ? cIdx : picked[picked.length-1]+2;
-            for(let c=startC;c<size;c++){
-              if(colCounts[c]>=stars) continue;
-              const reg=zMap[r][c];
-              if(regCounts[reg]>=stars) continue;
-              let touch=false;
-              if(r>0){for(const pc of result[r-1]){if(Math.abs(pc-c)<=1){touch=true;break;}}}
-              if(touch) continue;
-              colCounts[c]++;regCounts[reg]++;picked.push(c);
-              pickCols(c+1,picked);
-              picked.pop();regCounts[reg]--;colCounts[c]--;
+
+      function isConnected(map, reg) {
+        let sr = -1, sc = -1, total = 0;
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size; c++) {
+            if (map[r][c] === reg) {
+              if (sr < 0) { sr = r; sc = c; }
+              total++;
             }
           }
-          pickCols(0,[]);
         }
-        solve(0);return solutions;
+        if (total === 0) return false;
+        
+        const vis = Array(size).fill(0).map(() => Array(size).fill(false));
+        const q = [[sr, sc]];
+        vis[sr][sc] = true;
+        let count = 1, head = 0;
+        const dr = [-1, 1, 0, 0], dc = [0, 0, -1, 1];
+        
+        while (head < q.length) {
+          const [r, c] = q[head++];
+          for (let i = 0; i < 4; i++) {
+            const nr = r + dr[i], nc = c + dc[i];
+            if (nr >= 0 && nr < size && nc >= 0 && nc < size && map[nr][nc] === reg && !vis[nr][nc]) {
+              vis[nr][nc] = true;
+              q.push([nr, nc]);
+              count++;
+            }
+          }
+        }
+        return count === total;
       }
-      async function generate(){
-        revealed=false;
+
+      function countSolutions(zMap) {
+        let solutions = 0;
+        const colCounts = Array(size).fill(0), regCounts = Array(size).fill(0), result = Array(size).fill(0).map(() => []);
+        
+        function solve(r) {
+          if (solutions > 1) return;
+          if (r === size) { solutions++; return; }
+          
+          function pickCols(cIdx, picked) {
+            if (solutions > 1) return;
+            if (picked.length === stars) {
+              result[r] = [...picked];
+              solve(r + 1);
+              return;
+            }
+            const startC = picked.length === 0 ? cIdx : picked[picked.length - 1] + 2;
+            for (let c = startC; c < size; c++) {
+              if (colCounts[c] >= stars) continue;
+              const reg = zMap[r][c];
+              if (regCounts[reg] >= stars) continue;
+              
+              let touch = false;
+              if (r > 0) {
+                for (const pc of result[r - 1]) {
+                  if (Math.abs(pc - c) <= 1) { touch = true; break; }
+                }
+              }
+              if (touch) continue;
+              
+              colCounts[c]++; regCounts[reg]++; picked.push(c);
+              pickCols(c + 1, picked);
+              picked.pop(); regCounts[reg]--; colCounts[c]--;
+            }
+          }
+          pickCols(0, []);
+        }
+        solve(0);
+        return solutions;
+      }
+
+      async function generate() {
+        revealed = false;
         const cfg = cfgs[difficulty];
-        size=cfg.size; stars=cfg.stars;
-        setStatus('唯一解の新マップを生成中…','info');
-        $('#rulesBox').innerHTML = rulesText().replace(/\n/g,'<br>');
+        size = cfg.size;
+        stars = cfg.stars;
+        setStatus('唯一解の新マップを生成中…', 'info');
+        $('#rulesBox').innerHTML = rulesText().replace(/\n/g, '<br>');
+        
         let currentMap = deep(cfg.seed.map);
         let currentSol = deep(cfg.seed.sol);
-        const rots = Math.floor(Math.random()*4);
-        for(let i=0;i<rots;i++){ const x=rotateMapCW(currentMap,currentSol); currentMap=x.map; currentSol=x.sol; }
-        if(Math.random()<0.5){ const x=flipMapH(currentMap,currentSol); currentMap=x.map; currentSol=x.sol; }
-        let done=0, attempts=0, maxAttempts=cfg.target*35;
-        while(done<cfg.target && attempts<=maxAttempts){
+        
+        const rots = Math.floor(Math.random() * 4);
+        for (let i = 0; i < rots; i++) {
+          const x = rotateMapCW(currentMap, currentSol);
+          currentMap = x.map;
+          currentSol = x.sol;
+        }
+        if (Math.random() < 0.5) {
+          const x = flipMapH(currentMap, currentSol);
+          currentMap = x.map;
+          currentSol = x.sol;
+        }
+        
+        let done = 0, attempts = 0, maxAttempts = cfg.target * 35;
+        while (done < cfg.target && attempts <= maxAttempts) {
           attempts++;
-          const r=Math.floor(Math.random()*size), c=Math.floor(Math.random()*size);
-          if(currentSol[r].includes(c)) continue;
-          const oldReg=currentMap[r][c];
-          const dirs=[[-1,0],[1,0],[0,-1],[0,1]]; const [dr,dc]=dirs[Math.floor(Math.random()*4)];
-          const nr=r+dr, nc=c+dc;
-          if(nr>=0&&nr<size&&nc>=0&&nc<size){
-            const newReg=currentMap[nr][nc];
-            if(oldReg!==newReg){
-              currentMap[r][c]=newReg;
-              if(isConnected(currentMap, oldReg) && countSolutions(currentMap)===1) done++; else currentMap[r][c]=oldReg;
+          const r = Math.floor(Math.random() * size), c = Math.floor(Math.random() * size);
+          if (currentSol[r].includes(c)) continue;
+          
+          const oldReg = currentMap[r][c];
+          const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+          const [dr, dc] = dirs[Math.floor(Math.random() * 4)];
+          const nr = r + dr, nc = c + dc;
+          
+          if (nr >= 0 && nr < size && nc >= 0 && nc < size) {
+            const newReg = currentMap[nr][nc];
+            if (oldReg !== newReg) {
+              currentMap[r][c] = newReg;
+              if (isConnected(currentMap, oldReg) && countSolutions(currentMap) === 1) {
+                done++;
+              } else {
+                currentMap[r][c] = oldReg;
+              }
             }
           }
         }
-        zoneMap=currentMap; solution=currentSol; shuffleColors();
-        grid = Array(size).fill(0).map(()=>Array(size).fill('empty'));
-        history=[]; mistakes=0;
+        
+        zoneMap = currentMap;
+        solution = currentSol;
+        shuffleColors();
+        grid = Array(size).fill(0).map(() => Array(size).fill('empty'));
+        history = [];
+        mistakes = 0;
+        
         renderBoard();
         startTimer();
         updateUI();
-        setStatus('新マップ完成。まずは行・列・エリアの規定数から消し込みましょう。','info');
+        setStatus('新マップ完成。まずは行・列・エリアの規定数から消し込みましょう。', 'info');
         setSideMessage('新しい問題です。矛盾セルはリアルタイムで赤表示されます。');
-        _reportHeight&&_reportHeight();
+        _reportHeight && _reportHeight();
       }
-      function renderBoard(){
-        boardEl.innerHTML='';
-        boardEl.style.gridTemplateColumns=`repeat(${size},1fr)`;
-        boardEl.style.gridTemplateRows=`repeat(${size},1fr)`;
-        for(let r=0;r<size;r++){
-          for(let c=0;c<size;c++){
-            const cell=document.createElement('button');
-            cell.className=`cell z${zoneMap[r][c]}`;
-            if(r===0 || zoneMap[r-1][c]!==zoneMap[r][c]) cell.classList.add('border-t');
-            if(r===size-1 || zoneMap[r+1][c]!==zoneMap[r][c]) cell.classList.add('border-b');
-            if(c===0 || zoneMap[r][c-1]!==zoneMap[r][c]) cell.classList.add('border-l');
-            if(c===size-1 || zoneMap[r][c+1]!==zoneMap[r][c]) cell.classList.add('border-r');
-            cell.dataset.r=r; cell.dataset.c=c; cell.setAttribute('aria-label',`${r+1}行${c+1}列`);
-            cell.addEventListener('click',()=>handlePlace(r,c));
-            cell.addEventListener('dblclick',(e)=>{e.preventDefault(); const prev=mode; setMode('core'); handlePlace(r,c); setMode(prev);});
+
+      function renderBoard() {
+        boardEl.innerHTML = '';
+        boardEl.style.gridTemplateColumns = `repeat(${size},1fr)`;
+        boardEl.style.gridTemplateRows = `repeat(${size},1fr)`;
+        
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size; c++) {
+            const cell = document.createElement('button');
+            cell.className = `cell z${zoneMap[r][c]}`;
+            if (r === 0 || zoneMap[r - 1][c] !== zoneMap[r][c]) cell.classList.add('border-t');
+            if (r === size - 1 || zoneMap[r + 1][c] !== zoneMap[r][c]) cell.classList.add('border-b');
+            if (c === 0 || zoneMap[r][c - 1] !== zoneMap[r][c]) cell.classList.add('border-l');
+            if (c === size - 1 || zoneMap[r][c + 1] !== zoneMap[r][c]) cell.classList.add('border-r');
+            
+            cell.dataset.r = r;
+            cell.dataset.c = c;
+            cell.setAttribute('aria-label', `${r + 1}行${c + 1}列`);
+            cell.addEventListener('click', () => handlePlace(r, c));
+            cell.addEventListener('dblclick', (e) => {
+              e.preventDefault();
+              const prev = mode;
+              setMode('core');
+              handlePlace(r, c);
+              setMode(prev);
+            });
             boardEl.appendChild(cell);
           }
         }
         paintAll();
       }
-      function saveHistory(){history.push(deep(grid)); if(history.length>200) history.shift();}
-      function undo(){if(!history.length){showToast('これ以上戻せません');return;}grid=history.pop();paintAll();updateUI();setStatus('1手戻しました。','info');}
-      function clearBoard(){saveHistory();for(let r=0;r<size;r++)for(let c=0;c<size;c++)grid[r][c]='empty';paintAll();updateUI();setStatus('盤面をクリアしました。','info');}
-      function setCell(r,c,state){grid[r][c]=state;}
-      function handlePlace(r,c){
-        if(revealed){showToast('正解表示中です。新規生成か戻るを使ってください');return;}
+
+      function saveHistory() {
+        history.push(deep(grid));
+        if (history.length > 200) history.shift();
+      }
+
+      function undo() {
+        if (!history.length) {
+          showToast('これ以上戻せません');
+          return;
+        }
+        grid = history.pop();
+        paintAll();
+        updateUI();
+        setStatus('1手戻しました。', 'info');
+      }
+
+      function clearBoard() {
         saveHistory();
-        const current=grid[r][c];
-        if(mode==='block'){
-          setCell(r,c,current==='block'?'empty':'block');
-          setStatus('候補を整理しています。','info');
-        }else{
-          if(current==='core'){setCell(r,c,'empty');setStatus('コアを解除しました。','info');}
-          else if(canPlaceCore(r,c)){
-            setCell(r,c,'core'); autoFillBlocks(r,c); setStatus('コアを配置しました。','good');
-          }else{
-            history.pop(); mistakes++; updateUI(); paintAll(true); setStatus('矛盾するため、その位置には置けません。','bad'); showToast('その位置の⚡はルール違反です');
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size; c++) {
+            grid[r][c] = 'empty';
+          }
+        }
+        paintAll();
+        updateUI();
+        setStatus('盤面をクリアしました。', 'info');
+      }
+
+      function setCell(r, c, state) {
+        grid[r][c] = state;
+      }
+
+      function handlePlace(r, c) {
+        if (revealed) {
+          showToast('正解表示中です。新規生成か戻るを使ってください');
+          return;
+        }
+        saveHistory();
+        const current = grid[r][c];
+        
+        if (mode === 'block') {
+          setCell(r, c, current === 'block' ? 'empty' : 'block');
+          setStatus('候補を整理しています。', 'info');
+        } else {
+          if (current === 'core') {
+            setCell(r, c, 'empty');
+            setStatus('コアを解除しました。', 'info');
+          } else if (canPlaceCore(r, c)) {
+            setCell(r, c, 'core');
+            autoFillBlocks(r, c);
+            setStatus('コアを配置しました。', 'good');
+          } else {
+            history.pop();
+            mistakes++;
+            updateUI();
+            paintAll(true);
+            setStatus('矛盾するため、その位置には置けません。', 'bad');
+            showToast('その位置の⚡はルール違反です');
             return;
           }
         }
-        paintAll(); updateUI();
+        paintAll();
+        updateUI();
       }
-      function canPlaceCore(r,c){
-        const targetZone=zoneMap[r][c]; let row=0,col=0,zone=0;
-        for(let i=0;i<size;i++) for(let j=0;j<size;j++) if(!(i===r&&j===c) && grid[i][j]==='core'){
-          if(Math.abs(i-r)<=1 && Math.abs(j-c)<=1) return false;
-          if(i===r) row++; if(j===c) col++; if(zoneMap[i][j]===targetZone) zone++;
+
+      function canPlaceCore(r, c) {
+        const targetZone = zoneMap[r][c];
+        let row = 0, col = 0, zone = 0;
+        for (let i = 0; i < size; i++) {
+          for (let j = 0; j < size; j++) {
+            if (!(i === r && j === c) && grid[i][j] === 'core') {
+              if (Math.abs(i - r) <= 1 && Math.abs(j - c) <= 1) return false;
+              if (i === r) row++;
+              if (j === c) col++;
+              if (zoneMap[i][j] === targetZone) zone++;
+            }
+          }
         }
-        return row<stars && col<stars && zone<stars;
+        return row < stars && col < stars && zone < stars;
       }
-      function autoFillBlocks(cr,cc){
-        for(let r=0;r<size;r++)for(let c=0;c<size;c++) if(!(r===cr&&c===cc) && Math.abs(r-cr)<=1 && Math.abs(c-cc)<=1 && grid[r][c]==='empty') grid[r][c]='block';
-        const rowCounts=Array(size).fill(0), colCounts=Array(size).fill(0), zoneCounts=Array(size).fill(0);
-        for(let r=0;r<size;r++)for(let c=0;c<size;c++) if(grid[r][c]==='core'){rowCounts[r]++;colCounts[c]++;zoneCounts[zoneMap[r][c]]++;}
-        for(let r=0;r<size;r++) for(let c=0;c<size;c++) if(grid[r][c]==='empty') if(rowCounts[r]>=stars || colCounts[c]>=stars || zoneCounts[zoneMap[r][c]]>=stars) grid[r][c]='block';
+
+      function autoFillBlocks(cr, cc) {
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size; c++) {
+            if (!(r === cr && c === cc) && Math.abs(r - cr) <= 1 && Math.abs(c - cc) <= 1 && grid[r][c] === 'empty') {
+              grid[r][c] = 'block';
+            }
+          }
+        }
+        
+        const rowCounts = Array(size).fill(0), colCounts = Array(size).fill(0), zoneCounts = Array(size).fill(0);
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size; c++) {
+            if (grid[r][c] === 'core') {
+              rowCounts[r]++;
+              colCounts[c]++;
+              zoneCounts[zoneMap[r][c]]++;
+            }
+          }
+        }
+        
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size; c++) {
+            if (grid[r][c] === 'empty') {
+              if (rowCounts[r] >= stars || colCounts[c] >= stars || zoneCounts[zoneMap[r][c]] >= stars) {
+                grid[r][c] = 'block';
+              }
+            }
+          }
+        }
       }
-      function getConflicts(){
+
+      function getConflicts() {
         const bad = new Set();
-        const rowCounts=Array(size).fill(0), colCounts=Array(size).fill(0), zoneCounts=Array(size).fill(0), cores=[];
-        for(let r=0;r<size;r++) for(let c=0;c<size;c++) if(grid[r][c]==='core'){cores.push([r,c]); rowCounts[r]++; colCounts[c]++; zoneCounts[zoneMap[r][c]]++;}
-        for(const [r,c] of cores){
-          if(rowCounts[r]>stars || colCounts[c]>stars || zoneCounts[zoneMap[r][c]]>stars) bad.add(`${r},${c}`);
+        const rowCounts = Array(size).fill(0), colCounts = Array(size).fill(0), zoneCounts = Array(size).fill(0), cores = [];
+        
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size; c++) {
+            if (grid[r][c] === 'core') {
+              cores.push([r, c]);
+              rowCounts[r]++;
+              colCounts[c]++;
+              zoneCounts[zoneMap[r][c]]++;
+            }
+          }
         }
-        for(let i=0;i<cores.length;i++) for(let j=i+1;j<cores.length;j++){
-          const [r1,c1]=cores[i], [r2,c2]=cores[j];
-          if(Math.abs(r1-r2)<=1 && Math.abs(c1-c2)<=1){bad.add(`${r1},${c1}`);bad.add(`${r2},${c2}`);}
+        
+        for (const [r, c] of cores) {
+          if (rowCounts[r] > stars || colCounts[c] > stars || zoneCounts[zoneMap[r][c]] > stars) {
+            bad.add(`${r},${c}`);
+          }
+        }
+        
+        for (let i = 0; i < cores.length; i++) {
+          for (let j = i + 1; j < cores.length; j++) {
+            const [r1, c1] = cores[i], [r2, c2] = cores[j];
+            if (Math.abs(r1 - r2) <= 1 && Math.abs(c1 - c2) <= 1) {
+              bad.add(`${r1},${c1}`);
+              bad.add(`${r2},${c2}`);
+            }
+          }
         }
         return bad;
       }
-      function paintAll(shake=false){
+
+      function paintAll(shake = false) {
         const bad = getConflicts();
-        [...boardEl.children].forEach(cell=>{
-          const r=+cell.dataset.r, c=+cell.dataset.c; cell.classList.remove('core','block','conflict','hint','reveal');
-          if(grid[r][c]!=='empty') cell.classList.add(grid[r][c]);
-          if(bad.has(`${r},${c}`)) cell.classList.add('conflict');
+        [...boardEl.children].forEach(cell => {
+          const r = +cell.dataset.r, c = +cell.dataset.c;
+          cell.classList.remove('core', 'block', 'conflict', 'hint', 'reveal');
+          if (grid[r][c] !== 'empty') cell.classList.add(grid[r][c]);
+          if (bad.has(`${r},${c}`)) cell.classList.add('conflict');
         });
       }
-      function updateUI(){
-        let placed=0, correct=0;
-        for(let r=0;r<size;r++) for(let c=0;c<size;c++) if(grid[r][c]==='core'){placed++; if(solution[r].includes(c)) correct++;}
-        const total=size*stars, remaining=total-placed;
-        $('#statRemaining').textContent = remaining>0 ? remaining+' 個' : remaining===0 ? '配置完了' : '超過 '+(-remaining);
-        $('#statMistakes').textContent = String(mistakes);
-        $('#statProgress').textContent = Math.round((correct/total)*100)+'%';
-        const bad = getConflicts();
-        if(bad.size) setSideMessage('赤枠の⚡に矛盾があります。行・列・エリア数、または隣接禁止を確認してください。');
-        if(remaining>0 && !bad.size) setStatus(`残り ${remaining} 個の⚡を配置してください。`,'info');
-        if(remaining===0 && !bad.size) setStatus('配置完了です。判定を押して確認できます。','good');
-        if(remaining<0 || bad.size) setStatus('配置に矛盾があります。赤枠の⚡を見直してください。','bad');
-      }
-      function highlight(r,c,kind='hint'){const idx=r*size+c; const cell=boardEl.children[idx]; if(cell){cell.classList.add(kind); setTimeout(()=>cell.classList.remove(kind),1400);}}
-      function showHint(){
-        if(revealed){showToast('正解表示中はヒントを使えません');return;}
-        saveHistory();
-        for(let r=0;r<size;r++) for(let c=0;c<size;c++) if(grid[r][c]==='core' && !solution[r].includes(c)){
-          mistakes++; paintAll(); highlight(r,c,'hint'); updateUI(); showModal('ヒント','ここにある⚡は誤りです。取り除いて、同じ行・列・エリアの規定数を再確認しましょう。'); return;
-        }
-        const missing=[];
-        for(let r=0;r<size;r++) for(const sc of solution[r]) if(grid[r][sc]!=='core') missing.push([r,sc]);
-        if(!missing.length){showModal('ヒント','すでに正しい位置の⚡はすべて置けています。判定を押してください。'); return;}
-        const [r,c]=missing[Math.floor(Math.random()*missing.length)];
-        setCell(r,c,'core'); autoFillBlocks(r,c); paintAll(); highlight(r,c,'reveal'); updateUI(); showModal('ヒント','確定できる⚡を1つ自動配置しました。周辺の×の増え方も観察すると次の一手が見えやすくなります。');
-      }
-      function check(){
-        let ok=true, total=0; const bad=getConflicts();
-        for(let r=0;r<size;r++){
-          for(let c=0;c<size;c++){
-            if(grid[r][c]==='core'){total++; if(!solution[r].includes(c)) ok=false;}
+
+      function updateUI() {
+        let placed = 0, correct = 0;
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size; c++) {
+            if (grid[r][c] === 'core') {
+              placed++;
+              if (solution[r].includes(c)) correct++;
+            }
           }
-          for(const sc of solution[r]) if(grid[r][sc]!=='core') ok=false;
         }
-        if(ok && total===size*stars && bad.size===0){
-          stopTimer();
-          setStatus('完全クリア！論理的に唯一解へ到達しました。','good');
-          launchConfetti();
-          showModal('クリア！',`お見事です。\n難易度 ${difficulty} を ${$('#statTime').textContent} で攻略しました。\nミス数: ${mistakes}`);
-        }else{
-          mistakes++; paintAll(); updateUI(); showToast('まだ未完成です。赤枠や不足行を見直してください');
-        }
-      }
-      function showSolution(){
-        saveHistory(); revealed=true;
-        for(let r=0;r<size;r++) for(let c=0;c<size;c++) grid[r][c]='block';
-        for(let r=0;r<size;r++) for(const c of solution[r]) grid[r][c]='core';
-        paintAll(); updateUI(); setStatus('正解を表示しています。戻るで直前の状態に戻せます。','info');
-      }
-      function launchConfetti(){
-        const wrap=$('#confetti'); wrap.innerHTML='';
-        const colors=['var(--color-brand-primary)','var(--color-success)','var(--color-warning)','var(--color-brand-secondary)','var(--color-error)'];
-        for(let i=0;i<42;i++){
-          const p=document.createElement('div'); p.className='piece';
-          p.style.left=(Math.random()*100)+'%'; p.style.background=colors[i%colors.length]; p.style.animationDelay=(Math.random()*.35)+'s'; p.style.transform=`translateY(-10px) rotate(${Math.random()*360}deg)`; wrap.appendChild(p);
-        }
-        setTimeout(()=>wrap.innerHTML='',2300);
+        const total = size * stars, remaining = total - placed;
+        
+        $('#statRemaining').textContent = remaining > 0 ? remaining + ' 個' : remaining === 0 ? '配置完了' : '超過 ' + (-remaining);
+        $('#statMistakes').textContent = String(mistakes);
+        $('#statProgress').textContent = Math.round((correct / total) * 100) + '%';
+        
+        const bad = getConflicts();
+        if (bad.size) setSideMessage('赤枠の⚡に矛盾があります。行・列・エリア数、または隣接禁止を確認してください。');
+        if (remaining > 0 && !bad.size) setStatus(`残り ${remaining} 個の⚡を配置してください。`, 'info');
+        if (remaining === 0 && !bad.size) setStatus('配置完了です。判定を押して確認できます。', 'good');
+        if (remaining < 0 || bad.size) setStatus('配置に矛盾があります。赤枠の⚡を見直してください。', 'bad');
       }
 
-      $('#difficultySelect').addEventListener('change',e=>{difficulty=e.target.value; generate();});
-      $('#newBtn').addEventListener('click',()=>generate());
-      $('#retryBtn').addEventListener('click',()=>generate());
-      $('#undoBtn').addEventListener('click',undo);
-      $('#resetBtn').addEventListener('click',clearBoard);
-      $('#hintBtn').addEventListener('click',showHint);
-      $('#checkBtn').addEventListener('click',check);
-      $('#solveBtn').addEventListener('click',showSolution);
-      $('#closeModalBtn').addEventListener('click',hideModal);
-      $('#askCodeBtn').addEventListener('click',()=>sendPrompt('この改造版ゲームの完成ソースコードをHTML 1ファイルで出してください'));
-      $('#modeBlock').addEventListener('click',()=>setMode('block'));
-      $('#modeCore').addEventListener('click',()=>setMode('core'));
-      document.addEventListener('keydown',(e)=>{
-        if(!document.getElementById('logic-pro-app')) return;
-        const k=e.key.toLowerCase();
-        if(k==='1') setMode('block');
-        if(k==='2') setMode('core');
-        if(k==='z') undo();
-        if(k==='h') showHint();
-        if(k==='c') check();
-        if(k==='n') generate();
-        if(k==='r') clearBoard();
+      function highlight(r, c, kind = 'hint') {
+        const idx = r * size + c;
+        const cell = boardEl.children[idx];
+        if (cell) {
+          cell.classList.add(kind);
+          setTimeout(() => cell.classList.remove(kind), 1400);
+        }
+      }
+
+      function showHint() {
+        if (revealed) {
+          showToast('正解表示中はヒントを使えません');
+          return;
+        }
+        saveHistory();
+        
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size; c++) {
+            if (grid[r][c] === 'core' && !solution[r].includes(c)) {
+              mistakes++;
+              paintAll();
+              highlight(r, c, 'hint');
+              updateUI();
+              showModal('ヒント', 'ここにある⚡は誤りです。取り除いて、同じ行・列・エリアの規定数を再確認しましょう。');
+              return;
+            }
+          }
+        }
+        
+        const missing = [];
+        for (let r = 0; r < size; r++) {
+          for (const sc of solution[r]) {
+            if (grid[r][sc] !== 'core') missing.push([r, sc]);
+          }
+        }
+        
+        if (!missing.length) {
+          showModal('ヒント', 'すでに正しい位置の⚡はすべて置けています。判定を押してください。');
+          return;
+        }
+        
+        const [r, c] = missing[Math.floor(Math.random() * missing.length)];
+        setCell(r, c, 'core');
+        autoFillBlocks(r, c);
+        paintAll();
+        highlight(r, c, 'reveal');
+        updateUI();
+        showModal('ヒント', '確定できる⚡を1つ自動配置しました。周辺の×の増え方も観察すると次の一手が見えやすくなります。');
+      }
+
+      function check() {
+        let ok = true, total = 0;
+        const bad = getConflicts();
+        
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size; c++) {
+            if (grid[r][c] === 'core') {
+              total++;
+              if (!solution[r].includes(c)) ok = false;
+            }
+          }
+          for (const sc of solution[r]) {
+            if (grid[r][sc] !== 'core') ok = false;
+          }
+        }
+        
+        if (ok && total === size * stars && bad.size === 0) {
+          stopTimer();
+          setStatus('完全クリア！論理的に唯一解へ到達しました。', 'good');
+          launchConfetti();
+          showModal('クリア！', `お見事です。\n難易度 ${difficulty} を ${$('#statTime').textContent} で攻略しました。\nミス数: ${mistakes}`);
+        } else {
+          mistakes++;
+          paintAll();
+          updateUI();
+          showToast('まだ未完成です。赤枠や不足行を見直してください');
+        }
+      }
+
+      function showSolution() {
+        saveHistory();
+        revealed = true;
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size; c++) {
+            grid[r][c] = 'block';
+          }
+        }
+        for (let r = 0; r < size; r++) {
+          for (const c of solution[r]) {
+            grid[r][c] = 'core';
+          }
+        }
+        paintAll();
+        updateUI();
+        setStatus('正解を表示しています。戻るで直前の状態に戻せます。', 'info');
+      }
+
+      function launchConfetti() {
+        const wrap = $('#confetti');
+        wrap.innerHTML = '';
+        const colors = ['var(--color-brand-primary)', 'var(--color-success)', 'var(--color-warning)', 'var(--color-brand-secondary)', 'var(--color-error)'];
+        for (let i = 0; i < 42; i++) {
+          const p = document.createElement('div');
+          p.className = 'piece';
+          p.style.left = (Math.random() * 100) + '%';
+          p.style.background = colors[i % colors.length];
+          p.style.animationDelay = (Math.random() * .35) + 's';
+          p.style.transform = `translateY(-10px) rotate(${Math.random() * 360}deg)`;
+          wrap.appendChild(p);
+        }
+        setTimeout(() => wrap.innerHTML = '', 2300);
+      }
+
+      $('#difficultySelect').addEventListener('change', e => { difficulty = e.target.value; generate(); });
+      $('#newBtn').addEventListener('click', () => generate());
+      $('#retryBtn').addEventListener('click', () => generate());
+      $('#undoBtn').addEventListener('click', undo);
+      $('#resetBtn').addEventListener('click', clearBoard);
+      $('#hintBtn').addEventListener('click', showHint);
+      $('#checkBtn').addEventListener('click', check);
+      $('#solveBtn').addEventListener('click', showSolution);
+      $('#closeModalBtn').addEventListener('click', hideModal);
+      $('#askCodeBtn').addEventListener('click', () => sendPrompt('この改造版ゲームの完成ソースコードをHTML 1ファイルで出してください'));
+      $('#modeBlock').addEventListener('click', () => setMode('block'));
+      $('#modeCore').addEventListener('click', () => setMode('core'));
+      
+      document.addEventListener('keydown', (e) => {
+        if (!document.getElementById('logic-pro-app')) return;
+        const k = e.key.toLowerCase();
+        if (k === '1') setMode('block');
+        if (k === '2') setMode('core');
+        if (k === 'z') undo();
+        if (k === 'h') showHint();
+        if (k === 'c') check();
+        if (k === 'n') generate();
+        if (k === 'r') clearBoard();
       });
 
       setMode('block');
       generate();
     })();
   </script>
-</div></body>
+</body>
 </html>
