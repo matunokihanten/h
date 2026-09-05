@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>脳トレ図形マスター - パーフェクト測定</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      background-color: #f7f9fc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      touch-action: none;
+      user-select: none;
+    }
+
+    /* お題とコンボ表示のヘッダー */
+    #mission-header {
+      width: 100%;
+      background-color: #2c3e50;
+      color: white;
+      text-align: center;
+      padding: 15px 0;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      margin-bottom: 15px;
+    }
+    #mission-text { font-size: 1.4rem; font-weight: bold; margin: 0; color: #f1c40f; }
+    #combo-text { font-size: 1rem; margin-top: 5px; color: #ecf0f1; }
+
+    #info-panel {
+      text-align: left;
+      padding: 0 20px;
+      width: 90%;
+      max-width: 360px;
+      color: #2c3e50;
+      box-sizing: border-box;
+    }
+    h2 { font-size: 0.95rem; margin: 0 0 10px 0; color: #7f8c8d; text-align: center; }
+    
+    #analysis-details {
+      font-size: 0.85rem;
+      color: #7f8c8d;
+      margin-bottom: 15px;
+      background: #fff;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    #analysis-details ul { list-style: none; padding: 0; margin: 0; }
+    #analysis-details li { margin-bottom: 4px; }
+
+    #main-score-area { text-align: center; margin-bottom: 15px; }
+    #main-score { font-size: 3.5rem; font-weight: bold; color: #2c3e50; line-height: 1.1; }
+    #main-message { font-size: 1.1rem; font-weight: bold; color: #e74c3c; margin-top: 5px; }
+
+    canvas {
+      background-color: #ffffff;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+      border-radius: 16px;
+      cursor: crosshair;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin: 15px 0 25px 0;
+    }
+    button {
+      padding: 12px 24px;
+      font-size: 1rem;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      background-color: #3498db;
+      color: white;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+    button:active { background-color: #2980b9; }
+    #skipBtn { background-color: #95a5a6; }
+    #skipBtn:active { background-color: #7f8c8d; }
+  </style>
+</head>
+<body>
+
+  <div id="mission-header">
+    <div id="mission-text">お題：円を描け！</div>
+    <div id="combo-text">現在のコンボ: 0</div>
+  </div>
+
+  <div id="info-panel">
+    <h2 id="status-text">一筆書きで大きく描いてください</h2>
+
+    <div id="main-score-area">
+      <div id="main-score">-- 点</div>
+      <div id="main-message">80点以上でクリア！</div>
+    </div>
+
+    <div id="analysis-details">
+      <ul>
+        <li id="res-circle">● 円との一致率: --</li>
+        <li id="res-square">● 正方形との一致率: --</li>
+        <li id="res-triangle">● 正三角形との一致率: --</li>
+      </ul>
+    </div>
+  </div>
+
+  <canvas id="mainCanvas" width="340" height="340"></canvas>
+  
+  <div class="button-group">
+    <button id="clearBtn">やり直す</button>
+    <button id="skipBtn">お題を変える</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('mainCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // UI要素
+    const missionText = document.getElementById('mission-text');
+    const comboText = document.getElementById('combo-text');
+    const statusText = document.getElementById('status-text');
+    const circleScoreLi = document.getElementById('res-circle');
+    const squareScoreLi = document.getElementById('res-square');
+    const triangleScoreLi = document.getElementById('res-triangle');
+    const mainScore = document.getElementById('main-score');
+    const mainMessage = document.getElementById('main-message');
+    const clearBtn = document.getElementById('clearBtn');
+    const skipBtn = document.getElementById('skipBtn');
+
+    // ゲームステート
+    let isDrawing = false;
+    let rawPoints = [];
+    let currentTarget = '';
+    let comboCount = 0;
+
+    const shapes = [
+      { key: 'circle', name: '円' },
+      { key: 'square', name: '正方形' },
+      { key: 'triangle', name: '正三角形' }
+    ];
+
+    // 新しいお題をセット
+    function setNextMission() {
+      // 前回と同じ図形が連続しすぎないようにする工夫
+      let nextShape;
+      do {
+        nextShape = shapes[Math.floor(Math.random() * shapes.length)];
+      } while (nextShape.key === currentTarget && Math.random() > 0.3); // 70%の確率で違う図形に
+
+      currentTarget = nextShape.key;
+      missionText.textContent = `お題：${nextShape.name} を描け！`;
+      resetCanvas();
+    }
+
+    function getPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      return { x: clientX - rect.left, y: clientY - rect.top };
+    }
+
+    function startDrawing(e) {
+      isDrawing = true;
+      rawPoints = [];
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      statusText.textContent = "集中して描画中...";
+      statusText.style.color = "#e67e22";
+      rawPoints.push(getPos(e));
+    }
+
+    function draw(e) {
+      if (!isDrawing) return;
+      const pos = getPos(e);
+      rawPoints.push(pos);
+
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = '#2c3e50';
+
+      const prev = rawPoints[rawPoints.length - 2];
+      ctx.beginPath();
+      ctx.moveTo(prev.x, prev.y);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+    }
+
+    function stopDrawing() {
+      if (!isDrawing) return;
+      isDrawing = false;
+      if (rawPoints.length > 15) {
+        analyzeShape();
+      } else {
+        statusText.textContent = "線が短すぎます";
+        statusText.style.color = "#e74c3c";
+      }
+    }
+
+    // 点を等間隔に配置し直す関数
+    function resample(pts, count) {
+      let totalLen = 0;
+      for (let i = 0; i < pts.length - 1; i++) {
+        totalLen += Math.hypot(pts[i+1].x - pts[i].x, pts[i+1].y - pts[i].y);
+      }
+      const interval = totalLen / (count - 1);
+      const res = [pts[0]];
+      let curDist = 0;
+
+      for (let i = 0; i < pts.length - 1; i++) {
+        let p1 = pts[i];
+        const p2 = pts[i+1];
+        let d = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+
+        while (curDist + d >= interval) {
+          const t = (interval - curDist) / d;
+          const nx = p1.x + t * (p2.x - p1.x);
+          const ny = p1.y + t * (p2.y - p1.y);
+          res.push({ x: nx, y: ny });
+          p1 = { x: nx, y: ny }; 
+          d = Math.hypot(p2.x - p1.x, p2.y - p1.y); 
+          curDist = 0; 
+          if (res.length === count) return res;
+        }
+        curDist += d;
+      }
+      while (res.length < count) {
+        res.push(pts[pts.length - 1]);
+      }
+      return res;
+    }
+
+    function distToSegment(p, a, b) {
+      const l2 = Math.hypot(b.x - a.x, b.y - a.y) ** 2;
+      if (l2 === 0) return Math.hypot(p.x - a.x, p.y - a.y);
+      let t = ((p.x - a.x) * (b.x - a.x) + (p.y - a.y) * (b.y - a.y)) / l2;
+      t = Math.max(0, Math.min(1, t));
+      return Math.hypot(p.x - (a.x + t * (b.x - a.x)), p.y - (a.y + t * (b.y - a.y)));
+    }
+
+    function distToPolygon(p, vertices) {
+      let minDist = Infinity;
+      for (let i = 0; i < vertices.length; i++) {
+        const next = vertices[(i + 1) % vertices.length];
+        const d = distToSegment(p, vertices[i], next);
+        if (d < minDist) minDist = d;
+      }
+      return minDist;
+    }
+
+    function getOrientation(pts, cx, cy) {
+      let u20 = 0, u02 = 0, u11 = 0;
+      for (const p of pts) {
+        const dx = p.x - cx;
+        const dy = p.y - cy;
+        u20 += dx * dx;
+        u02 += dy * dy;
+        u11 += dx * dy;
+      }
+      return 0.5 * Math.atan2(2 * u11, u20 - u02);
+    }
+
+    function createPolygonVertices(cx, cy, r, rot, n) {
+      const v = [];
+      for (let i = 0; i < n; i++) {
+        const angle = rot + (i * 2 * Math.PI / n);
+        v.push({ x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) });
+      }
+      return v;
+    }
+
+    function analyzeShape() {
+      const pts = resample(rawPoints, 120);
+
+      let cx = 0, cy = 0;
+      for (const p of pts) { cx += p.x; cy += p.y; }
+      cx /= pts.length;
+      cy /= pts.length;
+
+      const radii = pts.map(p => Math.hypot(p.x - cx, p.y - cy));
+      const avgR = radii.reduce((a, b) => a + b, 0) / radii.length;
+
+      if (avgR < 20) {
+        statusText.textContent = "図形が小さすぎます";
+        return;
+      }
+
+      const closeGap = Math.hypot(pts[0].x - pts[pts.length - 1].x, pts[0].y - pts[pts.length - 1].y);
+      const closePenalty = Math.min(25, (closeGap / avgR) * 30);
+
+      // 1. 円の評価
+      let circleDevSum = 0;
+      for (const r of radii) circleDevSum += Math.abs(r - avgR);
+      const circleErrorRatio = (circleDevSum / radii.length) / avgR;
+      let cScore = 100 - (circleErrorRatio * 280) - closePenalty;
+
+      const orientation = getOrientation(pts, cx, cy);
+
+      // 2. 正方形の評価
+      let bestSquareError = Infinity;
+      let bestSquareR = avgR;
+      let bestSquareAngle = orientation;
+
+      for (let angleOffset = -Math.PI / 4; angleOffset <= Math.PI / 4; angleOffset += 0.05) {
+        for (let scale = 1.05; scale <= 1.35; scale += 0.05) {
+          const testR = avgR * scale;
+          const poly = createPolygonVertices(cx, cy, testR, orientation + angleOffset, 4);
+          let errSum = 0;
+          for (const p of pts) errSum += distToPolygon(p, poly);
+          const avgErr = errSum / pts.length;
+          if (avgErr < bestSquareError) {
+            bestSquareError = avgErr;
+            bestSquareR = testR;
+            bestSquareAngle = orientation + angleOffset;
+          }
+        }
+      }
+      const squareErrorRatio = bestSquareError / avgR;
+      let sScore = 100 - (squareErrorRatio * 250) - closePenalty;
+
+      // 3. 正三角形の評価
+      let bestTriError = Infinity;
+      let bestTriR = avgR;
+      let bestTriAngle = orientation;
+
+      for (let angleOffset = 0; angleOffset < (2 * Math.PI / 3); angleOffset += 0.08) {
+        for (let scale = 1.30; scale <= 1.60; scale += 0.05) {
+          const testR = avgR * scale;
+          const poly = createPolygonVertices(cx, cy, testR, orientation + angleOffset, 3);
+          let errSum = 0;
+          for (const p of pts) errSum += distToPolygon(p, poly);
+          const avgErr = errSum / pts.length;
+          if (avgErr < bestTriError) {
+            bestTriError = avgErr;
+            bestTriR = testR;
+            bestTriAngle = orientation + angleOffset;
+          }
+        }
+      }
+      const triErrorRatio = bestTriError / avgR;
+      let tScore = 100 - (triErrorRatio * 240) - closePenalty;
+
+      // スコアの算出（小数点以下の計算を保持）
+      const scores = {
+        circle: Math.max(0, Math.min(100, cScore)),
+        square: Math.max(0, Math.min(100, sScore)),
+        triangle: Math.max(0, Math.min(100, tScore))
+      };
+
+      // UI更新（小数点第2位まで表示）
+      statusText.textContent = "分析完了";
+      statusText.style.color = "#27ae60";
+
+      circleScoreLi.textContent = `● 円との一致率: ${scores.circle.toFixed(2)}点`;
+      squareScoreLi.textContent = `● 正方形との一致率: ${scores.square.toFixed(2)}点`;
+      triangleScoreLi.textContent = `● 正三角形との一致率: ${scores.triangle.toFixed(2)}点`;
+
+      // お題に対するスコアを取得
+      const finalScore = scores[currentTarget];
+      mainScore.textContent = `${finalScore.toFixed(2)} 点`;
+      
+      // コンボ判定 (80点以上でクリア)
+      if (finalScore >= 80) {
+        comboCount++;
+        comboText.textContent = `現在のコンボ: ${comboCount} 🔥`;
+        
+        if (finalScore >= 95) {
+          mainMessage.textContent = "神業！完璧な形です！";
+          mainMessage.style.color = "#27ae60";
+        } else {
+          mainMessage.textContent = "クリア！素晴らしいです！";
+          mainMessage.style.color = "#2980b9";
+        }
+
+        // 理想のガイド形状を描画
+        drawOptimalGuide(currentTarget, cx, cy, avgR, {
+          squareR: bestSquareR, squareAngle: bestSquareAngle,
+          triR: bestTriR, triAngle: bestTriAngle
+        });
+
+        // 1.5秒後に次のお題へ
+        setTimeout(setNextMission, 1500);
+
+      } else {
+        // 失敗時
+        comboCount = 0;
+        comboText.textContent = `現在のコンボ: 0`;
+        mainMessage.textContent = "失敗... お題と違うか、形が崩れています";
+        mainMessage.style.color = "#e74c3c";
+        
+        // 理想のガイド形状を描画
+        drawOptimalGuide(currentTarget, cx, cy, avgR, {
+          squareR: bestSquareR, squareAngle: bestSquareAngle,
+          triR: bestTriR, triAngle: bestTriAngle
+        });
+      }
+    }
+
+    function drawOptimalGuide(shape, cx, cy, avgR, params) {
+      ctx.strokeStyle = 'rgba(231, 76, 60, 0.7)';
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([6, 6]);
+      ctx.beginPath();
+
+      if (shape === 'circle') {
+        ctx.arc(cx, cy, avgR, 0, Math.PI * 2);
+      } else if (shape === 'square') {
+        const poly = createPolygonVertices(cx, cy, params.squareR, params.squareAngle, 4);
+        ctx.moveTo(poly[0].x, poly[0].y);
+        for (let i = 1; i < poly.length; i++) ctx.lineTo(poly[i].x, poly[i].y);
+        ctx.closePath();
+      } else if (shape === 'triangle') {
+        const poly = createPolygonVertices(cx, cy, params.triR, params.triAngle, 3);
+        ctx.moveTo(poly[0].x, poly[0].y);
+        for (let i = 1; i < poly.length; i++) ctx.lineTo(poly[i].x, poly[i].y);
+        ctx.closePath();
+      }
+
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    function resetCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      rawPoints = [];
+      statusText.textContent = "一筆書きで大きく描いてください";
+      statusText.style.color = "#7f8c8d";
+      circleScoreLi.textContent = "● 円との一致率: --";
+      squareScoreLi.textContent = "● 正方形との一致率: --";
+      triangleScoreLi.textContent = "● 正三角形との一致率: --";
+      mainScore.textContent = "-- 点";
+      mainMessage.textContent = "80点以上でクリア！";
+      mainMessage.style.color = "#2c3e50";
+    }
+
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    window.addEventListener('mouseup', stopDrawing);
+
+    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDrawing(e); }, { passive: false });
+    canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); }, { passive: false });
+    window.addEventListener('touchend', stopDrawing);
+
+    clearBtn.addEventListener('click', resetCanvas);
+    skipBtn.addEventListener('click', () => {
+      comboCount = 0; // スキップしたらコンボはリセット
+      comboText.textContent = `現在のコンボ: 0`;
+      setNextMission();
+    });
+
+    // 初期起動時にお題をセット
+    setNextMission();
+  </script>
+</body>
+</html>
