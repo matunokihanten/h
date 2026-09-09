@@ -45,7 +45,7 @@
         #game-board {
             position: relative;
             width: 100vw;
-            height: 60vh;
+            height: 58vh;
             background-color: white;
             border-top: 2px solid #ccc;
             border-bottom: 2px solid #ccc;
@@ -82,15 +82,19 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 15px;
+            gap: 12px;
         }
-        #difficulty-selector {
-            font-size: 18px;
+        .setting-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            font-size: 16px;
             font-weight: bold;
         }
         select {
-            font-size: 18px;
-            padding: 5px;
+            font-size: 16px;
+            padding: 5px 8px;
             border-radius: 5px;
         }
         #start-btn {
@@ -121,36 +125,47 @@
     <div id="header">最強の眼力テスト<br>完全に静止している指を見つけてください</div>
     
     <div id="status-bar">
-        <div class="status-box">残り: <span id="timer">60</span>秒</div>
+        <div class="status-box"><span id="timer-label">残り</span>: <span id="timer">60</span>秒</div>
         <div class="status-box">発見: <span id="score">0</span> / <span id="max-score">3</span></div>
     </div>
     
     <div id="game-board"></div>
     
     <div id="controls">
-        <div id="difficulty-selector">
-            <label for="difficulty">難易度: </label>
-            <select id="difficulty">
-                <option value="easy">やさしい（普通速度・フェイクなし）</option>
-                <option value="normal" selected>ふつう（フェイクストップあり）</option>
-                <option value="stealth">むずかしい（超微速＆フェイク多発）</option>
-            </select>
+        <div class="setting-row">
+            <div>
+                <label for="difficulty">難易度: </label>
+                <select id="difficulty">
+                    <option value="easy">やさしい</option>
+                    <option value="normal" selected>ふつう</option>
+                    <option value="stealth">むずかしい（超微速）</option>
+                </select>
+            </div>
+            <div>
+                <label for="time-mode">時間: </label>
+                <select id="time-mode">
+                    <option value="limited" selected>制限あり</option>
+                    <option value="infinite">時間無制限 (∞)</option>
+                </select>
+            </div>
         </div>
         <button id="start-btn">ゲームスタート</button>
     </div>
 
     <script>
         const gameBoard = document.getElementById('game-board');
+        const timerLabel = document.getElementById('timer-label');
         const timerDisplay = document.getElementById('timer');
         const scoreDisplay = document.getElementById('score');
         const maxScoreDisplay = document.getElementById('max-score');
         const startBtn = document.getElementById('start-btn');
         const difficultySelect = document.getElementById('difficulty');
+        const timeModeSelect = document.getElementById('time-mode');
         
         let timer;
         let animationId;
-        let timeLeft = 60;
-        let timeLimit = 60;
+        let currentTime = 0;
+        let isInfinite = false;
         let isPlaying = false;
         
         let movingHandsData = [];
@@ -165,10 +180,13 @@
             isPlaying = true;
             foundTargets = 0;
             
+            isInfinite = (timeModeSelect.value === 'infinite');
+
             let totalHands = 140;
-            let baseSpeed = 0.2;
+            let baseSpeed = 0.12;
             let enableFakeStop = true;
             let fakeChance = 0.003;
+            let timeLimit = 60;
 
             const diff = difficultySelect.value;
             if (diff === 'easy') {
@@ -185,7 +203,6 @@
                 enableFakeStop = true;
                 fakeChance = 0.003;
             } else if (diff === 'stealth') {
-                // 超微速モード：動いているかどうかの凝視が必要
                 totalHands = 200;
                 targetCount = 3;
                 timeLimit = 50;
@@ -194,21 +211,36 @@
                 fakeChance = 0.006;
             }
             
-            timeLeft = timeLimit;
-            timerDisplay.textContent = timeLeft;
+            if (isInfinite) {
+                currentTime = 0;
+                timerLabel.textContent = "経過";
+                timerDisplay.textContent = currentTime;
+            } else {
+                currentTime = timeLimit;
+                timerLabel.textContent = "残り";
+                timerDisplay.textContent = currentTime;
+            }
+
             scoreDisplay.textContent = foundTargets;
             maxScoreDisplay.textContent = targetCount;
             
             gameBoard.innerHTML = ''; 
             startBtn.disabled = true;
             difficultySelect.disabled = true;
+            timeModeSelect.disabled = true;
             movingHandsData = [];
 
+            // タイマー処理
             timer = setInterval(() => {
-                timeLeft--;
-                timerDisplay.textContent = timeLeft;
-                if (timeLeft <= 0) {
-                    endGame(false);
+                if (isInfinite) {
+                    currentTime++;
+                    timerDisplay.textContent = currentTime;
+                } else {
+                    currentTime--;
+                    timerDisplay.textContent = currentTime;
+                    if (currentTime <= 0) {
+                        endGame(false);
+                    }
                 }
             }, 1000);
 
@@ -228,7 +260,6 @@
                 hand.style.top = `${y}%`;
 
                 if (targetIndices.has(i)) {
-                    // 【正解の指】完全静止
                     hand.addEventListener('click', function onTargetClick() {
                         if (!isPlaying) return;
                         
@@ -242,16 +273,20 @@
                     });
                     hand.style.transform = `rotate(${Math.random() * 60 - 30}deg)`; 
                 } else {
-                    // 【ダミーの指】
                     hand.classList.add('shaking');
                     const delayClass = 'delay' + (Math.floor(Math.random() * 3) + 1);
                     hand.classList.add(delayClass);
 
-                    // 不正解タップでお手つきペナルティ（-3秒）
                     hand.addEventListener('click', () => {
                         if (!isPlaying) return;
-                        timeLeft = Math.max(0, timeLeft - 3);
-                        timerDisplay.textContent = timeLeft;
+                        
+                        // ペナルティ（制限時間なら-3秒、無制限なら+3秒加算）
+                        if (isInfinite) {
+                            currentTime += 3;
+                        } else {
+                            currentTime = Math.max(0, currentTime - 3);
+                        }
+                        timerDisplay.textContent = currentTime;
                         timerDisplay.classList.add('penalty');
                         setTimeout(() => timerDisplay.classList.remove('penalty'), 300);
 
@@ -286,13 +321,11 @@
             if (!isPlaying) return;
 
             movingHandsData.forEach(data => {
-                // フェイクストップ判定
                 if (data.enableFakeStop) {
                     if (data.pausedFrames > 0) {
                         data.pausedFrames--;
-                        return; // 静止中
+                        return;
                     }
-                    // ランダムでフェイクストップ突入（約1.5〜2.5秒停止）
                     if (Math.random() < data.fakeChance) {
                         data.pausedFrames = Math.floor(90 + Math.random() * 60);
                         return;
@@ -318,11 +351,13 @@
             isPlaying = false;
             startBtn.disabled = false;
             difficultySelect.disabled = false;
+            timeModeSelect.disabled = false;
             startBtn.textContent = "もう一度プレイ";
 
             setTimeout(() => {
                 if (isWin) {
-                    alert(`完全クリア！凄まじい観察力です🎉\nクリアタイム: ${timeLimit - timeLeft}秒`);
+                    const timeResult = isInfinite ? currentTime : (difficultySelect.value === 'stealth' ? 50 : 60) - currentTime;
+                    alert(`クリア！すべて見つけました🎉\nクリアタイム: ${timeResult}秒`);
                 } else {
                     alert(`時間切れです！\n見つけた数: ${foundTargets} / ${targetCount}`);
                 }
