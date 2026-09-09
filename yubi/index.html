@@ -34,6 +34,14 @@
             border-radius: 10px;
             color: #333;
         }
+        #timer.penalty {
+            color: #d32f2f;
+            animation: flash 0.3s;
+        }
+        @keyframes flash {
+            0% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
         #game-board {
             position: relative;
             width: 100vw;
@@ -51,21 +59,21 @@
             transition: opacity 0.2s;
         }
         
-        .moving {
-            animation: shake 0.4s infinite alternate;
+        .shaking {
+            animation: micro-shake 0.8s infinite alternate ease-in-out;
         }
-        .delay1 { animation-delay: 0.1s; }
-        .delay2 { animation-delay: 0.2s; }
-        .delay3 { animation-delay: 0.3s; }
+        .delay1 { animation-delay: 0.2s; }
+        .delay2 { animation-delay: 0.4s; }
+        .delay3 { animation-delay: 0.6s; }
 
-        @keyframes shake {
-            0% { transform: rotate(-25deg) scale(0.9); }
-            100% { transform: rotate(25deg) scale(1.1); }
+        @keyframes micro-shake {
+            0% { transform: rotate(-8deg); }
+            100% { transform: rotate(8deg); }
         }
 
         .found-target {
             filter: grayscale(100%);
-            opacity: 0.5;
+            opacity: 0.4;
             pointer-events: none;
         }
 
@@ -110,7 +118,7 @@
 </head>
 <body>
 
-    <div id="header">最強の眼力テスト<br>動いていない指を見つけてください</div>
+    <div id="header">最強の眼力テスト<br>完全に静止している指を見つけてください</div>
     
     <div id="status-bar">
         <div class="status-box">残り: <span id="timer">60</span>秒</div>
@@ -123,9 +131,9 @@
         <div id="difficulty-selector">
             <label for="difficulty">難易度: </label>
             <select id="difficulty">
-                <option value="easy">やさしい（1つ・指少なめ）</option>
-                <option value="normal" selected>ふつう（3つ・標準）</option>
-                <option value="hard">むずかしい（5つ・指大量＆高速）</option>
+                <option value="easy">やさしい（普通速度・フェイクなし）</option>
+                <option value="normal" selected>ふつう（フェイクストップあり）</option>
+                <option value="stealth">むずかしい（超微速＆フェイク多発）</option>
             </select>
         </div>
         <button id="start-btn">ゲームスタート</button>
@@ -157,26 +165,33 @@
             isPlaying = true;
             foundTargets = 0;
             
-            // 難易度設定の適用
-            let totalHands = 150;
-            let speedMult = 1.0;
-            
+            let totalHands = 140;
+            let baseSpeed = 0.2;
+            let enableFakeStop = true;
+            let fakeChance = 0.003;
+
             const diff = difficultySelect.value;
             if (diff === 'easy') {
-                totalHands = 70;
+                totalHands = 80;
                 targetCount = 1;
                 timeLimit = 60;
-                speedMult = 0.5;
+                baseSpeed = 0.25;
+                enableFakeStop = false;
             } else if (diff === 'normal') {
-                totalHands = 150;
+                totalHands = 140;
                 targetCount = 3;
                 timeLimit = 60;
-                speedMult = 1.0;
-            } else if (diff === 'hard') {
-                totalHands = 250;
-                targetCount = 5;
-                timeLimit = 45; // 制限時間も短く
-                speedMult = 2.0; // 移動速度アップ
+                baseSpeed = 0.12;
+                enableFakeStop = true;
+                fakeChance = 0.003;
+            } else if (diff === 'stealth') {
+                // 超微速モード：動いているかどうかの凝視が必要
+                totalHands = 200;
+                targetCount = 3;
+                timeLimit = 50;
+                baseSpeed = 0.04;
+                enableFakeStop = true;
+                fakeChance = 0.006;
             }
             
             timeLeft = timeLimit;
@@ -213,7 +228,7 @@
                 hand.style.top = `${y}%`;
 
                 if (targetIndices.has(i)) {
-                    // 【正解の指】
+                    // 【正解の指】完全静止
                     hand.addEventListener('click', function onTargetClick() {
                         if (!isPlaying) return;
                         
@@ -228,21 +243,37 @@
                     hand.style.transform = `rotate(${Math.random() * 60 - 30}deg)`; 
                 } else {
                     // 【ダミーの指】
-                    hand.classList.add('moving');
+                    hand.classList.add('shaking');
                     const delayClass = 'delay' + (Math.floor(Math.random() * 3) + 1);
                     hand.classList.add(delayClass);
-                    
+
+                    // 不正解タップでお手つきペナルティ（-3秒）
                     hand.addEventListener('click', () => {
                         if (!isPlaying) return;
-                        hand.style.opacity = "0.1"; 
+                        timeLeft = Math.max(0, timeLeft - 3);
+                        timerDisplay.textContent = timeLeft;
+                        timerDisplay.classList.add('penalty');
+                        setTimeout(() => timerDisplay.classList.remove('penalty'), 300);
+
+                        hand.style.opacity = "0.2"; 
                         setTimeout(() => hand.style.opacity = "1", 300);
                     });
 
-                    // 難易度に応じた移動速度を適用
-                    let vx = (Math.random() - 0.5) * 0.4 * speedMult; 
-                    let vy = (Math.random() - 0.5) * 0.4 * speedMult; 
-                    
-                    movingHandsData.push({ element: hand, x: x, y: y, vx: vx, vy: vy });
+                    let angle = Math.random() * Math.PI * 2;
+                    let speed = baseSpeed * (0.8 + Math.random() * 0.4);
+                    let vx = Math.cos(angle) * speed;
+                    let vy = Math.sin(angle) * speed;
+
+                    movingHandsData.push({ 
+                        element: hand, 
+                        x: x, 
+                        y: y, 
+                        vx: vx, 
+                        vy: vy,
+                        pausedFrames: 0,
+                        enableFakeStop: enableFakeStop,
+                        fakeChance: fakeChance
+                    });
                 }
                 gameBoard.appendChild(hand);
             }
@@ -255,6 +286,19 @@
             if (!isPlaying) return;
 
             movingHandsData.forEach(data => {
+                // フェイクストップ判定
+                if (data.enableFakeStop) {
+                    if (data.pausedFrames > 0) {
+                        data.pausedFrames--;
+                        return; // 静止中
+                    }
+                    // ランダムでフェイクストップ突入（約1.5〜2.5秒停止）
+                    if (Math.random() < data.fakeChance) {
+                        data.pausedFrames = Math.floor(90 + Math.random() * 60);
+                        return;
+                    }
+                }
+
                 data.x += data.vx;
                 data.y += data.vy;
 
@@ -278,7 +322,7 @@
 
             setTimeout(() => {
                 if (isWin) {
-                    alert(`${targetCount}つすべて見つけました！素晴らしい眼力です🎉\nクリアタイム: ${timeLimit - timeLeft}秒`);
+                    alert(`完全クリア！凄まじい観察力です🎉\nクリアタイム: ${timeLimit - timeLeft}秒`);
                 } else {
                     alert(`時間切れです！\n見つけた数: ${foundTargets} / ${targetCount}`);
                 }
