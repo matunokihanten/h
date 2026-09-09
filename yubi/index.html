@@ -77,6 +77,20 @@
             pointer-events: none;
         }
 
+        /* 答え表示用のハイライト枠 */
+        .reveal-target {
+            outline: 3px solid #e91e63;
+            background-color: rgba(255, 235, 59, 0.7);
+            border-radius: 50%;
+            animation: reveal-pulse 0.6s infinite alternate;
+            z-index: 10;
+        }
+
+        @keyframes reveal-pulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.6); }
+        }
+
         #controls {
             margin: 15px 0 30px 0;
             display: flex;
@@ -97,26 +111,38 @@
             padding: 5px 8px;
             border-radius: 5px;
         }
-        #start-btn {
-            padding: 12px 40px;
-            font-size: 20px;
+        .button-group {
+            display: flex;
+            gap: 15px;
+        }
+        #start-btn, #reveal-btn {
+            padding: 12px 30px;
+            font-size: 18px;
             font-weight: bold;
-            background-color: #ff9800;
-            color: white;
             border: none;
             border-radius: 8px;
             cursor: pointer;
             box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            transition: 0.1s;
+        }
+        #start-btn {
+            background-color: #ff9800;
+            color: white;
         }
         #start-btn:hover {
             background-color: #e68a00;
-            transform: translateY(2px);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
-        #start-btn:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-            box-shadow: none;
+        #reveal-btn {
+            background-color: #00bcd4;
+            color: white;
+        }
+        #reveal-btn:hover {
+            background-color: #0097a7;
+        }
+        button:disabled {
+            background-color: #ccc !important;
+            cursor: not-allowed !important;
+            box-shadow: none !important;
         }
     </style>
 </head>
@@ -149,7 +175,10 @@
                 </select>
             </div>
         </div>
-        <button id="start-btn">ゲームスタート</button>
+        <div class="button-group">
+            <button id="start-btn">ゲームスタート</button>
+            <button id="reveal-btn" disabled>答えを見る</button>
+        </div>
     </div>
 
     <script>
@@ -159,6 +188,7 @@
         const scoreDisplay = document.getElementById('score');
         const maxScoreDisplay = document.getElementById('max-score');
         const startBtn = document.getElementById('start-btn');
+        const revealBtn = document.getElementById('reveal-btn');
         const difficultySelect = document.getElementById('difficulty');
         const timeModeSelect = document.getElementById('time-mode');
         
@@ -169,16 +199,19 @@
         let isPlaying = false;
         
         let movingHandsData = [];
+        let targetElements = []; // 正解要素を保持する配列
         let targetCount = 3;
         let foundTargets = 0;
         const emojis = ['👍', '👆', '👇', '👈', '👉', '🤞', '🖐️'];
 
         startBtn.addEventListener('click', startGame);
+        revealBtn.addEventListener('click', revealAnswers);
 
         function startGame() {
             if (isPlaying) return;
             isPlaying = true;
             foundTargets = 0;
+            targetElements = [];
             
             isInfinite = (timeModeSelect.value === 'infinite');
 
@@ -226,11 +259,11 @@
             
             gameBoard.innerHTML = ''; 
             startBtn.disabled = true;
+            revealBtn.disabled = false; // 答えボタンを有効化
             difficultySelect.disabled = true;
             timeModeSelect.disabled = true;
             movingHandsData = [];
 
-            // タイマー処理
             timer = setInterval(() => {
                 if (isInfinite) {
                     currentTime++;
@@ -260,6 +293,7 @@
                 hand.style.top = `${y}%`;
 
                 if (targetIndices.has(i)) {
+                    targetElements.push(hand); // 答え一覧に保存
                     hand.addEventListener('click', function onTargetClick() {
                         if (!isPlaying) return;
                         
@@ -280,7 +314,6 @@
                     hand.addEventListener('click', () => {
                         if (!isPlaying) return;
                         
-                        // ペナルティ（制限時間なら-3秒、無制限なら+3秒加算）
                         if (isInfinite) {
                             currentTime += 3;
                         } else {
@@ -345,11 +378,37 @@
             animationId = requestAnimationFrame(animateHands);
         }
 
+        // 答えを表示する処理
+        function revealAnswers() {
+            if (!isPlaying) return;
+
+            // ゲーム停止
+            clearInterval(timer);
+            cancelAnimationFrame(animationId);
+            isPlaying = false;
+            revealBtn.disabled = true;
+            startBtn.disabled = false;
+            difficultySelect.disabled = false;
+            timeModeSelect.disabled = false;
+            startBtn.textContent = "もう一度プレイ";
+
+            // 正解ターゲットを強調表示
+            targetElements.forEach(target => {
+                target.classList.remove('found-target');
+                target.classList.add('reveal-target');
+            });
+
+            setTimeout(() => {
+                alert("答えを表示しました！赤枠で点滅しているのが動いていない指です👀");
+            }, 100);
+        }
+
         function endGame(isWin) {
             clearInterval(timer);
             cancelAnimationFrame(animationId);
             isPlaying = false;
             startBtn.disabled = false;
+            revealBtn.disabled = true;
             difficultySelect.disabled = false;
             timeModeSelect.disabled = false;
             startBtn.textContent = "もう一度プレイ";
