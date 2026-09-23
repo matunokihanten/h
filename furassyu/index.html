@@ -87,6 +87,23 @@
       font-weight: 800;
       color: #405060;
       margin: 0 0 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .diff-badge {
+      padding: 2px 8px;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 900;
+      transition: background-color 0.3s;
+    }
+    .game-badge {
+      font-size: 0.85rem;
+      padding: 4px 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      margin-bottom: -10px;
     }
     .grid { display: grid; gap: 6px; }
     .grid-2 { grid-template-columns: repeat(2, 1fr); }
@@ -190,7 +207,9 @@
       <div class="stats" id="statsDisplay">最高スコア: 0 | 直近正答率: 0%</div>
 
       <div>
-        <div class="section-title">出題モード</div>
+        <div class="section-title">
+          <span>出題モード</span>
+        </div>
         <div class="grid grid-2" id="modeGrid">
           <button class="choice selected" data-value="flash">フラッシュ</button>
           <button class="choice" data-value="audio">音声読み上げ</button>
@@ -227,7 +246,10 @@
       </div>
 
       <div>
-        <div class="section-title" id="timeLabel">表示時間（秒）</div>
+        <div class="section-title">
+          <span id="timeLabel">表示時間（秒）</span>
+          <span id="diffBadge" class="diff-badge"></span>
+        </div>
         <div class="grid grid-4" id="timeGrid">
           <button class="choice" data-value="0.5">0.5</button>
           <button class="choice" data-value="1">1.0</button>
@@ -242,6 +264,11 @@
 
     <!-- プレイ画面 -->
     <section id="game" class="card" aria-label="出題画面">
+      <!-- プレイ画面上部の難易度バッジ -->
+      <div style="display:flex; justify-content:center; width:100%; z-index:10;">
+        <span id="gameDiffBadge" class="diff-badge game-badge"></span>
+      </div>
+      
       <div id="flashArea">
         <div id="countdown">3</div>
         <div id="flashDisplay"></div>
@@ -290,10 +317,37 @@ const els = {
   helperText: $('#helperText')
 };
 
+// --- 難易度レベル計算機能 ---
+function getDifficultyData(time) {
+  if(time <= 0.2) return { text: "Lv.MAX (神業)", color: "#8e44ad" };
+  if(time <= 0.4) return { text: "Lv.6 (達人)", color: "#e74c3c" };
+  if(time <= 0.6) return { text: "Lv.5 (特級)", color: "#e67e22" };
+  if(time <= 0.8) return { text: "Lv.4 (上級)", color: "#f39c12" };
+  if(time <= 1.0) return { text: "Lv.3 (中級)", color: "#3498db" };
+  if(time <= 1.5) return { text: "Lv.2 (初級)", color: "#2ecc71" };
+  return { text: "Lv.1 (入門)", color: "#95a5a6" };
+}
+
+function updateDifficultyBadge() {
+  const diffData = getDifficultyData(selectedDisplayTime);
+  
+  // 設定画面のバッジ
+  const badge = $('#diffBadge');
+  badge.textContent = diffData.text;
+  badge.style.backgroundColor = diffData.color;
+  
+  // プレイ画面(ゲーム中)のバッジ (レベル + 秒数 を表示)
+  const gameBadge = $('#gameDiffBadge');
+  gameBadge.textContent = `${diffData.text} - ${selectedDisplayTime.toFixed(1)}秒`;
+  gameBadge.style.backgroundColor = diffData.color;
+}
+
+// 画面切り替え
 function showScreen(id) {
   ['settings', 'game', 'input', 'result'].forEach(s => {
     $('#' + s).style.display = (s === id) ? 'flex' : 'none';
   });
+  if(id === 'settings') updateDifficultyBadge(); 
 }
 showScreen('settings');
 
@@ -364,44 +418,38 @@ function setupGrid(id, cb) {
 
 setupGrid('modeGrid', v => {
   selectedMode = v;
-  $('#timeLabel').textContent = v === 'flash' ? '表示時間（秒）' : '読み上げ間隔（秒）';
+  $('#timeLabel').textContent = v === 'flash' ? '表示時間（秒）' : '間隔（秒）';
 });
 setupGrid('digitGrid', v => selectedDigitSetting = v);
 setupGrid('questionGrid', v => selectedQuestionCount = parseInt(v));
-setupGrid('timeGrid', v => selectedDisplayTime = parseFloat(v));
+setupGrid('timeGrid', v => {
+  selectedDisplayTime = parseFloat(v);
+  updateDifficultyBadge();
+});
 
-// ==========================================
-// そろばんの描画 (バグ修正部分)
-// ==========================================
 function renderAbacus(num) {
   const c = els.abacus;
   c.innerHTML = '';
-  // 5桁にゼロ埋め
   const s = Math.abs(num).toString().padStart(5, '0');
   
-  // 修正: 左（一番大きい桁）から右（一の位）へ向かって追加していくよう .reverse() を削除
   [...s].forEach(d => {
     const v = parseInt(d), col = document.createElement('div');
     col.className = 'abacus-column';
     
-    // 上の珠 (5玉)
     const u = document.createElement('div'); u.className = 'upper';
     const five = document.createElement('div');
     five.className = 'abacus-bead five' + (v >= 5 ? ' active' : '');
     five.style.transform = v >= 5 ? 'translateY(10px)' : 'translateY(0)';
     u.appendChild(five); col.appendChild(u);
     
-    // 梁(仕切り)
     const div = document.createElement('div'); div.className = 'divider';
     col.appendChild(div);
     
-    // 下の珠 (1玉)
     const l = document.createElement('div'); l.className = 'lower';
     const lv = v % 5;
     for (let i = 1; i <= 4; i++) {
       const bead = document.createElement('div');
       bead.className = 'abacus-bead one' + (i <= lv ? ' active' : '');
-      // 修正: 稼働する珠は固定値(-14px)で持ち上げることで自然な動きへ
       bead.style.transform = i <= lv ? 'translateY(-14px)' : 'translateY(0)';
       l.appendChild(bead);
     }
@@ -509,13 +557,20 @@ function finish(isCorrect) {
   }
 
   updateStats();
+  
+  // バッジ更新 (自動昇格で値が変わった場合に備える)
+  updateDifficultyBadge();
+  
   showScreen('result'); 
   
   $('#resultTitle').textContent = isCorrect ? '大正解！🎉' : '惜しい...😢';
   $('#resultTitle').style.color = isCorrect ? 'var(--ok)' : 'var(--danger)';
   
   const formula = numbersArray.join(' + ').replace(/\+ -/g, '- ');
-  $('#review').textContent = `出題内容:\n${formula}\n= ${answerSum}`;
+  
+  // 結果画面
+  const diffData = getDifficultyData(selectedDisplayTime);
+  $('#review').innerHTML = `出題内容:\n${formula}\n= ${answerSum}\n\n[現在: ${selectedDisplayTime.toFixed(1)}秒 / ${diffData.text}]`;
 
   if ($('#continuousMode').checked) {
     setTimeout(() => {
@@ -560,6 +615,7 @@ document.addEventListener('keydown', e => {
 });
 
 updateStats();
+updateDifficultyBadge(); // 初回読み込み時にも適用
 </script>
 </body>
 </html>
