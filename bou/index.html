@@ -2,181 +2,335 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>縦棒グラフ当てゲーム 豪華版</title>
   <style>
-    /* 全体のデザイン */
-    body {
-      background: linear-gradient(135deg, #e0f2f7, #c1e4ee); /* 明るい青系グラデーション */
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* モダンなフォント */
-      text-align: center;
-      margin: 20px;
-      color: #2c3e50; /* 濃い青系のテキスト色 */
-      line-height: 1.6;
-    }
-    /* タイマー設定 */
-    #settings {
-      margin: 10px auto 20px;
-      display: inline-block;
-      text-align: left;
-      background-color: #ffffff;
-      padding: 15px 25px;
-      border-radius: 10px;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    }
-    fieldset {
-      border: 1px solid #a7d9f0; /* 明るい青のボーダー */
-      border-radius: 8px;
-      padding: 10px 15px;
-      margin-bottom: 10px;
-      background-color: #f8fcff;
-    }
-    legend {
-      font-weight: bold;
-      color: #007bb5; /* 青 */
-      padding: 0 10px;
-      font-size: 16px;
-    }
-    label {
-      margin-right: 15px;
-      font-size: 15px;
-      cursor: pointer;
-    }
-    /* 棒グラフ描画用 Canvas */
-    #barCanvas {
-      border: 2px solid #a7d9f0; /* 明るい青のボーダー */
-      background-color: #fdfefe; /* ほぼ白 */
-      display: block;
-      margin: 0 auto 15px;
-      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15); /* より強い影 */
-      border-radius: 10px;
-    }
-    /* 入力フィールド */
-    #guessContainer {
-      margin-bottom: 20px;
-    }
-    #guessInput {
-      width: 160px; /* 少し広く */
-      font-size: 32px; /* 大きく */
-      text-align: right;
-      padding: 8px 15px; /* パディングを増やす */
-      border: 2px solid #007bb5; /* 青いボーダー */
-      border-radius: 8px;
-      background: #fdfefe;
-      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1); /* 内側に影 */
-      transition: all 0.3s ease;
-    }
-    #guessInput:focus {
-      outline: none;
-      border-color: #0056b3; /* フォーカス時の色 */
-      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1), 0 0 8px rgba(0, 123, 181, 0.4);
+    :root {
+      --primary: #007bb5;
+      --primary-hover: #0056b3;
+      --accent-green: #28a745;
+      --accent-red: #dc3545;
+      --bg-gradient: linear-gradient(135deg, #e0f2f7, #c1e4ee);
     }
 
-    /* 電卓風 キーパッド */
-    .keypad {
-      display: grid;
-      grid-template-columns: repeat(3, 90px); /* キーを大きく */
-      grid-gap: 15px; /* ギャップを広げる */
-      justify-content: center;
-      margin: 10px 0 20px;
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
     }
-    .key {
-      font-size: 36px; /* 文字を大きく */
-      padding: 20px; /* パディングを増やす */
-      border: none;
-      border-radius: 12px; /* 角を丸く */
-      background-color: #28a745; /* 緑系 */
-      color: #fff;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15); /* 影 */
-    }
-    /* =ボタンの色とカーソルを通常に戻す */
-    .key[data-key="="] {
-        background-color: #007bff; /* 青系に戻す */
-        cursor: pointer; /* 通常のカーソルに戻す */
-    }
-    .key[data-key="C"] {
-        background-color: #dc3545; /* Cボタンは赤 */
-    }
-    .key:hover:not(:disabled) {
-      background-color: #218838; /* ホバー時の色 */
-      box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
-      transform: translateY(-2px); /* 少し上に浮く */
-    }
-    /* =ボタンのホバー時の色を調整 */
-    .key[data-key="="]:hover:not(:disabled) {
-        background-color: #0056b3; /* 青系のホバー色 */
-    }
-    .key:active:not(:disabled) {
-      background-color: #1e7e34;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-      transform: translateY(0);
-    }
-    /* =ボタンのアクティブ時の色を調整 */
-    .key[data-key="="]:active:not(:disabled) {
-        background-color: #004085; /* 青系のアクティブ色 */
-    }
-    .key:disabled {
-      background-color: #b0c4de; /* 無効時の色 */
-      cursor: not-allowed;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-    /* その他のボタン */
-    button {
-      font-size: 18px; /* 大きく */
-      padding: 10px 18px; /* パディングを増やす */
-      border: none;
-      border-radius: 8px; /* 角を丸く */
-      background-color: #007bff; /* 青系 */
-      color: #fff;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      margin: 8px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
-    }
-    button:hover:not(:disabled) {
-      background-color: #0056b3; /* ホバー時の色 */
-      box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
-      transform: translateY(-2px);
-    }
-    button:active:not(:disabled) {
-      background-color: #004085;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-      transform: translateY(0);
-    }
-    button:disabled {
-      background-color: #b0c4de;
-      cursor: not-allowed;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-    /* タイマー、スコア、ラウンド、コンボ表示 */
-    #timerDisplay, #scoreDisplay, #result, #highScoreDisplay {
-      margin-top: 10px;
-      font-size: 20px; /* 少し大きく */
-      font-weight: bold;
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      background: var(--bg-gradient);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       color: #2c3e50;
     }
-    #scoreDisplay {
-      margin-bottom: 10px;
-      color: #34495e;
+
+    #app {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 100dvh;
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 4px 8px;
     }
-    #result {
-      min-height: 70px; /* 高さを確保 */
-      padding: 10px;
-      background-color: #ecf0f1; /* 薄いグレー */
+
+    /* 上部ヘッダー（設定ドロップダウン＆ステータス） */
+    .top-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      flex-shrink: 0;
+    }
+
+    details#settingsDetails {
+      background: #ffffff;
+      padding: 4px 10px;
       border-radius: 8px;
-      margin: 15px auto;
-      max-width: 400px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+      font-size: 13px;
+    }
+
+    details#settingsDetails summary {
+      font-weight: bold;
+      color: var(--primary);
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    details#settingsDetails summary::-webkit-details-marker {
+      display: none;
+    }
+
+    details#settingsDetails summary::after {
+      content: '▼';
+      font-size: 10px;
+      transition: transform 0.2s;
+    }
+
+    details[open]#settingsDetails summary::after {
+      transform: rotate(180deg);
+    }
+
+    .radio-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px solid #eef2f5;
+    }
+
+    .radio-grid label {
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .status-panel {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(4px);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.25;
+    }
+
+    .status-left {
+      text-align: left;
+    }
+
+    .status-right {
+      text-align: right;
+    }
+
+    .high-score-text {
+      color: #e67e22;
+    }
+
+    /* 中央メイン（キャンバス・入力・メッセージ） */
+    .game-stage {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex: 1 1 auto;
+      min-height: 0;
+      margin: 2px 0;
+    }
+
+    #barCanvas {
+      height: 100%;
+      max-height: 220px;
+      width: auto;
+      aspect-ratio: 110 / 260;
+      background: #ffffff;
+      border: 1.5px solid #a7d9f0;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+      display: block;
+    }
+
+    .input-info-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      flex: 1;
+      max-width: 180px;
+    }
+
+    #guessInput {
+      width: 100%;
+      height: 48px;
+      font-size: 26px;
+      font-weight: bold;
+      text-align: center;
+      border: 2px solid var(--primary);
+      border-radius: 8px;
+      background: #ffffff;
+      color: #1a252f;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+      outline: none;
+    }
+
+    #result {
+      width: 100%;
+      min-height: 60px;
+      max-height: 90px;
+      padding: 6px;
+      background-color: #ecf0f1;
+      border-radius: 6px;
+      font-size: 11px;
+      line-height: 1.35;
+      font-weight: bold;
       color: #333;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      overflow-y: auto;
     }
-    .high-score-display { /* ハイスコア表示用のクラス */
-        color: #e67e22; /* オレンジ色 */
-        font-size: 22px;
-        margin-bottom: 10px;
-        display: block; /* デフォルトで表示 */
+
+    /* 下部操作部（キーパッド＆コントロールボタン） */
+    .controls-wrapper {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+      margin-bottom: 2px;
     }
-    /* コンフェッティ用 Canvas（全画面オーバーレイ） */
+
+    .keypad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
+      flex: 3;
+    }
+
+    .key {
+      font-size: 22px;
+      font-weight: bold;
+      height: 44px;
+      border: none;
+      border-radius: 8px;
+      background-color: var(--accent-green);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+      transition: transform 0.05s ease, background 0.1s;
+    }
+
+    .key:active:not(:disabled) {
+      transform: scale(0.95);
+      background-color: #1e7e34;
+    }
+
+    .key[data-key="C"] {
+      background-color: var(--accent-red);
+    }
+    .key[data-key="C"]:active:not(:disabled) {
+      background-color: #bd2130;
+    }
+
+    .key[data-key="="] {
+      background-color: #007bff;
+    }
+    .key[data-key="="]:active:not(:disabled) {
+      background-color: #0056b3;
+    }
+
+    .action-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      flex: 1.3;
+    }
+
+    .action-btn {
+      flex: 1;
+      margin: 0;
+      padding: 0 4px;
+      font-size: 12px;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      background-color: #007bff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .action-btn:active:not(:disabled) {
+      transform: scale(0.96);
+    }
+
+    #endGame {
+      background-color: #e74c3c;
+    }
+
+    button:disabled, .key:disabled {
+      background-color: #b0c4de !important;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    /* 履歴モーダルポップアップ（1画面維持のためオーバーレイ化） */
+    #roundHistory {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 90%;
+      max-width: 360px;
+      max-height: 80dvh;
+      background-color: #ffffff;
+      border: 2px solid #a7d9f0;
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+      z-index: 2000;
+      display: none;
+      flex-direction: column;
+    }
+
+    #roundHistory h3 {
+      color: var(--primary);
+      margin: 0 0 8px 0;
+      font-size: 15px;
+      border-bottom: 1px solid #a7d9f0;
+      padding-bottom: 4px;
+      text-align: center;
+    }
+
+    #roundHistory ul {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 10px 0;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    #roundHistory li {
+      padding: 5px 0;
+      border-bottom: 1px dashed #e0e0e0;
+      font-size: 12px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .modal-actions button {
+      flex: 1;
+      padding: 8px;
+      font-size: 13px;
+    }
+
     #confettiCanvas {
       position: fixed;
       top: 0;
@@ -185,136 +339,108 @@
       z-index: 1000;
       display: none;
     }
-    /* ラウンド結果履歴のスタイル */
-    #roundHistory {
-        text-align: left;
-        margin: 20px auto;
-        padding: 15px;
-        background-color: #f0f8ff;
-        border: 1px solid #a7d9f0;
-        border-radius: 10px;
-        max-width: 450px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        display: none; /* 初期は非表示 */
-    }
-    #roundHistory h3 {
-        color: #007bb5;
-        margin-top: 0;
-        border-bottom: 1px solid #a7d9f0;
-        padding-bottom: 5px;
-    }
-    #roundHistory ul {
-        list-style: none;
-        padding: 0;
-        max-height: 200px;
-        overflow-y: auto; /* スクロール可能に */
-    }
-    #roundHistory li {
-        padding: 5px 0;
-        border-bottom: 1px dashed #e0e0e0;
-        font-size: 14px;
-        color: #555;
-    }
-    #roundHistory li:last-child {
-        border-bottom: none;
-    }
-
   </style>
 </head>
 <body>
-  <div id="settings">
-    <fieldset>
-      <legend>ゲームモード / タイマー設定</legend>
-      <label><input type="radio" name="timerOption" value="10">10秒</label>
-      <label><input type="radio" name="timerOption" value="15" checked>15秒</label>
-      <label><input type="radio" name="timerOption" value="20">20秒</label>
-      <label><input type="radio" name="timerOption" value="30_challenge">30秒チャレンジ</label>
-      <label><input type="radio" name="timerOption" value="60_challenge">1分チャレンジ</label>
-      <label><input type="radio" name="timerOption" value="120_challenge">2分チャレンジ</label>
-    </fieldset>
+  <div id="app">
+    <!-- 上部ヘッダー部 -->
+    <div class="top-bar">
+      <details id="settingsDetails">
+        <summary>ゲームモード / 設定</summary>
+        <div class="radio-grid">
+          <label><input type="radio" name="timerOption" value="10">10秒</label>
+          <label><input type="radio" name="timerOption" value="15" checked>15秒</label>
+          <label><input type="radio" name="timerOption" value="20">20秒</label>
+          <label><input type="radio" name="timerOption" value="30_challenge">30秒戦</label>
+          <label><input type="radio" name="timerOption" value="60_challenge">1分戦</label>
+          <label><input type="radio" name="timerOption" value="120_challenge">2分戦</label>
+        </div>
+      </details>
+
+      <div class="status-panel">
+        <div class="status-left">
+          残り時間: <span id="timeLeft" style="color:#d32f2f;">15</span>s | 
+          スコア: <span id="score">0</span>
+        </div>
+        <div class="status-right">
+          <span id="roundComboContainer">R: <span id="round">1</span> (連: <span id="combo">0</span>)</span>
+          <span id="highScoreDisplay" class="high-score-text">BEST: <span id="highScore">0</span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 中央キャンバス＆結果表示 -->
+    <div class="game-stage">
+      <canvas id="barCanvas" width="110" height="260"></canvas>
+
+      <div class="input-info-col">
+        <input type="text" id="guessInput" readonly placeholder="0">
+        <div id="result">数値を予想して<br>入力してください</div>
+      </div>
+    </div>
+
+    <!-- 下部テンキー＆操作ボタン -->
+    <div class="controls-wrapper">
+      <div class="keypad">
+        <button class="key" data-key="7">7</button>
+        <button class="key" data-key="8">8</button>
+        <button class="key" data-key="9">9</button>
+        <button class="key" data-key="4">4</button>
+        <button class="key" data-key="5">5</button>
+        <button class="key" data-key="6">6</button>
+        <button class="key" data-key="1">1</button>
+        <button class="key" data-key="2">2</button>
+        <button class="key" data-key="3">3</button>
+        <button class="key" data-key="C">C</button>
+        <button class="key" data-key="0">0</button>
+        <button class="key" data-key="=">=</button>
+      </div>
+
+      <div class="action-buttons">
+        <button id="hint" class="action-btn">ヒント</button>
+        <button id="reset" class="action-btn">次ラウンド</button>
+        <button id="showHistory" class="action-btn">結果履歴</button>
+        <button id="endGame" class="action-btn">終了</button>
+      </div>
+    </div>
   </div>
 
-  <canvas id="barCanvas" width="150" height="350"></canvas>
-
-  <div id="guessContainer">
-    <input type="text" id="guessInput" readonly placeholder="0">
-  </div>
-
-  <div class="keypad">
-    <button class="key" data-key="7">7</button>
-    <button class="key" data-key="8">8</button>
-    <button class="key" data-key="9">9</button>
-    <button class="key" data-key="4">4</button>
-    <button class="key" data-key="5">5</button>
-    <button class="key" data-key="6">6</button>
-    <button class="key" data-key="1">1</button>
-    <button class="key" data-key="2">2</button>
-    <button class="key" data-key="3">3</button>
-    <button class="key" data-key="C">C</button>
-    <button class="key" data-key="0">0</button>
-    <button class="key" data-key="=">=</button>
-  </div>
-
-  <div>
-    <button id="hint">ヒント</button>
-    <button id="reset">次のラウンド</button>
-    <button id="showHistory">結果履歴</button>
-    <button id="endGame" style="background-color: #e74c3c;">ゲーム終了</button>
-  </div>
-
-  <div id="timerDisplay">残り時間: <span id="timeLeft">15</span> 秒</div>
-  <div id="highScoreDisplay" class="high-score-display">ハイスコア: <span id="highScore">0</span></div>
-  <div id="30sChallengeHighScoreDisplay" class="high-score-display" style="display:none;">30秒チャレンジハイスコア: <span id="30sChallengeHighScore">0</span></div>
-  <div id="60sChallengeHighScoreDisplay" class="high-score-display" style="display:none;">1分チャレンジハイスコア: <span id="60sChallengeHighScore">0</span></div>
-  <div id="120sChallengeHighScoreDisplay" class="high-score-display" style="display:none;">2分チャレンジハイスコア: <span id="120sChallengeHighScore">0</span></div>
-  <div id="scoreDisplay">
-    スコア: <span id="score">0</span> |
-    ラウンド: <span id="round">1</span> |
-    コンボ: <span id="combo">0</span>
-  </div>
-
-  <div id="result"></div>
-
+  <!-- 履歴モーダル -->
   <div id="roundHistory">
     <h3>これまでのラウンド結果</h3>
-    <ul id="historyList">
-      </ul>
-    <button id="clearHistory">履歴をクリア</button>
-    <button id="closeHistory">閉じる</button>
+    <ul id="historyList"></ul>
+    <div class="modal-actions">
+      <button id="clearHistory" class="action-btn" style="background:#e74c3c;">クリア</button>
+      <button id="closeHistory" class="action-btn">閉じる</button>
+    </div>
   </div>
-
 
   <canvas id="confettiCanvas"></canvas>
 
   <script>
-    // グローバル変数
-    let actualLength;       // 棒の実際の長さ（mm）
+    let actualLength;
     let score = 0;
-    let highScore = 0; // 通常モードハイスコア
-    let challengeHighScores = { // 各チャレンジモードのハイスコア
-        '30s': 0,
-        '60s': 0,
-        '120s': 0
-    };
-    let currentChallengeModeKey = null; // 現在のチャレンジモードのキー (例: '30s', '60s', '120s')
+    let highScore = 0;
+    let challengeHighScores = { '30s': 0, '60s': 0, '120s': 0 };
+    let currentChallengeModeKey = null;
 
     let round = 1;
     let combo = 0;
     let timeLeft = 15;
     let timerInterval = null;
     let hintUsed = false;
-    let gameActive = true; // ゲームがアクティブかどうかを管理するフラグ
-    let isChallengeMode = false; // チャレンジモードかどうかを判定するフラグ
-    const scaleFactor = 3;  // 1mm = 3px に換算
+    let gameActive = true;
+    let isChallengeMode = false;
+    const scaleFactor = 2.4; // 100mm = 240px (高さ260px枠に最適化)
 
-    // サウンド関連
-    const correctSound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-game-success-alert-2037.mp3'); // 成功音
-    const incorrectSound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-failure-trombone-01.mp3'); // 失敗音
-    const comboSound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-arcade-game-explosion-1698.mp3'); // コンボ音
-    const timerWarningSound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-small-bell-ring-1249.mp3'); // タイマー警告音（残り5秒）
-    const gameOverSound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-arcade-retro-game-over-213.mp3'); // ゲームオーバー音
+    // サウンド
+    const correctSound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-game-success-alert-2037.mp3');
+    const incorrectSound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-failure-trombone-01.mp3');
+    const comboSound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-arcade-game-explosion-1698.mp3');
+    const timerWarningSound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-small-bell-ring-1249.mp3');
+    const gameOverSound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-arcade-retro-game-over-213.mp3');
 
-    // ゲーム要素の参照
+    // DOM要素
     const canvas = document.getElementById('barCanvas');
     const ctx = canvas.getContext('2d');
     const guessInput = document.getElementById('guessInput');
@@ -323,202 +449,158 @@
     const roundSpan = document.getElementById('round');
     const comboSpan = document.getElementById('combo');
     const resultDiv = document.getElementById('result');
-    const highScoreSpan = document.getElementById('highScore'); // 通常モードハイスコア表示用
-    const challengeHighScoreDisplays = { // チャレンジモードハイスコア表示用のDOM要素をマップ
-        '30s': document.getElementById('30sChallengeHighScoreDisplay').querySelector('span'),
-        '60s': document.getElementById('60sChallengeHighScoreDisplay').querySelector('span'),
-        '120s': document.getElementById('120sChallengeHighScoreDisplay').querySelector('span')
-    };
-    const challengeHighScoreContainers = { // チャレンジモードハイスコア表示用の親divをマップ
-        '30s': document.getElementById('30sChallengeHighScoreDisplay'),
-        '60s': document.getElementById('60sChallengeHighScoreDisplay'),
-        '120s': document.getElementById('120sChallengeHighScoreDisplay')
-    };
-
-    const roundHistoryDiv = document.getElementById('roundHistory'); // 履歴表示エリア
-    const historyListUl = document.getElementById('historyList'); // 履歴リスト
+    const highScoreSpan = document.getElementById('highScore');
+    const roundComboContainer = document.getElementById('roundComboContainer');
+    const roundHistoryDiv = document.getElementById('roundHistory');
+    const historyListUl = document.getElementById('historyList');
     const showHistoryButton = document.getElementById('showHistory');
     const clearHistoryButton = document.getElementById('clearHistory');
     const closeHistoryButton = document.getElementById('closeHistory');
-    const endGameButton = document.getElementById('endGame'); // ゲーム終了ボタン
-    const equalsButton = document.querySelector('.key[data-key="="]'); // =ボタンへの参照
-    const timerOptionRadios = document.querySelectorAll('input[name="timerOption"]'); // タイマー設定ラジオボタン
+    const endGameButton = document.getElementById('endGame');
+    const timerOptionRadios = document.querySelectorAll('input[name="timerOption"]');
+    const settingsDetails = document.getElementById('settingsDetails');
 
-    let roundResults = []; // 各ラウンドの結果を保存する配列
+    let roundResults = [];
 
-    // 初期化処理
     function initializeGame() {
-        loadHighScores(); // 全てのハイスコアをロード
-        loadRoundHistory(); // 履歴をロード
-        resetGameState(); // ゲーム状態をリセット
-        startRound();
+      loadHighScores();
+      loadRoundHistory();
+      resetGameState();
+      startRound();
     }
 
-    // ゲームの状態をリセットする関数
     function resetGameState() {
-        clearInterval(timerInterval); // タイマーを停止
-        score = 0;
-        round = 1;
-        combo = 0;
-        hintUsed = false;
-        gameActive = true; // ゲームをアクティブにする
-        
-        const selectedOptionValue = document.querySelector('input[name="timerOption"]:checked').value;
-        
-        // モード判定と初期タイマー値の設定
-        if (selectedOptionValue.endsWith('_challenge')) {
-            isChallengeMode = true;
-            currentChallengeModeKey = selectedOptionValue.replace('_challenge', ''); // '30s', '60s', '120s'
-            timeLeft = parseInt(selectedOptionValue.split('_')[0]); // 例: "30_challenge" から 30 を取得
-            roundSpan.style.display = 'none'; // チャレンジモードではラウンド表示を非表示に
-            comboSpan.style.display = 'none'; // コンボ表示も非表示に
-            document.getElementById('highScoreDisplay').style.display = 'none'; // 通常ハイスコア非表示
-            // 全てのチャレンジハイスコア表示を一旦非表示にして、現在のモードのハイスコアだけ表示
-            Object.values(challengeHighScoreContainers).forEach(el => el.style.display = 'none');
-            if (challengeHighScoreContainers[currentChallengeModeKey]) {
-                challengeHighScoreContainers[currentChallengeModeKey].style.display = 'block';
-            }
-        } else {
-            isChallengeMode = false;
-            currentChallengeModeKey = null;
-            timeLeft = parseInt(selectedOptionValue);
-            roundSpan.style.display = 'inline';
-            comboSpan.style.display = 'inline';
-            document.getElementById('highScoreDisplay').style.display = 'block'; // 通常ハイスコア表示
-            Object.values(challengeHighScoreContainers).forEach(el => el.style.display = 'none'); // チャレンジハイスコア非表示
-        }
+      clearInterval(timerInterval);
+      score = 0;
+      round = 1;
+      combo = 0;
+      hintUsed = false;
+      gameActive = true;
 
-        scoreSpan.textContent = score;
-        roundSpan.textContent = round;
-        comboSpan.textContent = combo;
-        timeLeftSpan.textContent = timeLeft;
-        guessInput.value = "";
-        resultDiv.innerHTML = "";
-        document.getElementById('hint').disabled = false;
-        enableKeypad();
-        document.getElementById('reset').textContent = isChallengeMode ? 'もう一度プレイ' : '次のラウンド';
+      const selectedOptionValue = document.querySelector('input[name="timerOption"]:checked').value;
+
+      if (selectedOptionValue.endsWith('_challenge')) {
+        isChallengeMode = true;
+        currentChallengeModeKey = selectedOptionValue.replace('_challenge', '');
+        timeLeft = parseInt(selectedOptionValue.split('_')[0], 10);
+        roundComboContainer.style.display = 'none';
+        updateHighScoreDisplay(challengeHighScores[currentChallengeModeKey]);
+      } else {
+        isChallengeMode = false;
+        currentChallengeModeKey = null;
+        timeLeft = parseInt(selectedOptionValue, 10);
+        roundComboContainer.style.display = 'inline';
+        updateHighScoreDisplay(highScore);
+      }
+
+      scoreSpan.textContent = score;
+      roundSpan.textContent = round;
+      comboSpan.textContent = combo;
+      timeLeftSpan.textContent = timeLeft;
+      guessInput.value = "";
+      resultDiv.innerHTML = "数値を予想して<br>入力してください";
+      document.getElementById('hint').disabled = false;
+      enableKeypad();
+      document.getElementById('reset').textContent = isChallengeMode ? '再挑戦' : '次ラウンド';
     }
 
+    function updateHighScoreDisplay(val) {
+      highScoreSpan.textContent = val;
+    }
 
-    // ハイスコアのロードと保存
     function loadHighScores() {
-        const storedHighScore = localStorage.getItem('barGuessingHighScore');
-        if (storedHighScore) {
-            highScore = parseInt(storedHighScore, 10);
-            highScoreSpan.textContent = highScore;
-        }
+      const storedHighScore = localStorage.getItem('barGuessingHighScore');
+      if (storedHighScore) highScore = parseInt(storedHighScore, 10);
 
-        for (const key in challengeHighScores) {
-            const storedChallengeHighScore = localStorage.getItem(`barGuessingChallengeHighScore_${key}`);
-            if (storedChallengeHighScore) {
-                challengeHighScores[key] = parseInt(storedChallengeHighScore, 10);
-                if (challengeHighScoreDisplays[key]) {
-                    challengeHighScoreDisplays[key].textContent = challengeHighScores[key];
-                }
-            }
-        }
+      for (const key in challengeHighScores) {
+        const stored = localStorage.getItem(`barGuessingChallengeHighScore_${key}`);
+        if (stored) challengeHighScores[key] = parseInt(stored, 10);
+      }
     }
 
     function saveHighScores() {
-        if (isChallengeMode && currentChallengeModeKey) {
-            if (score > challengeHighScores[currentChallengeModeKey]) {
-                challengeHighScores[currentChallengeModeKey] = score;
-                localStorage.setItem(`barGuessingChallengeHighScore_${currentChallengeModeKey}`, challengeHighScores[currentChallengeModeKey]);
-                if (challengeHighScoreDisplays[currentChallengeModeKey]) {
-                    challengeHighScoreDisplays[currentChallengeModeKey].textContent = challengeHighScores[currentChallengeModeKey];
-                }
-                resultDiv.innerHTML += `<br><strong><span style="color: #e67e22;">新記録達成！</span></strong>`;
-            }
-        } else {
-            if (score > highScore) {
-                highScore = score;
-                localStorage.setItem('barGuessingHighScore', highScore);
-                highScoreSpan.textContent = highScore;
-            }
+      if (isChallengeMode && currentChallengeModeKey) {
+        if (score > challengeHighScores[currentChallengeModeKey]) {
+          challengeHighScores[currentChallengeModeKey] = score;
+          localStorage.setItem(`barGuessingChallengeHighScore_${currentChallengeModeKey}`, challengeHighScores[currentChallengeModeKey]);
+          updateHighScoreDisplay(challengeHighScores[currentChallengeModeKey]);
+          resultDiv.innerHTML += `<br><span style="color:#e67e22;">★新記録達成！</span>`;
         }
+      } else {
+        if (score > highScore) {
+          highScore = score;
+          localStorage.setItem('barGuessingHighScore', highScore);
+          updateHighScoreDisplay(highScore);
+        }
+      }
     }
 
-    // ラウンド履歴のロードと保存
     function loadRoundHistory() {
-        const storedHistory = localStorage.getItem('barGuessingRoundHistory');
-        if (storedHistory) {
-            roundResults = JSON.parse(storedHistory);
-            renderRoundHistory();
-        }
+      const storedHistory = localStorage.getItem('barGuessingRoundHistory');
+      if (storedHistory) {
+        roundResults = JSON.parse(storedHistory);
+      }
     }
 
     function saveRoundHistory() {
-        localStorage.setItem('barGuessingRoundHistory', JSON.stringify(roundResults));
+      localStorage.setItem('barGuessingRoundHistory', JSON.stringify(roundResults));
     }
 
     function clearRoundHistory() {
-        if (confirm('全ての履歴を削除してもよろしいですか？')) {
-            roundResults = [];
-            saveRoundHistory();
-            renderRoundHistory();
-            alert('履歴がクリアされました。');
-            closeHistoryButton.click(); // 履歴ウィンドウを閉じる
-        }
+      if (confirm('全ての履歴を削除しますか？')) {
+        roundResults = [];
+        saveRoundHistory();
+        renderRoundHistory();
+        roundHistoryDiv.style.display = 'none';
+      }
     }
 
     function renderRoundHistory() {
-        historyListUl.innerHTML = ''; // リストをクリア
-        if (roundResults.length === 0) {
-            const li = document.createElement('li');
-            li.textContent = 'まだ履歴がありません。';
-            historyListUl.appendChild(li);
-            return;
-        }
-        // 最新のものを上にするためにreverse()
-        [...roundResults].reverse().forEach((result, index) => {
-            const li = document.createElement('li');
-            // チャレンジモードの結果表示を考慮
-            const roundNumber = roundResults.length - index; // 逆順なので元のラウンド番号を計算
-            const guessText = result.guess !== null ? `${result.guess}mm` : '未入力';
-            const diffText = result.diff !== '時間切れ' ? `${result.diff}mm` : '時間切れ';
-            li.textContent = `R${roundNumber}: 予想 ${guessText}, 実際 ${result.actual}mm, 差 ${diffText}, スコア ${result.points}点`;
-            li.style.color = result.points > 0 ? '#28a745' : '#dc3545'; // スコアによって色分け
-            historyListUl.appendChild(li);
-        });
+      historyListUl.innerHTML = '';
+      if (roundResults.length === 0) {
+        const li = document.createElement('li');
+        li.textContent = '履歴はありません。';
+        historyListUl.appendChild(li);
+        return;
+      }
+      [...roundResults].reverse().forEach((res, index) => {
+        const li = document.createElement('li');
+        const roundNum = roundResults.length - index;
+        const guessTxt = res.guess !== null ? `${res.guess}mm` : '未入力';
+        const diffTxt = res.diff !== '時間切れ' ? `${res.diff}mm` : '時間切れ';
+        li.textContent = `R${roundNum}: 予想${guessTxt} / 実際${res.actual}mm (${res.points}点)`;
+        li.style.color = res.points > 0 ? '#28a745' : '#dc3545';
+        historyListUl.appendChild(li);
+      });
     }
 
-    // 数字キーボードの操作
     function onKeypadClick(e) {
-      if (!gameActive) return; // ゲームが非アクティブなら操作を受け付けない
-
+      if (!gameActive) return;
       const key = e.target.getAttribute("data-key");
+      if (!key) return;
+
       if (key === "C") {
         guessInput.value = "";
       } else if (key === "=") {
-        evaluateGuess(); // =ボタンで答え合わせ
+        evaluateGuess();
       } else {
-        let currentValue = guessInput.value;
-        if (currentValue === "0" && key !== "0") {
-          currentValue = key;
-        } else if (currentValue === "0" && key === "0") {
-          // "00" のような入力は防ぐ
-          return;
-        } else {
-          currentValue += key;
-        }
+        let cur = guessInput.value;
+        if (cur === "0" && key !== "0") cur = key;
+        else if (cur === "0" && key === "0") return;
+        else cur += key;
 
-        // 最大3桁に制限 (100mmが最大のため)
-        if (currentValue.length > 3) {
-          return;
-        }
-        guessInput.value = currentValue;
+        if (cur.length > 3) return;
+        guessInput.value = cur;
 
-        // 入力が3桁になったら自動で答え合わせ（=ボタンが有効でもこの機能は残す）
-        // チャレンジモードでは、入力が3桁になったら自動で答え合わせしない（ユーザーが「=」を押すまで待つ）
-        if (currentValue.length === 3 && !isChallengeMode) {
+        if (cur.length === 3 && !isChallengeMode) {
           evaluateGuess();
         }
       }
     }
+
     document.querySelectorAll(".key").forEach(btn => {
       btn.addEventListener("click", onKeypadClick);
     });
-    
 
     function disableKeypad() {
       document.querySelectorAll(".key").forEach(btn => btn.disabled = true);
@@ -527,430 +609,332 @@
       document.querySelectorAll(".key").forEach(btn => btn.disabled = false);
     }
 
-    // 棒グラフの描画 (四角い棒に戻し、レンガ模様を追加)
     function drawBar(animateGlow = false) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const barWidth = 80; // 棒の幅を太く
+      const barWidth = 60;
       const targetHeight = actualLength * scaleFactor;
       const x = (canvas.width - barWidth) / 2;
-      const startY = canvas.height; // 下から描画開始
+      const startY = canvas.height - 10;
       let currentHeight = 0;
       let animationStartTime = null;
-      const animationDuration = 300; // 初期描画アニメーション時間 (ms)
-      const glowDuration = 1000; // 光るアニメーション時間 (ms)
+      const animationDuration = 250;
+      const glowDuration = 800;
+
+      function renderBrickLayer(h) {
+        ctx.fillStyle = '#A0522D';
+        ctx.fillRect(x, startY - h, barWidth, h);
+
+        const brickHeight = 16;
+        const brickGap = 2;
+        const brickColor = '#CD5C5C';
+
+        for (let i = 0; i * (brickHeight + brickGap) < h; i++) {
+          let rowY = startY - (i * (brickHeight + brickGap) + brickHeight);
+          if (rowY < startY - h) rowY = startY - h;
+
+          if (i > 0) {
+            ctx.fillStyle = '#777';
+            ctx.fillRect(x, rowY + brickHeight + brickGap, barWidth, brickGap);
+          }
+
+          if (i % 2 !== 0) {
+            const halfW = (barWidth - brickGap * 3) / 2;
+            ctx.fillStyle = brickColor;
+            ctx.fillRect(x + brickGap, rowY, halfW, brickHeight);
+            ctx.fillRect(x + barWidth - brickGap - halfW, rowY, halfW, brickHeight);
+          } else {
+            const fullW = (barWidth - brickGap * 3) / 2;
+            ctx.fillStyle = brickColor;
+            ctx.fillRect(x + brickGap, rowY, fullW, brickHeight);
+            ctx.fillRect(x + brickGap * 2 + fullW, rowY, fullW, brickHeight);
+            ctx.fillStyle = '#777';
+            ctx.fillRect(x + barWidth / 2 - brickGap / 2, rowY, brickGap, brickHeight);
+          }
+        }
+      }
 
       function animate(timestamp) {
         if (!animationStartTime) animationStartTime = timestamp;
-        
-        let progress;
-        if (!animateGlow) { // 初期描画アニメーション
-            progress = (timestamp - animationStartTime) / animationDuration;
-            currentHeight = targetHeight * Math.min(progress, 1);
-        } else { // 光るアニメーション
-            progress = (timestamp - animationStartTime) / glowDuration;
-            // 光るアニメーション中は高さ固定
-            currentHeight = targetHeight; 
+
+        if (!animateGlow) {
+          const progress = (timestamp - animationStartTime) / animationDuration;
+          currentHeight = targetHeight * Math.min(progress, 1);
+        } else {
+          currentHeight = targetHeight;
         }
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height); // 再描画前にクリア
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        const y = startY - currentHeight; // 棒の描画開始Y座標
+        // ベースライン
+        ctx.strokeStyle = '#a7d9f0';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(10, startY);
+        ctx.lineTo(canvas.width - 10, startY);
+        ctx.stroke();
 
         ctx.save();
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-        ctx.shadowOffsetX = 4;
-        ctx.shadowOffsetY = 4;
-        ctx.shadowBlur = 6;
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
+        ctx.shadowOffsetX = 2;
+        ctx.shadowOffsetY = 2;
+        ctx.shadowBlur = 4;
 
-        // 棒の本体部分の描画
-        ctx.fillStyle = '#A0522D'; // Sienna (レンガのベース色)
-        ctx.fillRect(x, y, barWidth, currentHeight);
+        renderBrickLayer(currentHeight);
 
-        // レンガ模様の描画
-        const brickHeight = 20; // レンガの高さ
-        const brickGap = 2;     // レンガの隙間
-        const brickColor = '#CD5C5C'; // IndianRed (レンガの色)
-
-        for (let i = 0; i * (brickHeight + brickGap) < currentHeight; i++) {
-            let rowY = startY - (i * (brickHeight + brickGap) + brickHeight); // 下から上に描画
-            
-            // 描画範囲を現在の棒の高さ内に収める
-            if (rowY < y) rowY = y;
-            if (rowY + brickHeight > startY) rowY = startY - brickHeight;
-
-            // 各行のレンガの開始X座標をずらす
-            const offset = (i % 2 === 0) ? 0 : (barWidth / 2 - brickGap * 1.5) / 2; // 偶数行と奇数行でずらす
-            
-            // レンガ間の横線（レンガの上に描画されるようにループの前に移動）
-            if (i > 0) {
-                ctx.fillStyle = '#777'; // 隙間の色
-                ctx.fillRect(x, rowY + brickHeight + brickGap, barWidth, brickGap);
-            }
-
-            // 奇数行の特殊処理（左右に半分のレンガ）
-            if (i % 2 !== 0) {
-                const halfBrickWidth = (barWidth - brickGap * 3) / 2;
-                ctx.fillStyle = brickColor;
-                ctx.fillRect(x + brickGap, rowY, halfBrickWidth, brickHeight); // 左側の半レンガ
-                ctx.fillRect(x + barWidth - brickGap - halfBrickWidth, rowY, halfBrickWidth, brickHeight); // 右側の半レンガ
-            } else { // 偶数行
-                const fullBrickWidth = (barWidth - brickGap * 3) / 2;
-                ctx.fillStyle = brickColor;
-                ctx.fillRect(x + brickGap, rowY, fullBrickWidth, brickHeight); // 左のレンガ
-                ctx.fillRect(x + brickGap * 2 + fullBrickWidth, rowY, fullBrickWidth, brickHeight); // 右のレンガ
-                // レンガの間の縦線
-                ctx.fillStyle = '#777'; // 隙間の色
-                ctx.fillRect(x + barWidth / 2 - brickGap / 2, rowY, brickGap, brickHeight);
-            }
-        }
-
-
-        // 光るエフェクト
         if (animateGlow) {
-            const currentGlowProgress = (timestamp - animationStartTime) / glowDuration;
-            if (currentGlowProgress >= 1) {
-                ctx.restore(); // アニメーション終了時にrestoreしてシャドウを元に戻す
-                return; // 光るアニメーション終了
-            }
-            const glowAlpha = Math.abs(Math.sin(currentGlowProgress * Math.PI)) * 0.8; // 0から1まで変化し、元に戻る
-            ctx.shadowColor = `rgba(150, 255, 150, ${glowAlpha})`; // 明るい緑色の光
-            ctx.shadowBlur = 20;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 0;
-            ctx.fillStyle = `rgba(255, 255, 255, ${glowAlpha * 0.5})`; // 棒自体も少し光らせる
-            ctx.fillRect(x, y, barWidth, currentHeight);
+          const glowProgress = (timestamp - animationStartTime) / glowDuration;
+          if (glowProgress < 1) {
+            const glowAlpha = Math.abs(Math.sin(glowProgress * Math.PI)) * 0.8;
+            ctx.shadowColor = `rgba(40, 167, 69, ${glowAlpha})`;
+            ctx.shadowBlur = 15;
+            ctx.fillStyle = `rgba(255, 255, 255, ${glowAlpha * 0.4})`;
+            ctx.fillRect(x, startY - currentHeight, barWidth, currentHeight);
+          }
         }
         ctx.restore();
 
-        // アニメーションの継続条件
-        if (!animateGlow && currentHeight < targetHeight) { // 通常のアニメーションが完了していない場合
-            requestAnimationFrame(animate);
-        } else if (animateGlow && (timestamp - animationStartTime) < glowDuration) { // 光るアニメーションが継続時間内の場合
-            requestAnimationFrame(animate);
-        } else if (animateGlow && (timestamp - animationStartTime) >= glowDuration) {
-             // 光るアニメーションが終了したら、通常の棒グラフを最終状態として一度描画し直す
-            ctx.clearRect(0, 0, canvas.width, canvas.height); // クリア
-            ctx.save();
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-            ctx.shadowOffsetX = 4;
-            ctx.shadowOffsetY = 4;
-            ctx.shadowBlur = 6;
-            ctx.fillStyle = '#A0522D';
-            ctx.fillRect(x, y, barWidth, currentHeight);
-            // レンガも最終状態で描画し直す
-            for (let i = 0; i * (brickHeight + brickGap) < currentHeight; i++) {
-                let rowY = startY - (i * (brickHeight + brickGap) + brickHeight);
-                if (rowY < y) rowY = y;
-                if (rowY + brickHeight > startY) rowY = startY - brickHeight;
-
-                if (i > 0) {
-                    ctx.fillStyle = '#777';
-                    ctx.fillRect(x, rowY + brickHeight + brickGap, barWidth, brickGap);
-                }
-
-                const offset = (i % 2 === 0) ? 0 : (barWidth / 2 - brickGap * 1.5) / 2;
-                if (i % 2 !== 0) {
-                    const halfBrickWidth = (barWidth - brickGap * 3) / 2;
-                    ctx.fillStyle = brickColor;
-                    ctx.fillRect(x + brickGap, rowY, halfBrickWidth, brickHeight);
-                    ctx.fillRect(x + barWidth - brickGap - halfBrickWidth, rowY, halfBrickWidth, brickHeight);
-                } else {
-                    const fullBrickWidth = (barWidth - brickGap * 3) / 2;
-                    ctx.fillStyle = brickColor;
-                    ctx.fillRect(x + brickGap, rowY, fullBrickWidth, brickHeight);
-                    ctx.fillRect(x + brickGap * 2 + fullBrickWidth, rowY, fullBrickWidth, brickHeight);
-                    ctx.fillStyle = '#777';
-                    ctx.fillRect(x + barWidth / 2 - brickGap / 2, rowY, brickGap, brickHeight);
-                }
-            }
-            ctx.restore();
+        if (!animateGlow && currentHeight < targetHeight) {
+          requestAnimationFrame(animate);
+        } else if (animateGlow && (timestamp - animationStartTime) < glowDuration) {
+          requestAnimationFrame(animate);
         }
       }
       requestAnimationFrame(animate);
     }
 
-
-    // コンフェッティ演出（完璧な回答時）
     function launchConfetti() {
-      const confettiCanvas = document.getElementById('confettiCanvas');
-      confettiCanvas.style.display = 'block';
-      confettiCanvas.width = window.innerWidth;
-      confettiCanvas.height = window.innerHeight;
-      const confettiCtx = confettiCanvas.getContext('2d');
+      const cCanvas = document.getElementById('confettiCanvas');
+      cCanvas.style.display = 'block';
+      cCanvas.width = window.innerWidth;
+      cCanvas.height = window.innerHeight;
+      const cCtx = cCanvas.getContext('2d');
       const particles = [];
       const colors = ['#fcf403', '#fc4a03', '#03fc03', '#0303fc', '#fc03d8'];
-      
-      for (let i = 0; i < 150; i++) { // パーティクル数を増やす
+
+      for (let i = 0; i < 90; i++) {
         particles.push({
-          x: Math.random() * confettiCanvas.width,
-          y: Math.random() * confettiCanvas.height - confettiCanvas.height,
-          r: Math.random() * 8 + 3, // サイズを少し大きく
-          d: Math.random() * 7 + 2, // 落ちる速度
+          x: Math.random() * cCanvas.width,
+          y: Math.random() * cCanvas.height - cCanvas.height,
+          r: Math.random() * 6 + 2,
+          d: Math.random() * 6 + 2,
           color: colors[Math.floor(Math.random() * colors.length)],
-          tilt: Math.floor(Math.random() * 20) - 10, // 傾きを大きく
+          tilt: Math.floor(Math.random() * 15) - 8,
           tiltAngle: 0,
-          tiltAngleIncrement: Math.random() * 0.1 + 0.05 // 傾き変化の速度
+          tiltAngleInc: Math.random() * 0.1 + 0.05
         });
       }
-      
-      function drawParticles() {
-        confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
-        particles.forEach(p => {
-          confettiCtx.beginPath();
-          confettiCtx.lineWidth = p.r;
-          confettiCtx.strokeStyle = p.color;
-          confettiCtx.moveTo(p.x + p.tilt + Math.sin(p.tiltAngle) * p.r, p.y);
-          confettiCtx.lineTo(p.x + p.tilt, p.y + p.r * Math.cos(p.tiltAngle));
-          confettiCtx.stroke();
-        });
-      }
-      
-      let angle = 0;
-      function updateParticles() {
-        angle += 0.01;
+
+      function update() {
+        cCtx.clearRect(0, 0, cCanvas.width, cCanvas.height);
         particles.forEach((p, i) => {
-          p.y += (Math.cos(angle) + p.d + 1);
-          p.x += Math.sin(angle);
-          p.tiltAngle += p.tiltAngleIncrement; // 傾きを変化させる
-          if (p.y > confettiCanvas.height) {
+          p.y += p.d;
+          p.x += Math.sin(p.tiltAngle);
+          p.tiltAngle += p.tiltAngleInc;
+          cCtx.beginPath();
+          cCtx.lineWidth = p.r;
+          cCtx.strokeStyle = p.color;
+          cCtx.moveTo(p.x + p.tilt + p.r, p.y);
+          cCtx.lineTo(p.x + p.tilt, p.y + p.r);
+          cCtx.stroke();
+
+          if (p.y > cCanvas.height) {
             particles[i] = {
-              x: Math.random() * confettiCanvas.width,
+              x: Math.random() * cCanvas.width,
               y: -10,
               r: p.r,
               d: p.d,
               color: p.color,
               tilt: p.tilt,
               tiltAngle: 0,
-              tiltAngleIncrement: p.tiltAngleIncrement
+              tiltAngleInc: p.tiltAngleInc
             };
           }
         });
       }
-      
-      const confettiAnimation = setInterval(() => {
-        drawParticles();
-        updateParticles();
-      }, 20);
-      
+
+      const interval = setInterval(update, 20);
       setTimeout(() => {
-        clearInterval(confettiAnimation);
-        confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
-        confettiCanvas.style.display = 'none';
-      }, 3500); // 少し長く表示
+        clearInterval(interval);
+        cCtx.clearRect(0, 0, cCanvas.width, cCanvas.height);
+        cCanvas.style.display = 'none';
+      }, 2500);
     }
 
-    // 新ラウンド開始（自動移行）
     function startRound() {
-      if (!gameActive) return; // ゲームが非アクティブなら開始しない
-
+      if (!gameActive) return;
       clearInterval(timerInterval);
-      
-      // チャレンジモードの場合は残り時間リセットしない
+
       if (!isChallengeMode) {
-        const timerSetting = parseInt(document.querySelector('input[name="timerOption"]:checked').value);
+        const timerSetting = parseInt(document.querySelector('input[name="timerOption"]:checked').value, 10);
         timeLeft = timerSetting;
       }
       timeLeftSpan.textContent = timeLeft;
 
-      const maxSetting = 100; // 最大100mm
       hintUsed = false;
       document.getElementById('hint').disabled = false;
       guessInput.value = "";
-      resultDiv.innerHTML = "";
-      
-      actualLength = Math.floor(Math.random() * (maxSetting - 20 + 1)) + 20; // 20-100mm
-      drawBar(); // 棒グラフを描画
+
+      actualLength = Math.floor(Math.random() * (100 - 20 + 1)) + 20;
+      drawBar();
       enableKeypad();
-      
+
       timerInterval = setInterval(() => {
         timeLeft--;
         timeLeftSpan.textContent = timeLeft;
-        if (timeLeft === 5) { // 残り5秒で警告音
-            timerWarningSound.play();
+        if (timeLeft === 5) {
+          timerWarningSound.play().catch(() => {});
         }
         if (timeLeft <= 0) {
           clearInterval(timerInterval);
           disableKeypad();
-          
-          if (isChallengeMode) {
-              gameOverSound.play(); // ゲームオーバー音
-              resultDiv.innerHTML = `時間切れ！ゲーム終了です！<br>最終スコア: ${score}点`;
-              saveHighScores(); // チャレンジモードのハイスコアを保存
-              gameActive = false; // ゲームを完全に非アクティブに
-              document.getElementById('hint').disabled = true;
-              document.getElementById('reset').textContent = 'もう一度プレイ';
-          } else {
-              resultDiv.innerHTML = `時間切れ！ 実際の長さは ${actualLength} mm でした。<br>+0 ポイント`;
-              combo = 0;
-              comboSpan.textContent = combo;
-              // 履歴に記録
-              roundResults.push({
-                  guess: null, // 時間切れなのでnull
-                  actual: actualLength,
-                  diff: '時間切れ',
-                  points: 0
-              });
-              saveRoundHistory();
 
-              round++;
-              roundSpan.textContent = round;
-              setTimeout(startRound, 2000); // 2秒後に次のラウンド
+          if (isChallengeMode) {
+            gameOverSound.play().catch(() => {});
+            resultDiv.innerHTML = `時間終了！<br>スコア: ${score}点`;
+            saveHighScores();
+            gameActive = false;
+            document.getElementById('hint').disabled = true;
+            document.getElementById('reset').textContent = '再挑戦';
+          } else {
+            resultDiv.innerHTML = `時間切れ！ 正解: ${actualLength}mm<br>+0 点`;
+            combo = 0;
+            comboSpan.textContent = combo;
+            roundResults.push({
+              guess: null,
+              actual: actualLength,
+              diff: '時間切れ',
+              points: 0
+            });
+            saveRoundHistory();
+
+            round++;
+            roundSpan.textContent = round;
+            setTimeout(startRound, 1500);
           }
         }
       }, 1000);
     }
 
-    // ユーザー回答の評価
     function evaluateGuess() {
-      if (timeLeft <= 0 || !gameActive) return; // 時間切れまたはゲーム非アクティブなら評価しない
-      
+      if (timeLeft <= 0 || !gameActive) return;
+
       const guess = parseInt(guessInput.value, 10);
       if (isNaN(guess) || guessInput.value === "") {
-        resultDiv.innerHTML = "数字を入力してください。";
-        // チャレンジモードでない場合はタイマーを停止して次のラウンドへ
-        if (!isChallengeMode) {
-            clearInterval(timerInterval);
-            disableKeypad();
-            setTimeout(startRound, 1000); // 1秒後に次のラウンド
-        }
+        resultDiv.innerHTML = "数値を入力してください";
         return;
       }
-      
+
       const diff = Math.abs(actualLength - guess);
       let feedback = "";
       let points = 0;
-      
+
       if (diff === 0) {
-        feedback = "完璧！大正解です！";
+        feedback = "完璧！大正解！";
         points = 10;
         combo++;
-        comboSound.play(); // コンボ音
+        comboSound.play().catch(() => {});
         launchConfetti();
-        drawBar(true); // 棒を光らせるアニメーション
+        drawBar(true);
       } else if (diff <= 2) {
-        feedback = "ほぼ正解！あと少し！";
+        feedback = "誤差わずか！惜しい！";
         points = 7;
         combo = 0;
-        correctSound.play(); // 成功音
+        correctSound.play().catch(() => {});
       } else if (diff <= 5) {
-        feedback = "近いです！頑張って！";
+        feedback = "ナイス推理！";
         points = 5;
         combo = 0;
-        correctSound.play(); // 成功音
+        correctSound.play().catch(() => {});
       } else if (diff <= 10) {
-        feedback = "まあまあです。";
+        feedback = "あと少し！";
         points = 3;
         combo = 0;
-        incorrectSound.play(); // 失敗音
+        incorrectSound.play().catch(() => {});
       } else {
-        feedback = "残念…";
+        feedback = "残念…！";
         points = 0;
         combo = 0;
-        incorrectSound.play(); // 失敗音
+        incorrectSound.play().catch(() => {});
       }
-      
+
       if (guess !== actualLength) {
-        feedback += (guess > actualLength)
-          ? " ヒント: もう少し短い数値を。"
-          : " ヒント: もう少し長い数値を。";
+        feedback += guess > actualLength ? " (高すぎ)" : " (低すぎ)";
       }
-      
-      resultDiv.innerHTML =
-        `あなたの予想: ${guess} mm<br>` +
-        `実際の長さ: ${actualLength} mm<br>` +
-        `${feedback}<br>` +
-        `+${points} ポイント`;
-      
+
+      resultDiv.innerHTML = `正解: ${actualLength}mm (予想:${guess})<br>${feedback} <b>+${points}点</b>`;
+
       score += points;
       scoreSpan.textContent = score;
       comboSpan.textContent = combo;
 
-      // 履歴に記録
       roundResults.push({
-          guess: guess,
-          actual: actualLength,
-          diff: diff,
-          points: points
+        guess: guess,
+        actual: actualLength,
+        diff: diff,
+        points: points
       });
       saveRoundHistory();
-      saveHighScores(); // スコア評価後にハイスコアをチェック＆保存
+      saveHighScores();
 
-      // チャレンジモード以外は自動で次のラウンドへ
       if (!isChallengeMode) {
-          clearInterval(timerInterval); // タイマーを停止
-          disableKeypad(); // 評価中はキーパッドを無効化
-          round++;
-          roundSpan.textContent = round;
-          setTimeout(startRound, 2000); // 2秒後に次のラウンド
+        clearInterval(timerInterval);
+        disableKeypad();
+        round++;
+        roundSpan.textContent = round;
+        setTimeout(startRound, 1400);
       } else {
-          // チャレンジモードの場合は、次の棒をすぐに描画し、入力欄をクリアする
-          // タイマーは継続しているので、clearIntervalはしない
-          guessInput.value = "";
-          const maxSetting = 100;
-          actualLength = Math.floor(Math.random() * (maxSetting - 20 + 1)) + 20; // 20-100mm
-          drawBar(); // 棒グラフを描画
-          enableKeypad();
+        guessInput.value = "";
+        actualLength = Math.floor(Math.random() * (100 - 20 + 1)) + 20;
+        drawBar();
+        enableKeypad();
       }
     }
 
-    // ヒント（各ラウンド1回のみ）
     document.getElementById('hint').addEventListener("click", function () {
-      if (hintUsed || timeLeft <= 0 || !gameActive) return; // 時間切れ、ヒント使用済み、ゲーム非アクティブではヒント不可
+      if (hintUsed || timeLeft <= 0 || !gameActive) return;
       hintUsed = true;
       this.disabled = true;
-      let hintMessage = "";
-      if (actualLength < 40) { // 20-100mmなので区切りを調整
-        hintMessage = "ヒント: 棒はかなり短いです。";
-      } else if (actualLength < 70) {
-        hintMessage = "ヒント: 棒は中くらいの長さです。";
-      } else {
-        hintMessage = "ヒント: 棒はかなり長いです。";
-      }
-      resultDiv.innerHTML = hintMessage;
+      let msg = "";
+      if (actualLength < 40) msg = "短め (20〜40mm付近)";
+      else if (actualLength < 70) msg = "中くらい (40〜70mm付近)";
+      else msg = "長め (70〜100mm付近)";
+      resultDiv.innerHTML = `【ヒント】<br>${msg}`;
     });
 
-    // 次のラウンド/新しいゲームを開始ボタン
-    document.getElementById('reset').addEventListener("click", function () {
-      initializeGame(); // モード選択から再初期化する
+    document.getElementById('reset').addEventListener("click", () => {
+      initializeGame();
     });
 
-    // 履歴表示ボタン
-    showHistoryButton.addEventListener("click", function() {
-        renderRoundHistory();
-        roundHistoryDiv.style.display = 'block';
+    showHistoryButton.addEventListener("click", () => {
+      renderRoundHistory();
+      roundHistoryDiv.style.display = 'flex';
     });
 
-    // 履歴クリアボタン
     clearHistoryButton.addEventListener("click", clearRoundHistory);
-
-    // 履歴閉じるボタン
-    closeHistoryButton.addEventListener("click", function() {
-        roundHistoryDiv.style.display = 'none';
+    closeHistoryButton.addEventListener("click", () => {
+      roundHistoryDiv.style.display = 'none';
     });
 
-    // ゲーム終了ボタンのイベントリスナー
-    endGameButton.addEventListener("click", function() {
-        if (confirm('ゲームを終了しますか？現在のスコアはリセットされます。')) {
-            clearInterval(timerInterval); // タイマー停止
-            disableKeypad(); // キーパッド無効化
-            gameActive = false; // ゲームを非アクティブに
-            resultDiv.innerHTML = `ゲーム終了！最終スコア: ${score}点<br>「${document.getElementById('reset').textContent}」ボタンで新しいゲームを開始できます。`;
-            document.getElementById('hint').disabled = true; // ヒントも無効化
-            document.getElementById('reset').textContent = '新しいゲームを開始'; // ボタンテキスト変更
-            gameOverSound.play(); // ゲームオーバー音を鳴らす
-            saveHighScores(); // 念のためスコアを保存
-        }
+    endGameButton.addEventListener("click", () => {
+      if (confirm('ゲームを終了しますか？')) {
+        clearInterval(timerInterval);
+        disableKeypad();
+        gameActive = false;
+        resultDiv.innerHTML = `ゲーム終了<br>最終: ${score}点`;
+        document.getElementById('hint').disabled = true;
+        document.getElementById('reset').textContent = '再開';
+        gameOverSound.play().catch(() => {});
+        saveHighScores();
+      }
     });
 
-    // タイマー設定ラジオボタンのイベントリスナー
     timerOptionRadios.forEach(radio => {
-        radio.addEventListener('change', function() {
-            // モードが切り替わったらゲームの状態をリセット
-            initializeGame();
-        });
+      radio.addEventListener('change', () => {
+        settingsDetails.removeAttribute('open'); // 選択後に閉じる
+        initializeGame();
+      });
     });
 
-    // ゲーム開始
     window.onload = initializeGame;
   </script>
 </body>
